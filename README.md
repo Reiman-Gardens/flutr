@@ -106,6 +106,8 @@ pnpm db:studio      # Open Drizzle Studio GUI
 
 This project uses [Conventional Commits](https://www.conventionalcommits.org/) enforced by [commitlint](https://commitlint.js.org/). A `commit-msg` hook validates every commit message automatically.
 
+> **PR titles must also follow conventional commits.** All PRs are squash-merged using only the PR title as the commit message on `main`.
+
 ```
 <type>[optional scope]: <description>
 
