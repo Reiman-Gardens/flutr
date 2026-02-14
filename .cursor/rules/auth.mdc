@@ -1,0 +1,7 @@
+---
+description: Authentication and authorization patterns
+globs: src/auth.ts,src/auth.config.ts,src/middleware.ts,src/app/login/**/*
+alwaysApply: false
+---
+
+@docs/rules/auth.md

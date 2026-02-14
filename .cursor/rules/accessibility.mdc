@@ -1,0 +1,7 @@
+---
+description: WCAG 2.1 AA accessibility requirements
+globs: src/components/**/*.tsx,src/app/**/*.tsx
+alwaysApply: false
+---
+
+@docs/rules/accessibility.md

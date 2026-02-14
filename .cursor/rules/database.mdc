@@ -1,0 +1,7 @@
+---
+description: Database conventions and Drizzle ORM patterns
+globs: src/lib/schema.ts,src/lib/db.ts,drizzle/**/*
+alwaysApply: false
+---
+
+@docs/rules/database.md

@@ -1,0 +1,7 @@
+---
+description: API route development conventions
+globs: src/app/api/**/*.ts
+alwaysApply: false
+---
+
+@docs/rules/api-routes.md

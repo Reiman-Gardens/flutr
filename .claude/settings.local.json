@@ -1,0 +1,5 @@
+{
+  "permissions": {
+    "allow": ["Bash(pnpm --version:*)", "Bash(del:*)", "Bash(pnpm add:*)"]
+  }
+}

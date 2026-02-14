@@ -1,0 +1,7 @@
+---
+description: Project context and conventions for Flutr
+globs:
+alwaysApply: true
+---
+
+Read AGENTS.md for full project context, tech stack, conventions, and workflow rules.

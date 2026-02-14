@@ -1,0 +1,4 @@
+node_modules
+.next
+drizzle
+pnpm-lock.yaml

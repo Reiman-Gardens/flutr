@@ -1,0 +1,7 @@
+---
+description: Documentation maintenance guidelines
+globs: docs/**/*,AGENTS.md
+alwaysApply: false
+---
+
+@docs/rules/docs.md
