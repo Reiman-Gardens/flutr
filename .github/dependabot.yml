@@ -10,6 +10,10 @@ updates:
       prefix: "chore"
     labels:
       - dependencies
+    groups:
+      all-dependencies:
+        patterns:
+          - "*"
 
   - package-ecosystem: github-actions
     directory: /
@@ -20,3 +24,7 @@ updates:
       prefix: "ci"
     labels:
       - dependencies
+    groups:
+      all-actions:
+        patterns:
+          - "*"

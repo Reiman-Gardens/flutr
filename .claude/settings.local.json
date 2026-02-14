@@ -1,5 +1,5 @@
 {
   "permissions": {
-    "allow": ["Bash(pnpm --version:*)", "Bash(del:*)", "Bash(pnpm add:*)"]
+    "allow": ["Bash(pnpm --version:*)", "Bash(del:*)", "Bash(pnpm add:*)", "Bash(pnpm exec tsc:*)"]
   }
 }
