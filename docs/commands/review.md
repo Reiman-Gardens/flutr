@@ -15,6 +15,8 @@ Review the current changes for code quality, correctness, and project convention
 - [ ] Multi-tenant isolation enforced (institution_id filtering)
 - [ ] Auth checked on protected endpoints
 - [ ] No SQL injection (Drizzle parameterizes automatically, but verify raw queries)
+- [ ] No XSS attack vectors
+- [ ] Authentication and authorization issues
 
 ### Accessibility (WCAG 2.1 AA)
 
