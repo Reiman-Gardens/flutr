@@ -93,7 +93,7 @@ pnpm db:studio      # Open Drizzle Studio GUI
 - `shipments` — Shipment headers (institution_id, supplier_id, shipment_date, arrival_date, timestamps)
 - `shipment_items` — Shipment line items per species (institution_id, shipment_id, butterfly_species_id, number_received, emerged_in_transit, damaged_in_transit, diseased_in_transit, parasite, non_emergence, poor_emergence, timestamps)
 - `release_events` — Butterfly release events (institution_id, shipment_id, release_date, optional released_by, created_at)
-- `release_items` — Species released during a release event (release_event_id, shipment_item_id, quantity, created_at)
+- `release_items` — Species released during a release event (institution_id, release_event_id, shipment_item_id, quantity, created_at)
 
 ## Documentation
 
