@@ -418,6 +418,7 @@ export const release_items = pgTable(
     quantity: integer("quantity").notNull(),
 
     created_at: timestamp("created_at").defaultNow().notNull(),
+    updated_at: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => ({
     unique_release_shipment_item: uniqueIndex("unique_release_shipment_item").on(
