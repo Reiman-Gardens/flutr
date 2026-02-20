@@ -378,6 +378,7 @@ export const release_events = pgTable(
     released_by: text("released_by").notNull(),
 
     created_at: timestamp("created_at").defaultNow().notNull(),
+    updated_at: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => ({
     fk_release_events_shipment_institution: foreignKey({
