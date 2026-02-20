@@ -91,7 +91,7 @@ pnpm db:studio      # Open Drizzle Studio GUI
 - `butterfly_species_institution` — Institution-specific overrides for global species (butterfly_species_id, institution_id, optional common_name_override, fun_facts_override, habitat_override, host_plant_override, image_override, lifespan_override, timestamps)
 - `suppliers` — Butterfly suppliers/vendors (institution_id, name, code, country, is_active, optional website_url, timestamps)
 - `shipments` — Shipment headers (institution_id, supplier_id, shipment_date, arrival_date, timestamps)
-- `shipment_items` — Shipment line items per species (shipment_id, butterfly_species_id, number_received, emerged_in_transit, damaged_in_transit, diseased_in_transit, parasite, non_emergence, poor_emergence, timestamps)
+- `shipment_items` — Shipment line items per species (institution_id, shipment_id, butterfly_species_id, number_received, emerged_in_transit, damaged_in_transit, diseased_in_transit, parasite, non_emergence, poor_emergence, timestamps)
 - `release_events` — Butterfly release events (institution_id, shipment_id, release_date, optional released_by, created_at)
 - `release_items` — Species released during a release event (release_event_id, shipment_item_id, quantity, created_at)
 
