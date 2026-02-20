@@ -29,7 +29,7 @@ export default {
           name: user.name,
           email: user.email,
           role: user.role,
-          institutionId: user.institutionId,
+          institutionId: user.institution_id,
         };
       },
     }),
