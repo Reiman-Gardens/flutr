@@ -117,7 +117,7 @@ async function main() {
 
     for (const detail of shipment.butterflyDetails) {
       if (!masterSpeciesSet.has(detail.buttId.trim())) {
-        missingSpecies.add(detail.buttId);
+        missingSpecies.add(detail.buttId.trim());
       }
     }
   }
