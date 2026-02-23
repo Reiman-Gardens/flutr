@@ -104,8 +104,12 @@ async function main() {
     is_active: supplier.active ?? true,
   }));
 
-  await db.insert(suppliers).values(mappedSuppliers);
-  console.log(`Inserted ${mappedSuppliers.length} suppliers`);
+  if (mappedSuppliers.length > 0) {
+    await db.insert(suppliers).values(mappedSuppliers);
+    console.log(`Inserted ${mappedSuppliers.length} suppliers`);
+  } else {
+    console.log("No suppliers to insert");
+  }
 
   // 6. Validate shipment species + supplier codes
   const masterSpeciesSet = new Set(Array.from(speciesIdMap.keys()));
