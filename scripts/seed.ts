@@ -199,7 +199,9 @@ async function main() {
     };
   });
 
-  await db.insert(butterfly_species_institution).values(mappedInstitutionSpecies);
+  if (mappedInstitutionSpecies.length > 0) {
+    await db.insert(butterfly_species_institution).values(mappedInstitutionSpecies);
+  }
   console.log(`Enabled ${mappedInstitutionSpecies.length} species for institution`);
 
   // 9. Insert users
