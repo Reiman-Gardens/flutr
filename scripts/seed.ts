@@ -219,7 +219,9 @@ async function main() {
     });
   }
 
-  await db.insert(users).values(mappedUsers);
+  if (mappedUsers.length > 0) {
+    await db.insert(users).values(mappedUsers);
+  }
   console.log(`Inserted ${mappedUsers.length} users`);
 }
 
