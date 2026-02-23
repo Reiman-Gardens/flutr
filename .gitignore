@@ -25,6 +25,9 @@
 *.pem
 .idea
 
+# seed data
+scripts/data/*.json
+
 # debug
 npm-debug.log*
 yarn-debug.log*

@@ -4,7 +4,7 @@
 
 - All tables defined in `src/lib/schema.ts` using Drizzle ORM
 - Use `pgTable()` for table definitions
-- All tables include `createdAt` and `updatedAt` timestamps
+- All tables include `created_at` and `updated_at` timestamps
 
 ## Client
 
@@ -20,8 +20,20 @@
 ## Multi-Tenant Queries
 
 - Always filter by `institution_id` for tenant-scoped data
-- Use cascade deletes (already configured in schema foreign keys)
+- Foreign keys use a mix of `CASCADE` and `RESTRICT`; verify behavior per relationship
 - The `butterfly_species` table is global; `butterfly_species_institution` is per-tenant
+
+## Tenant Composite-Key Enforcement
+
+Tenant isolation is enforced at the database level using composite foreign keys that include `institution_id`.
+
+- `shipments (institution_id, supplier_code) -> suppliers (institution_id, code)` — `RESTRICT`
+- `shipment_items (institution_id, shipment_id) -> shipments (institution_id, id)` — `CASCADE`
+- `release_events (institution_id, shipment_id) -> shipments (institution_id, id)` — `CASCADE`
+- `release_items (institution_id, release_event_id) -> release_events (institution_id, id)` — `CASCADE`
+- `release_items (institution_id, shipment_item_id) -> shipment_items (institution_id, id)` — `RESTRICT`
+
+This prevents cross-tenant references even if a raw numeric ID exists in another institution.
 
 ## Docker
 

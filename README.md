@@ -60,6 +60,27 @@ pnpm db:push
 pnpm dev
 ```
 
+## Seeding the Database (Development Only)
+
+One time setup: ensure Docker is running and the database is empty.
+Ensure the `scripts/data/` directory contains the necessary JSON files for seeding:
+
+- `users.json`
+- `shipments.json`
+- `suppliers.json`
+- `institutions.json`
+- `institution_news.json`
+- `master_butterfly_list.json`
+
+Then run:
+
+```bash
+docker compose down -v     # Reset Docker volumes if data exists (caution: deletes all data)
+docker compose up -d
+pnpm db:push
+pnpm seed                  # Run seed script to populate initial data (Ensure .json files in scripts/data/ are present)
+```
+
 Open [http://localhost:3000](http://localhost:3000) to view the app.
 
 ## Environment Variables
