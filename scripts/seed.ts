@@ -1,6 +1,6 @@
 import "dotenv/config";
 import bcrypt from "bcrypt";
-import { db } from "@/lib/db";
+import { db } from "../src/lib/db";
 import {
   institutions,
   institution_news,
@@ -10,7 +10,7 @@ import {
   shipment_items,
   suppliers,
   users,
-} from "@/lib/schema";
+} from "../src/lib/schema";
 import usersData from "./data/users.json";
 import shipmentsData from "./data/shipments.json";
 import suppliersData from "./data/suppliers.json";
