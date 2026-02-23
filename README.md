@@ -68,7 +68,7 @@ Ensure the `scripts/data/` directory contains the necessary JSON files for seedi
 - `users.json`
 - `shipments.json`
 - `suppliers.json`
-- `institutions.json`
+- `institution.json`
 - `institution_news.json`
 - `master_butterfly_list.json`
 
