@@ -80,10 +80,13 @@ async function main() {
     extra_img_2: species.extraImg2 ?? null,
   }));
 
-  const insertedSpecies = await db.insert(butterfly_species).values(mappedSpecies).returning({
-    id: butterfly_species.id,
-    scientific_name: butterfly_species.scientific_name,
-  });
+  let insertedSpecies: { id: number; scientific_name: string }[] = [];
+  if (mappedSpecies.length > 0) {
+    insertedSpecies = await db.insert(butterfly_species).values(mappedSpecies).returning({
+      id: butterfly_species.id,
+      scientific_name: butterfly_species.scientific_name,
+    });
+  }
   const speciesIdMap = new Map<string, number>();
 
   for (const s of insertedSpecies) {
