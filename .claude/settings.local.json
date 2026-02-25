@@ -1,5 +1,11 @@
 {
   "permissions": {
-    "allow": ["Bash(pnpm --version:*)", "Bash(del:*)", "Bash(pnpm add:*)", "Bash(pnpm exec tsc:*)"]
+    "allow": [
+      "Bash(pnpm --version:*)",
+      "Bash(del:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm exec tsc:*)",
+      "Bash(cd /d/Projects/flutr && pnpm test 2>&1)"
+    ]
   }
 }

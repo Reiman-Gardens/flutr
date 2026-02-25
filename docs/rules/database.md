@@ -30,8 +30,8 @@ Tenant isolation is enforced at the database level using composite foreign keys 
 - `shipments (institution_id, supplier_code) -> suppliers (institution_id, code)` — `RESTRICT`
 - `shipment_items (institution_id, shipment_id) -> shipments (institution_id, id)` — `CASCADE`
 - `release_events (institution_id, shipment_id) -> shipments (institution_id, id)` — `CASCADE`
-- `release_items (institution_id, release_event_id) -> release_events (institution_id, id)` — `CASCADE`
-- `release_items (institution_id, shipment_item_id) -> shipment_items (institution_id, id)` — `RESTRICT`
+- `in_flight (institution_id, release_event_id) -> release_events (institution_id, id)` — `CASCADE`
+- `in_flight (institution_id, shipment_item_id) -> shipment_items (institution_id, id)` — `RESTRICT`
 
 This prevents cross-tenant references even if a raw numeric ID exists in another institution.
 
