@@ -9,7 +9,7 @@ import {
   shipments,
   shipment_items,
   release_events,
-  release_items,
+  in_flight,
 } from "@/lib/schema";
 
 describe("schema", () => {
@@ -24,7 +24,7 @@ describe("schema", () => {
       expect(getTableName(shipments)).toBe("shipments");
       expect(getTableName(shipment_items)).toBe("shipment_items");
       expect(getTableName(release_events)).toBe("release_events");
-      expect(getTableName(release_items)).toBe("release_items");
+      expect(getTableName(in_flight)).toBe("in_flight");
     });
   });
 
@@ -108,6 +108,7 @@ describe("schema", () => {
 
     it("has optional columns", () => {
       const columns = Object.keys(butterfly_species);
+      expect(columns).toContain("description");
       expect(columns).toContain("host_plant");
       expect(columns).toContain("habitat");
       expect(columns).toContain("fun_facts");
@@ -150,10 +151,6 @@ describe("schema", () => {
     it("has optional columns", () => {
       const columns = Object.keys(butterfly_species_institution);
       expect(columns).toContain("common_name_override");
-      expect(columns).toContain("fun_facts_override");
-      expect(columns).toContain("habitat_override");
-      expect(columns).toContain("host_plant_override");
-      expect(columns).toContain("image_override");
       expect(columns).toContain("lifespan_override");
     });
   });
@@ -206,9 +203,9 @@ describe("schema", () => {
     });
   });
 
-  describe("release_items", () => {
+  describe("in_flight", () => {
     it("has required columns", () => {
-      const columns = Object.keys(release_items);
+      const columns = Object.keys(in_flight);
       expect(columns).toContain("id");
       expect(columns).toContain("institution_id");
       expect(columns).toContain("release_event_id");

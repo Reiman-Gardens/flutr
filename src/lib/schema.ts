@@ -106,31 +106,22 @@ export const institution_news = pgTable("institution_news", {
  * Scoped to an institution.
  * Roles: SUPERUSER | ORG SUPER | ORG ADMIN | ORG EMPLOYEE (future enforcement via enum).
  */
-export const users = pgTable(
-  "users",
-  {
-    id: serial("id").primaryKey(),
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
 
-    name: text("name").notNull(),
-    email: text("email").notNull(),
-    password_hash: text("password_hash").notNull(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  password_hash: text("password_hash").notNull(),
 
-    institution_id: integer("institution_id")
-      .notNull()
-      .references(() => institutions.id, { onDelete: "cascade" }),
+  institution_id: integer("institution_id")
+    .notNull()
+    .references(() => institutions.id, { onDelete: "cascade" }),
 
-    role: text("role").notNull().default("user"),
+  role: text("role").notNull().default("user"),
 
-    created_at: timestamp("created_at").defaultNow().notNull(),
-    updated_at: timestamp("updated_at").defaultNow().notNull(),
-  },
-  (table) => ({
-    unique_user_email_per_institution: uniqueIndex("unique_user_email_per_institution").on(
-      table.institution_id,
-      table.email,
-    ),
-  }),
-);
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+});
 
 /**
  * Global Butterfly Species Catalog
@@ -155,6 +146,8 @@ export const butterfly_species = pgTable("butterfly_species", {
   lifespan_days: integer("lifespan_days").notNull(),
 
   range: text("range").array().notNull(),
+
+  description: text("description"),
 
   host_plant: text("host_plant"),
   habitat: text("habitat"),
@@ -196,10 +189,6 @@ export const butterfly_species_institution = pgTable(
       .references(() => institutions.id, { onDelete: "cascade" }),
 
     common_name_override: text("common_name_override"),
-    fun_facts_override: text("fun_facts_override"),
-    habitat_override: text("habitat_override"),
-    host_plant_override: text("host_plant_override"),
-    image_override: text("image_override"),
     lifespan_override: integer("lifespan_override"),
 
     created_at: timestamp("created_at").defaultNow().notNull(),
@@ -387,7 +376,7 @@ export const release_events = pgTable(
       name: "fk_release_events_shipment_institution",
     }).onDelete("cascade"),
 
-    // Needed so release_items can FK to (institution_id, id)
+    // Needed so in_flight can FK to (institution_id, id)
     unique_release_event_id_per_institution: unique("unique_release_event_id_per_institution").on(
       table.institution_id,
       table.id,
@@ -396,14 +385,14 @@ export const release_events = pgTable(
 );
 
 /**
- * Release Items
+ * In-Flight Items
  *
  * Represents each butterfly species released within a release event.
  * Allows tracking quantity and quality of released butterflies.
  *
  */
-export const release_items = pgTable(
-  "release_items",
+export const in_flight = pgTable(
+  "in_flight",
   {
     id: serial("id").primaryKey(),
 
@@ -421,23 +410,23 @@ export const release_items = pgTable(
     updated_at: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => ({
-    unique_release_shipment_item: uniqueIndex("unique_release_shipment_item").on(
+    unique_in_flight_shipment_item: uniqueIndex("unique_in_flight_shipment_item").on(
       table.release_event_id,
       table.shipment_item_id,
     ),
 
-    // release_item must belong to same tenant as release_event
-    fk_release_items_event_institution: foreignKey({
+    // in_flight must belong to same tenant as release_event
+    fk_in_flight_event_institution: foreignKey({
       columns: [table.institution_id, table.release_event_id],
       foreignColumns: [release_events.institution_id, release_events.id],
-      name: "fk_release_items_event_institution",
+      name: "fk_in_flight_event_institution",
     }).onDelete("cascade"),
 
-    // release_item must belong to same tenant as shipment_item
-    fk_release_items_shipment_item_institution: foreignKey({
+    // in_flight must belong to same tenant as shipment_item
+    fk_in_flight_shipment_item_institution: foreignKey({
       columns: [table.institution_id, table.shipment_item_id],
       foreignColumns: [shipment_items.institution_id, shipment_items.id],
-      name: "fk_release_items_shipment_item_institution",
+      name: "fk_in_flight_shipment_item_institution",
     }).onDelete("restrict"),
   }),
 );
