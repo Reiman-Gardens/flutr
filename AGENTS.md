@@ -32,8 +32,19 @@ src/
 │   │       └── [butterfly]/ # Individual species detail
 │   └── api/                # API routes
 │       ├── auth/[...nextauth]/ # NextAuth handlers
+│       ├── public/         # Public read-only endpoints (no auth)
+│       │   ├── institutions/ # Public institution directory + details + in-flight + enabled species + species detail
+│       │   └── species/    # Global public species grid
+│       ├── species/        # Platform SUPERUSER global butterfly species management (list/create/update/delete)
 │       ├── users/          # User management
-│       └── institution/    # Institution management
+│       ├── users/[id]/      # User detail management
+│       ├── users/me/       # Current authenticated user profile
+│       ├── institution/    # Institution profile management (tenant-scoped patch)
+│       ├── institutions/   # Platform SUPERUSER institution management (list/create/detail/update)
+│       ├── in-flight/      # In-flight quantity correction + hard delete
+│       ├── releases/       # Release event in-flight management
+│       ├── shipments/      # Shipment management + release creation
+│       └── suppliers/      # Supplier management
 ├── components/             # React components by feature
 │   ├── admin/              # Admin-specific components
 │   ├── auth/               # Auth-specific components
@@ -45,7 +56,13 @@ src/
 │   ├── db.ts               # Drizzle ORM client
 │   ├── schema.ts           # Database schema definitions
 │   ├── logger.ts           # Dev-only logging utility
-│   └── utils.ts            # Tailwind class merging (cn)
+│   ├── utils.ts            # Tailwind class merging (cn)
+│   └── validation/         # Zod schemas and sanitizers
+│       ├── institution.ts
+│       ├── releases.ts
+│       ├── sanitize.ts
+│       ├── shipments.ts
+│       └── users.ts
 ├── types/                  # TypeScript type definitions
 │   └── next-auth.d.ts      # NextAuth session augmentation
 └── __test__/               # Jest test files
@@ -76,11 +93,21 @@ pnpm db:studio      # Open Drizzle Studio GUI
 - Route groups: `(admin)` for protected routes, `(public)` for public-facing pages
 - Client components marked with `"use client"`
 - Auth: NextAuth 5 with credentials provider, JWT tokens carry `role` and `institutionId`
+- Global management endpoints (for shared resources like `butterfly_species`) live under protected `/api/*` routes and must enforce authz helpers (e.g. `canManageGlobalButterflies`) plus strict Zod schemas.
 - Middleware: Protects `/:institution/(admin)/*` routes via NextAuth
 - Database: Drizzle ORM with typed schema, PostgreSQL via Docker Compose
 - UI components: Shadcn/UI installed via CLI, located in `src/components/ui/`
 - Forms: React Hook Form with Zod schema validation
 - Commits: [Conventional Commits](https://www.conventionalcommits.org/) enforced by commitlint (`feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`)
+
+## Permission Matrix (Authz Helpers)
+
+- `canReadShipment`, `canWriteShipment`, `canCreateRelease`, `canReadSuppliers` — `EMPLOYEE+`
+- `canManageSuppliers`, `canManageUsers`, `canManageInstitutionProfile` — `ADMIN+`
+- `canCreateInstitution`, `canManageGlobalButterflies`, `canCrossTenant` — `SUPERUSER` only
+- `requireUser` — authentication guard used by protected routes (`401` on unauthenticated)
+
+Institution profile editing permissions are intentionally decoupled from user-management permissions to keep authorization semantics clear and future-proof.
 
 ## Database Tables
 
@@ -113,14 +140,15 @@ Detailed documentation lives in `docs/`:
 
 ## Conventions & Utilities
 
-| Utility     | Import                       | Notes                                                       |
-| ----------- | ---------------------------- | ----------------------------------------------------------- |
-| Logger      | `logger` from `@/lib/logger` | Use instead of `console.log` (dev-only log/warn/info/error) |
-| Class names | `cn()` from `@/lib/utils`    | Always use for conditional/merged Tailwind class names      |
-| Toasts      | `toast` from `sonner`        | User feedback (success/error)                               |
-| DB client   | `db` from `@/lib/db`         | Drizzle ORM client with full schema                         |
-| Schema      | `* from @/lib/schema`        | All table definitions (institutions, users, species, etc.)  |
-| Auth        | `auth` from `@/auth`         | NextAuth session helper                                     |
+| Utility     | Import                                          | Notes                                                       |
+| ----------- | ----------------------------------------------- | ----------------------------------------------------------- |
+| Logger      | `logger` from `@/lib/logger`                    | Use instead of `console.log` (dev-only log/warn/info/error) |
+| Class names | `cn()` from `@/lib/utils`                       | Always use for conditional/merged Tailwind class names      |
+| Toasts      | `toast` from `sonner`                           | User feedback (success/error)                               |
+| DB client   | `db` from `@/lib/db`                            | Drizzle ORM client with full schema                         |
+| Schema      | `* from @/lib/schema`                           | All table definitions (institutions, users, species, etc.)  |
+| Auth        | `auth` from `@/auth`                            | NextAuth session helper                                     |
+| Sanitize    | `sanitizeText` from `@/lib/validation/sanitize` | Strip HTML from user input                                  |
 
 ## Workflow Rules
 

@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
+import { and, eq, ne } from "drizzle-orm";
 import { auth } from "@/auth";
-import { canManageInstitutionProfile, requireUser } from "@/lib/authz";
+import { canCrossTenant, requireUser } from "@/lib/authz";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { institutions } from "@/lib/schema";
-import { ensureTenantExists, tenantCondition } from "@/lib/tenant";
-import { updateInstitutionProfileSchema } from "@/lib/validation/institution";
+import { ensureTenantExists } from "@/lib/tenant";
+import { updateInstitutionSchema } from "@/lib/validation/institutions";
 
 function formatZodIssues(issues: { path: PropertyKey[]; message: string }[]) {
   return issues.map((issue) => ({
@@ -14,7 +15,7 @@ function formatZodIssues(issues: { path: PropertyKey[]; message: string }[]) {
   }));
 }
 
-export async function GET() {
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
 
   let user;
@@ -24,32 +25,27 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (!canManageInstitutionProfile(user)) {
+  if (!canCrossTenant(user)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const tenantId =
-    typeof user.institutionId === "number" &&
-    Number.isInteger(user.institutionId) &&
-    user.institutionId > 0
-      ? user.institutionId
+  const resolvedParams = await params;
+  const institutionId =
+    /^\d+$/.test(resolvedParams.id) && Number.parseInt(resolvedParams.id, 10) > 0
+      ? Number.parseInt(resolvedParams.id, 10)
       : null;
 
-  if (!tenantId) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!institutionId) {
+    return NextResponse.json({ error: "Invalid institution id" }, { status: 400 });
   }
 
   try {
-    const institutionTenantFilter = tenantCondition(user, institutions.id, tenantId);
-
-    if (!institutionTenantFilter) {
-      return NextResponse.json({ error: "Institution not found" }, { status: 404 });
-    }
+    await ensureTenantExists(institutionId);
 
     const [institution] = await db
       .select()
       .from(institutions)
-      .where(institutionTenantFilter)
+      .where(eq(institutions.id, institutionId))
       .limit(1);
 
     if (!institution) {
@@ -58,12 +54,16 @@ export async function GET() {
 
     return NextResponse.json(institution);
   } catch (error) {
+    if (error instanceof Error && error.message === "Institution not found") {
+      return NextResponse.json({ error: "Institution not found" }, { status: 404 });
+    }
+
     logger.error("Failed to load institution", error);
     return NextResponse.json({ error: "Unable to load institution" }, { status: 500 });
   }
 }
 
-export async function PATCH(request: Request) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
 
   let user;
@@ -73,19 +73,18 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (!canManageInstitutionProfile(user)) {
+  if (!canCrossTenant(user)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const tenantId =
-    typeof user.institutionId === "number" &&
-    Number.isInteger(user.institutionId) &&
-    user.institutionId > 0
-      ? user.institutionId
+  const resolvedParams = await params;
+  const institutionId =
+    /^\d+$/.test(resolvedParams.id) && Number.parseInt(resolvedParams.id, 10) > 0
+      ? Number.parseInt(resolvedParams.id, 10)
       : null;
 
-  if (!tenantId) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!institutionId) {
+    return NextResponse.json({ error: "Invalid institution id" }, { status: 400 });
   }
 
   let body: unknown;
@@ -95,7 +94,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
   }
 
-  const parsed = updateInstitutionProfileSchema.safeParse(body);
+  const parsed = updateInstitutionSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Invalid request", details: formatZodIssues(parsed.error.issues) },
@@ -104,33 +103,27 @@ export async function PATCH(request: Request) {
   }
 
   try {
-    const institutionTenantFilter = tenantCondition(user, institutions.id, tenantId);
+    await ensureTenantExists(institutionId);
 
-    if (!institutionTenantFilter) {
-      return NextResponse.json({ error: "Institution not found" }, { status: 404 });
+    if (typeof parsed.data.slug === "string") {
+      const [existing] = await db
+        .select({ id: institutions.id })
+        .from(institutions)
+        .where(and(eq(institutions.slug, parsed.data.slug), ne(institutions.id, institutionId)))
+        .limit(1);
+
+      if (existing) {
+        return NextResponse.json({ error: "Slug already in use" }, { status: 400 });
+      }
     }
-
-    const [institution] = await db
-      .select({ id: institutions.id })
-      .from(institutions)
-      .where(institutionTenantFilter)
-      .limit(1);
-
-    if (!institution) {
-      return NextResponse.json({ error: "Institution not found" }, { status: 404 });
-    }
-
-    await ensureTenantExists(institution.id);
-
-    const updateData = {
-      ...parsed.data,
-      updated_at: new Date(),
-    };
 
     const [updated] = await db
       .update(institutions)
-      .set(updateData)
-      .where(institutionTenantFilter)
+      .set({
+        ...parsed.data,
+        updated_at: new Date(),
+      })
+      .where(eq(institutions.id, institutionId))
       .returning();
 
     if (!updated) {
@@ -139,6 +132,10 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json(updated);
   } catch (error) {
+    if (error instanceof Error && error.message === "Institution not found") {
+      return NextResponse.json({ error: "Institution not found" }, { status: 404 });
+    }
+
     logger.error("Failed to update institution", error);
     return NextResponse.json({ error: "Unable to update institution" }, { status: 500 });
   }

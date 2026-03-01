@@ -21,6 +21,8 @@ Every API route that accepts user input should:
 
 Every data query must filter by `institution_id` to enforce tenant boundaries. Never return data from other institutions unless the route is explicitly public.
 
+- See `auth.md` for tenant denial semantics (403 vs 404 policy).
+
 ## Security
 
 - Never expose internal error details to clients

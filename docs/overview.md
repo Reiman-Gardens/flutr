@@ -78,11 +78,27 @@ Institution ─┬─ Users
 
 ## API Routes
 
-| Endpoint                  | Purpose                 |
-| ------------------------- | ----------------------- |
-| `/api/auth/[...nextauth]` | NextAuth authentication |
-| `/api/users`              | User management         |
-| `/api/institution`        | Institution management  |
+| Endpoint                                                    | Purpose                                   |
+| ----------------------------------------------------------- | ----------------------------------------- |
+| `/api/auth/[...nextauth]`                                   | NextAuth authentication                   |
+| `/api/users`                                                | User management                           |
+| `/api/users/[id]`                                           | User detail management                    |
+| `/api/users/me`                                             | Current authenticated user profile        |
+| `/api/institution`                                          | Institution management                    |
+| `/api/shipments`                                            | Shipment management                       |
+| `/api/shipments/[id]`                                       | Shipment detail                           |
+| `/api/shipments/[shipmentId]/releases`                      | Release event creation from shipment      |
+| `/api/releases/[releaseId]/in-flight`                       | Add in-flight row to release              |
+| `/api/in-flight/[id]`                                       | Update or delete in-flight row            |
+| `/api/suppliers`                                            | Supplier management                       |
+| `/api/public/institutions`                                  | Public institution directory list         |
+| `/api/public/institutions/[slug]`                           | Public institution profile by slug        |
+| `/api/public/institutions/[slug]/in-flight`                 | Public institution in-flight species list |
+| `/api/public/institutions/[slug]/species`                   | Public institution-enabled species list   |
+| `/api/public/institutions/[slug]/species/[scientific_name]` | Public institution-enabled species detail |
+| `/api/public/species`                                       | Global public species grid list           |
+
+Tenant visibility and authz error semantics for protected routes are defined in `docs/rules/auth.md` and `docs/rules/api-routes.md`.
 
 ## Infrastructure
 

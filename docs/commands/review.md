@@ -44,3 +44,15 @@ Review the current changes for code quality, correctness, and project convention
 
 - [ ] New logic has test coverage
 - [ ] Documentation updated per `docs/rules/docs.md`
+
+### API Contract Stability (Refactors)
+
+- [ ] Path + HTTP method unchanged (or intentionally versioned + documented)
+- [ ] Auth behavior unchanged (`401` on unauthenticated protected routes)
+- [ ] Authz behavior unchanged (`403` on permission denials)
+- [ ] Tenant behavior unchanged (`403` vs `404` semantics preserved)
+- [ ] Validation envelope unchanged (`400` + documented `error/details` format)
+- [ ] Sanitization behavior preserved (trim/HTML stripping as expected)
+- [ ] Success status/shape unchanged (`200/201/204` + response keys/types)
+- [ ] Conflict/not-found semantics unchanged (`409`/`404` behavior)
+- [ ] Contract tests updated for any intentional response/status changes
