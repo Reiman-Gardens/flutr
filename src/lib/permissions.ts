@@ -1,9 +1,9 @@
 // Permissions
 // - SUPERUSER: View shipments, create release, create shipments, manage suppliers,
-// create employee, create admin, manage users, change longevity, change common name,
+// create employee, create admin, manage users, change logevity, change common name,
 // change logo of butterfly, create institution, cross-tenant access, manage butterflies
 // - ADMIN: View shipments, create release, create shipments, manage suppliers,
-// create employee, manage users, change longevity, change common name,
+// create employee, create admin, manage users, change logevity, change common name,
 // change logo of butterfly
 // - EMPLOYEE: View shipments, create release, create shipments
 export type Role = "SUPERUSER" | "ADMIN" | "EMPLOYEE" | string;
@@ -54,6 +54,9 @@ export const PERMISSION_MATRIX: Record<Role, Permission[]> = {
     "EDIT_INVENTORY",
     "MANAGE_SUPPLIERS",
     "CREATE_EMPLOYEE",
+    "MANAGE_SUPPLIERS",
+    "CREATE_EMPLOYEE",
+    "CREATE_ADMIN",
     "MANAGE_USERS",
     "CHANGE_BUTTERFLY",
     "VIEW_REPORTS",

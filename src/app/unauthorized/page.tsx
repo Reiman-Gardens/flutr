@@ -1,4 +1,4 @@
-import { Link } from "@/components/ui/link";
+import Link from "next/link";
 
 export default function UnauthorizedPage() {
   return (
