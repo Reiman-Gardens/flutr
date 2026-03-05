@@ -32,13 +32,21 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     const { slug } = parsedParams.data;
 
-    const rows = await db.select().from(institutions).where(eq(institutions.slug, slug)).limit(1);
+    const [institution] = await db
+      .select({
+        id: institutions.id,
+        name: institutions.name,
+        slug: institutions.slug,
+      })
+      .from(institutions)
+      .where(eq(institutions.slug, slug))
+      .limit(1);
 
-    if (!rows.length) {
+    if (!institution) {
       return notFound("Institution not found");
     }
 
-    return ok({ institution: rows[0] });
+    return ok({ institution });
   } catch (error) {
     logger.error("Unexpected GET /public/institutions/[slug] error:", error);
     return internalError();
