@@ -1,11 +1,11 @@
 import { NextRequest } from "next/server";
 import { eq } from "drizzle-orm";
-import { ZodError } from "zod";
 
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import { institutions, butterfly_species_institution, butterfly_species } from "@/lib/schema";
 import { internalError, invalidRequest, notFound, ok } from "@/lib/api-response";
-import { institutionSlugParamsSchema } from "@/lib/validation/public";
+import { institutionSlugParamsSchema, publicInstitutionQuerySchema } from "@/lib/validation/public";
 
 interface RouteContext {
   params: Promise<{
@@ -13,11 +13,24 @@ interface RouteContext {
   }>;
 }
 
-export async function GET(_request: NextRequest, context: RouteContext) {
+export async function GET(request: NextRequest, context: RouteContext) {
   try {
-    void _request;
+    const searchParams = request?.nextUrl?.searchParams;
+    const query = searchParams ? Object.fromEntries(searchParams) : {};
+
+    const parsedQuery = publicInstitutionQuerySchema.safeParse(query);
+    if (!parsedQuery.success) {
+      return invalidRequest("Invalid query parameters", parsedQuery.error.issues);
+    }
+
     const routeParams = await context.params;
-    const { slug } = institutionSlugParamsSchema.parse(routeParams);
+
+    const parsedParams = institutionSlugParamsSchema.safeParse(routeParams);
+    if (!parsedParams.success) {
+      return invalidRequest("Invalid route parameters", parsedParams.error.issues);
+    }
+
+    const { slug } = parsedParams.data;
 
     const institutionRows = await db
       .select({ id: institutions.id })
@@ -49,10 +62,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 
     return ok({ species: rows });
   } catch (error) {
-    if (error instanceof ZodError) {
-      return invalidRequest("Invalid request", error.issues);
-    }
-
+    logger.error("Unexpected GET /public/institutions/[slug]/species error:", error);
     return internalError();
   }
 }

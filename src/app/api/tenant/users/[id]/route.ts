@@ -1,9 +1,10 @@
 import { NextRequest } from "next/server";
-import { ZodError } from "zod";
 
 import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
 import { canManageUsers, requireUser } from "@/lib/authz";
 import { forbidden, internalError, invalidRequest, ok, unauthorized } from "@/lib/api-response";
+import { requireValidBody } from "@/lib/validation/request";
 import { updateUserBodySchema, userIdParamsSchema } from "@/lib/validation/users";
 
 interface RouteContext {
@@ -26,12 +27,14 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     }
 
     const routeParams = await context.params;
-    const params = userIdParamsSchema.parse(routeParams);
+    const result = userIdParamsSchema.safeParse(routeParams);
+    if (!result.success) {
+      return invalidRequest("Invalid request parameters", result.error.issues);
+    }
+    const params = result.data;
     return ok({ user: null, params });
   } catch (error) {
-    if (error instanceof ZodError) {
-      return invalidRequest("Invalid request", error.issues);
-    }
+    logger.error("Unexpected GET /tenant/users/[id] error:", error);
     return internalError();
   }
 }
@@ -51,13 +54,18 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     }
 
     const routeParams = await context.params;
-    const params = userIdParamsSchema.parse(routeParams);
-    const body = updateUserBodySchema.parse(await request.json());
-    return ok({ user: null, params, body });
-  } catch (error) {
-    if (error instanceof ZodError) {
-      return invalidRequest("Invalid request", error.issues);
+    const result = userIdParamsSchema.safeParse(routeParams);
+    if (!result.success) {
+      return invalidRequest("Invalid request parameters", result.error.issues);
     }
+    const params = result.data;
+    const bodyResult = await requireValidBody(request, updateUserBodySchema);
+    if ("error" in bodyResult) return bodyResult.error;
+    const validBody = bodyResult.data;
+
+    return ok({ user: null, params, body: validBody });
+  } catch (error) {
+    logger.error("Unexpected PATCH /tenant/users/[id] error:", error);
     return internalError();
   }
 }
@@ -78,12 +86,14 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
     }
 
     const routeParams = await context.params;
-    const params = userIdParamsSchema.parse(routeParams);
+    const result = userIdParamsSchema.safeParse(routeParams);
+    if (!result.success) {
+      return invalidRequest("Invalid request parameters", result.error.issues);
+    }
+    const params = result.data;
     return ok({ deleted: false, params });
   } catch (error) {
-    if (error instanceof ZodError) {
-      return invalidRequest("Invalid request", error.issues);
-    }
+    logger.error("Unexpected DELETE /tenant/users/[id] error:", error);
     return internalError();
   }
 }

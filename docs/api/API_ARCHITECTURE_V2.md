@@ -6,7 +6,7 @@ Authoritative spec for rebuilding the backend API layer from scratch. New projec
 
 ## 1. Route Groups & URL Structure
 
-All routes live under `src/app/api`. There are three top-level groups:
+All routes live under `src/app/api`. There are three primary route groups plus auth and compatibility routes:
 
 - **Public (no auth)**: `/api/public/*`
   - `GET /api/public/institutions`
@@ -19,25 +19,23 @@ All routes live under `src/app/api`. There are three top-level groups:
 
 - **Tenant-scoped (authenticated, single institution)**: `/api/tenant/*`
   - Institution-scoped operations for the current tenant:
-    - `/api/tenant/shipments`
-    - `/api/tenant/shipments/[id]`
-    - `/api/tenant/shipments/[id]/releases`
-    - `/api/tenant/releases/[id]` (if needed)
-    - `/api/tenant/releases/[releaseId]/in-flight`
-    - `/api/tenant/in-flight/[id]`
-    - `/api/tenant/suppliers`
-    - `/api/tenant/users`
-    - `/api/tenant/users/[id]`
-    - `/api/tenant/institution` (current tenant’s institution profile)
+    - `/api/tenant/shipments` (scaffolded; not fully implemented yet)
+    - `/api/tenant/shipments/[id]` (scaffolded; not fully implemented yet)
+    - `/api/tenant/shipments/[id]/releases` (scaffolded; not fully implemented yet)
+    - `/api/tenant/releases/[releaseId]/in-flight` (scaffolded; not fully implemented yet)
+    - `/api/tenant/in-flight/[id]` (scaffolded; not fully implemented yet)
+    - `/api/tenant/suppliers` (scaffolded; not fully implemented yet)
+    - `/api/tenant/users` (scaffolded; not fully implemented yet)
+    - `/api/tenant/users/[id]` (scaffolded; not fully implemented yet)
+    - `/api/tenant/institution` (scaffolded; not fully implemented yet)
 
 - **Platform (SUPERUSER / cross-tenant)**: `/api/platform/*`
   - Global catalog & multi-tenant management:
-    - `/api/platform/institutions`
-    - `/api/platform/institutions/[id]`
-    - `/api/platform/species`
-    - `/api/platform/species/[id]`
-    - `/api/platform/suppliers` (global registry; see §2.4)
-    - `/api/platform/users` (optional; cross-tenant user ops)
+    - `/api/platform/institutions` (scaffolded; not fully implemented yet)
+    - `/api/platform/institutions/[id]` (scaffolded; not fully implemented yet)
+    - `/api/platform/species` (scaffolded; not fully implemented yet)
+    - `/api/platform/species/[id]` (scaffolded; not fully implemented yet)
+    - `/api/platform/suppliers` (scaffolded; not fully implemented yet)
 
 - **Auth**:
   - `/api/auth/[...nextauth]` (NextAuth handlers)
@@ -277,9 +275,14 @@ All validation lives under `src/lib/validation`. Patterns:
   - `validation/shipments.ts`
   - `validation/species.ts`
   - `validation/institution.ts`
-  - `validation/institutions.ts`
   - `validation/releases.ts`
   - `validation/public.ts` (for public routes: slugs, public query filters, etc.)
+  - `validation/suppliers.ts`
+  - `validation/params.ts`
+  - `validation/request.ts`
+  - `validation/query.ts`
+  - `validation/sanitize.ts`
+  - `validation/shared.ts`
 
 - **Rules**:
   - All Zod object schemas must call `.strict()`.
@@ -289,8 +292,9 @@ All validation lives under `src/lib/validation`. Patterns:
     - Enforce simple slug patterns for `[slug]` and `[scientific_name]` where appropriate.
 
 - **Helpers**:
-  - Shared error formatter, e.g. `formatZodIssues(issues)` → `{ path, message }[]`.
-  - Optional `parseJsonBody(request, schema)` helper to standardize JSON parsing and error mapping.
+  - `requireValidBody(request, schema)` for standardized JSON body parsing + validation mapping.
+  - `requireValidQuery(schema, data)` for standardized query validation mapping.
+  - `parseJsonBody(request, schema)` remains a lower-level helper used by request validation utilities.
 
 ---
 
@@ -336,7 +340,7 @@ Public routes will use only `400`, `404`, and `500`, but with the same envelope.
 
 ## 9. Testing Expectations
 
-All routes must have Jest tests. For now, tests can be **unit-style** that mock `auth()` and `db`.
+All `completed` routes must have Jest tests. For now, tests can be **unit-style** that mock `auth()` and `db`.
 
 - **Public routes**:
   - Success path (200).

@@ -1,9 +1,10 @@
 import { NextRequest } from "next/server";
-import { ZodError } from "zod";
 
 import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
 import { canCreateRelease, requireUser } from "@/lib/authz";
 import { forbidden, internalError, invalidRequest, ok, unauthorized } from "@/lib/api-response";
+import { requireValidBody } from "@/lib/validation/request";
 import { shipmentIdParamsSchema, createReleaseBodySchema } from "@/lib/validation/releases";
 
 interface RouteContext {
@@ -25,14 +26,18 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     const routeParams = await context.params;
-    const params = shipmentIdParamsSchema.parse(routeParams);
-    const body = createReleaseBodySchema.parse(await request.json());
-
-    return ok({ release: null, params, body }, 201);
-  } catch (error) {
-    if (error instanceof ZodError) {
-      return invalidRequest("Invalid request", error.issues);
+    const result = shipmentIdParamsSchema.safeParse(routeParams);
+    if (!result.success) {
+      return invalidRequest("Invalid request parameters", result.error.issues);
     }
+    const params = result.data;
+    const bodyResult = await requireValidBody(request, createReleaseBodySchema);
+    if ("error" in bodyResult) return bodyResult.error;
+    const validBody = bodyResult.data;
+
+    return ok({ release: null, params, body: validBody }, 201);
+  } catch (error) {
+    logger.error("Unexpected POST /tenant/shipments/[id]/releases error:", error);
     return internalError();
   }
 }

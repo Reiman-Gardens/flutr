@@ -1,9 +1,10 @@
 import { NextRequest } from "next/server";
-import { ZodError } from "zod";
 
 import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
 import { canManageGlobalButterflies, requireUser } from "@/lib/authz";
-import { forbidden, internalError, invalidRequest, ok, unauthorized } from "@/lib/api-response";
+import { forbidden, internalError, ok, unauthorized } from "@/lib/api-response";
+import { requireValidBody } from "@/lib/validation/request";
 import { createSpeciesBodySchema } from "@/lib/validation/species";
 
 export async function GET(request: NextRequest) {
@@ -22,7 +23,8 @@ export async function GET(request: NextRequest) {
     }
 
     return ok({ species: [] });
-  } catch {
+  } catch (error) {
+    logger.error("Unexpected GET /platform/species error:", error);
     return internalError();
   }
 }
@@ -41,12 +43,13 @@ export async function POST(request: NextRequest) {
       return forbidden();
     }
 
-    const body = createSpeciesBodySchema.parse(await request.json());
-    return ok({ species: null, body }, 201);
+    const bodyResult = await requireValidBody(request, createSpeciesBodySchema);
+    if ("error" in bodyResult) return bodyResult.error;
+    const validBody = bodyResult.data;
+
+    return ok({ species: null, body: validBody }, 201);
   } catch (error) {
-    if (error instanceof ZodError) {
-      return invalidRequest("Invalid request", error.issues);
-    }
+    logger.error("Unexpected POST /platform/species error:", error);
     return internalError();
   }
 }

@@ -2,12 +2,21 @@ import { NextRequest } from "next/server";
 import { eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import { institutions } from "@/lib/schema";
-import { ok, internalError } from "@/lib/api-response";
+import { publicInstitutionQuerySchema } from "@/lib/validation/public";
+import { ok, internalError, invalidRequest } from "@/lib/api-response";
 
 export async function GET(request: NextRequest) {
   try {
-    void request;
+    const searchParams = request?.nextUrl?.searchParams;
+    const query = searchParams ? Object.fromEntries(searchParams) : {};
+
+    const parsed = publicInstitutionQuerySchema.safeParse(query);
+    if (!parsed.success) {
+      return invalidRequest("Invalid query parameters", parsed.error.issues);
+    }
+
     const rows = await db
       .select({
         id: institutions.id,
@@ -25,7 +34,8 @@ export async function GET(request: NextRequest) {
       .where(eq(institutions.stats_active, true));
 
     return ok({ institutions: rows });
-  } catch {
+  } catch (error) {
+    logger.error("Unexpected GET /public/institutions error:", error);
     return internalError();
   }
 }

@@ -1,10 +1,11 @@
 import { NextRequest } from "next/server";
-import { ZodError } from "zod";
 
 import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
 import { canManageInstitutionProfile, requireUser } from "@/lib/authz";
-import { forbidden, internalError, invalidRequest, ok, unauthorized } from "@/lib/api-response";
-import { updateInstitutionBodySchema } from "@/lib/validation/institution";
+import { forbidden, internalError, ok, unauthorized } from "@/lib/api-response";
+import { requireValidBody } from "@/lib/validation/request";
+import { tenantUpdateInstitutionSchema } from "@/lib/validation/institution";
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,7 +23,8 @@ export async function GET(request: NextRequest) {
     }
 
     return ok({ institution: null });
-  } catch {
+  } catch (error) {
+    logger.error("Unexpected GET /tenant/institution error:", error);
     return internalError();
   }
 }
@@ -41,12 +43,13 @@ export async function PATCH(request: NextRequest) {
       return forbidden();
     }
 
-    const body = updateInstitutionBodySchema.parse(await request.json());
-    return ok({ institution: null, body });
+    const bodyResult = await requireValidBody(request, tenantUpdateInstitutionSchema);
+    if ("error" in bodyResult) return bodyResult.error;
+    const validBody = bodyResult.data;
+
+    return ok({ institution: null, body: validBody });
   } catch (error) {
-    if (error instanceof ZodError) {
-      return invalidRequest("Invalid request", error.issues);
-    }
+    logger.error("Unexpected PATCH /tenant/institution error:", error);
     return internalError();
   }
 }

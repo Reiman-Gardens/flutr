@@ -1,10 +1,12 @@
 import { NextRequest } from "next/server";
-import { ZodError } from "zod";
 
 import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
 import { requireUser, canReadShipment, canWriteShipment } from "@/lib/authz";
 import { forbidden, internalError, invalidRequest, ok, unauthorized } from "@/lib/api-response";
+import { requireValidBody } from "@/lib/validation/request";
 import { listShipmentsQuerySchema, createShipmentBodySchema } from "@/lib/validation/shipments";
+import { requireValidQuery } from "@/lib/validation/query";
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,15 +23,17 @@ export async function GET(request: NextRequest) {
     }
 
     const url = new URL(request.url);
-    const query = listShipmentsQuerySchema.parse({
+
+    const queryResult = requireValidQuery(listShipmentsQuerySchema, {
       institutionId: url.searchParams.get("institutionId") ?? undefined,
     });
 
-    return ok({ shipments: [], query });
+    if ("error" in queryResult) return queryResult.error;
+    const queryData = queryResult.data;
+
+    return ok({ shipments: [], query: queryData });
   } catch (error) {
-    if (error instanceof ZodError) {
-      return invalidRequest("Invalid request", error.issues);
-    }
+    logger.error("Unexpected GET /tenant/shipments error:", error);
     return internalError();
   }
 }
@@ -48,13 +52,13 @@ export async function POST(request: NextRequest) {
       return forbidden();
     }
 
-    const body = createShipmentBodySchema.parse(await request.json());
+    const bodyResult = await requireValidBody(request, createShipmentBodySchema);
+    if ("error" in bodyResult) return bodyResult.error;
+    const validBody = bodyResult.data;
 
-    return ok({ shipment: null, body }, 201);
+    return ok({ shipment: null, body: validBody }, 201);
   } catch (error) {
-    if (error instanceof ZodError) {
-      return invalidRequest("Invalid request", error.issues);
-    }
+    logger.error("Unexpected POST /tenant/shipments error:", error);
     return internalError();
   }
 }

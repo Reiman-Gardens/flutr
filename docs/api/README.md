@@ -16,6 +16,7 @@ This document is the quick index for the API layer. The authoritative contract i
 - **Tenant**: `src/app/api/tenant/*` (auth required, tenant-scoped)
 - **Platform**: `src/app/api/platform/*` (SUPERUSER only)
 - **Auth**: `src/app/api/auth/[...nextauth]`
+- **Compatibility**: `src/app/api/users` and `src/app/api/institution` (legacy placeholder routes)
 
 ### Error envelope (all routes)
 
@@ -100,6 +101,11 @@ All errors use:
 - `GET/POST /api/platform/species`
 - `GET/PATCH/DELETE /api/platform/species/[id]`
 - `GET/POST /api/platform/suppliers` — global supplier registry
+
+#### Compatibility routes
+
+- `GET /api/users`
+- `GET /api/institution`
 
 ## Test file layout recommendation
 

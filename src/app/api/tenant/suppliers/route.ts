@@ -1,10 +1,12 @@
 import { NextRequest } from "next/server";
-import { ZodError } from "zod";
 
 import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
 import { canManageSuppliers, canReadSuppliers, requireUser } from "@/lib/authz";
 import { forbidden, internalError, invalidRequest, ok, unauthorized } from "@/lib/api-response";
+import { requireValidBody } from "@/lib/validation/request";
 import { createSupplierBodySchema, listSuppliersQuerySchema } from "@/lib/validation/suppliers";
+import { requireValidQuery } from "@/lib/validation/query";
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,15 +23,16 @@ export async function GET(request: NextRequest) {
     }
 
     const url = new URL(request.url);
-    const query = listSuppliersQuerySchema.parse({
+
+    const result = requireValidQuery(listSuppliersQuerySchema, {
       institutionId: url.searchParams.get("institutionId") ?? undefined,
     });
+    if ("error" in result) return result.error;
+    const query = result.data;
 
     return ok({ suppliers: [], query });
   } catch (error) {
-    if (error instanceof ZodError) {
-      return invalidRequest("Invalid request", error.issues);
-    }
+    logger.error("Unexpected GET /tenant/suppliers error:", error);
     return internalError();
   }
 }
@@ -48,12 +51,13 @@ export async function POST(request: NextRequest) {
       return forbidden();
     }
 
-    const body = createSupplierBodySchema.parse(await request.json());
-    return ok({ supplier: null, body }, 201);
+    const bodyResult = await requireValidBody(request, createSupplierBodySchema);
+    if ("error" in bodyResult) return bodyResult.error;
+    const validBody = bodyResult.data;
+
+    return ok({ supplier: null, body: validBody }, 201);
   } catch (error) {
-    if (error instanceof ZodError) {
-      return invalidRequest("Invalid request", error.issues);
-    }
+    logger.error("Unexpected POST /tenant/suppliers error:", error);
     return internalError();
   }
 }

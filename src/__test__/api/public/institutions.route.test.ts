@@ -19,8 +19,13 @@ describe("GET /api/public/institutions", () => {
 
   it("returns 200 on success", async () => {
     mockDb.db.select.mockReturnValueOnce(createThenableQuery([]));
+    const request = {
+      nextUrl: {
+        searchParams: new URLSearchParams(),
+      },
+    } as unknown as NextRequest;
 
-    const res = await GET({} as NextRequest);
+    const res = await GET(request);
     expect(res.status).toBe(200);
   });
 
@@ -28,8 +33,13 @@ describe("GET /api/public/institutions", () => {
     mockDb.db.select.mockImplementationOnce(() => {
       throw new Error("boom");
     });
+    const request = {
+      nextUrl: {
+        searchParams: new URLSearchParams(),
+      },
+    } as unknown as NextRequest;
 
-    const res = await GET({} as NextRequest);
+    const res = await GET(request);
     expect(res.status).toBe(500);
   });
 });

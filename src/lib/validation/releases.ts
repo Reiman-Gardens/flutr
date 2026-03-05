@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { sanitizeText } from "@/lib/validation/shared";
+import { sanitizeText } from "@/lib/validation/sanitize";
 
 export const releaseIdParamsSchema = z
   .object({

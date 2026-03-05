@@ -1,14 +1,17 @@
 import { NextRequest } from "next/server";
-import { ZodError } from "zod";
 
 import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
 import { canManageUsers, requireUser } from "@/lib/authz";
-import { forbidden, internalError, invalidRequest, ok, unauthorized } from "@/lib/api-response";
+import { forbidden, internalError, ok, unauthorized } from "@/lib/api-response";
 import { createUserBodySchema, listUsersQuerySchema } from "@/lib/validation/users";
+import { requireValidBody } from "@/lib/validation/request";
+import { requireValidQuery } from "@/lib/validation/query";
 
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
+
     let user;
     try {
       user = requireUser(session);
@@ -21,15 +24,18 @@ export async function GET(request: NextRequest) {
     }
 
     const url = new URL(request.url);
-    const query = listUsersQuerySchema.parse({
+
+    const queryResult = requireValidQuery(listUsersQuerySchema, {
       institutionId: url.searchParams.get("institutionId") ?? undefined,
     });
 
+    if ("error" in queryResult) return queryResult.error;
+
+    const query = queryResult.data;
+
     return ok({ users: [], query });
   } catch (error) {
-    if (error instanceof ZodError) {
-      return invalidRequest("Invalid request", error.issues);
-    }
+    logger.error("Unexpected GET /tenant/users error:", error);
     return internalError();
   }
 }
@@ -37,6 +43,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
+
     let user;
     try {
       user = requireUser(session);
@@ -48,12 +55,15 @@ export async function POST(request: NextRequest) {
       return forbidden();
     }
 
-    const body = createUserBodySchema.parse(await request.json());
-    return ok({ user: null, body }, 201);
+    const bodyResult = await requireValidBody(request, createUserBodySchema);
+
+    if ("error" in bodyResult) return bodyResult.error;
+
+    const validBody = bodyResult.data;
+
+    return ok({ user: null, body: validBody }, 201);
   } catch (error) {
-    if (error instanceof ZodError) {
-      return invalidRequest("Invalid request", error.issues);
-    }
+    logger.error("Unexpected POST /tenant/users error:", error);
     return internalError();
   }
 }

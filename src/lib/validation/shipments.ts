@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { sanitizeText } from "@/lib/validation/shared";
+import { sanitizeText } from "@/lib/validation/sanitize";
 
 export const shipmentIdParamsSchema = z
   .object({
@@ -38,7 +38,7 @@ export const createShipmentBodySchema = z
   .strict();
 
 export const listShipmentsQuerySchema = z
-  .object({
-    institutionId: z.coerce.number().int().positive().optional(),
-  })
+  .object({ institutionId: z.coerce.number().int().positive().optional() })
   .strict();
+
+export const updateShipmentBodySchema = createShipmentBodySchema.partial().strict();

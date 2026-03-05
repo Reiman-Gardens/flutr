@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { sanitizeText } from "@/lib/validation/shared";
+import { sanitizeText } from "@/lib/validation/sanitize";
 
 const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const scientificNameRegex = /^[A-Za-z0-9_.-]+$/;
@@ -17,7 +17,7 @@ export const scientificNameParamsSchema = z
   })
   .strict();
 
-export const publicInstitutionQuerySchema = z.object({}).strict();
+export const publicInstitutionQuerySchema = z.looseObject({});
 
 export const publicTextFilterSchema = z
   .object({
@@ -27,5 +27,12 @@ export const publicTextFilterSchema = z
       .max(200)
       .transform((value) => sanitizeText(value))
       .optional(),
+  })
+  .strict();
+
+export const institutionSpeciesDetailParamsSchema = z
+  .object({
+    slug: institutionSlugParamsSchema.shape.slug,
+    scientific_name: scientificNameParamsSchema.shape.scientific_name,
   })
   .strict();

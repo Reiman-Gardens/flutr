@@ -1,13 +1,9 @@
 import { z } from "zod";
 
-import { sanitizeText } from "@/lib/validation/shared";
+import { sanitizeText } from "@/lib/validation/sanitize";
 import type { UserRole } from "@/lib/authz";
 
-export const userIdParamsSchema = z
-  .object({
-    id: z.coerce.number().int().positive(),
-  })
-  .strict();
+export const userIdParamsSchema = z.object({ id: z.coerce.number().int().positive() }).strict();
 
 export const listUsersQuerySchema = z
   .object({

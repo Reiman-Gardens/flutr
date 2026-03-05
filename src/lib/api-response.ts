@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import type { ZodIssue } from "zod";
+import type { ZodError } from "zod";
 
 export type ErrorCode =
   | "UNAUTHORIZED"
@@ -47,7 +47,7 @@ export function forbidden(message = "Forbidden") {
   return jsonError("FORBIDDEN", message, 403);
 }
 
-export function invalidRequest(message = "Invalid request", issues?: ZodIssue[]) {
+export function invalidRequest(message = "Invalid request", issues?: ZodError["issues"]) {
   const details =
     issues?.map((issue) => ({
       path: issue.path.join(".") || "",

@@ -1,14 +1,19 @@
 import { NextRequest } from "next/server";
-import { ZodError } from "zod";
+import { z } from "zod";
 
 import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
 import { canCreateRelease, requireUser } from "@/lib/authz";
 import { forbidden, internalError, invalidRequest, ok, unauthorized } from "@/lib/api-response";
-import { idParamSchema } from "@/lib/validation/shared";
+import { idParamSchema } from "@/lib/validation/params";
+import { requireValidBody } from "@/lib/validation/request";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
 }
+
+// TODO: Flesh out the body schema once we know what fields we want to allow updating for in-flight releases
+const updateInFlightBodySchema = z.unknown();
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
@@ -25,14 +30,18 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     }
 
     const routeParams = await context.params;
-    const params = idParamSchema.parse(routeParams);
-    const body = await request.json();
-
-    return ok({ inFlight: null, params, body });
-  } catch (error) {
-    if (error instanceof ZodError) {
-      return invalidRequest("Invalid request", error.issues);
+    const result = idParamSchema.safeParse(routeParams);
+    if (!result.success) {
+      return invalidRequest("Invalid request parameters", result.error.issues);
     }
+    const params = result.data;
+    const bodyResult = await requireValidBody(request, updateInFlightBodySchema);
+    if ("error" in bodyResult) return bodyResult.error;
+    const validBody = bodyResult.data;
+
+    return ok({ inFlight: null, params, body: validBody });
+  } catch (error) {
+    logger.error("Unexpected PATCH /tenant/in-flight/[id] error:", error);
     return internalError();
   }
 }
@@ -53,12 +62,14 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
     }
 
     const routeParams = await context.params;
-    const params = idParamSchema.parse(routeParams);
+    const result = idParamSchema.safeParse(routeParams);
+    if (!result.success) {
+      return invalidRequest("Invalid request parameters", result.error.issues);
+    }
+    const params = result.data;
     return ok({ deleted: false, params });
   } catch (error) {
-    if (error instanceof ZodError) {
-      return invalidRequest("Invalid request", error.issues);
-    }
+    logger.error("Unexpected DELETE /tenant/in-flight/[id] error:", error);
     return internalError();
   }
 }

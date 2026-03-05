@@ -1,10 +1,11 @@
 import { NextRequest } from "next/server";
-import { ZodError } from "zod";
 
 import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
 import { requireUser, canCreateInstitution } from "@/lib/authz";
-import { forbidden, internalError, invalidRequest, ok, unauthorized } from "@/lib/api-response";
-import { createInstitutionBodySchema } from "@/lib/validation/institutions";
+import { forbidden, internalError, ok, unauthorized } from "@/lib/api-response";
+import { requireValidBody } from "@/lib/validation/request";
+import { platformCreateInstitutionSchema } from "@/lib/validation/institution";
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,7 +23,8 @@ export async function GET(request: NextRequest) {
     }
 
     return ok({ institutions: [] });
-  } catch {
+  } catch (error) {
+    logger.error("Unexpected GET /platform/institutions error:", error);
     return internalError();
   }
 }
@@ -41,12 +43,13 @@ export async function POST(request: NextRequest) {
       return forbidden();
     }
 
-    const body = createInstitutionBodySchema.parse(await request.json());
-    return ok({ institution: null, body }, 201);
+    const bodyResult = await requireValidBody(request, platformCreateInstitutionSchema);
+    if ("error" in bodyResult) return bodyResult.error;
+    const validBody = bodyResult.data;
+
+    return ok({ institution: null, body: validBody }, 201);
   } catch (error) {
-    if (error instanceof ZodError) {
-      return invalidRequest("Invalid request", error.issues);
-    }
+    logger.error("Unexpected POST /platform/institutions error:", error);
     return internalError();
   }
 }
