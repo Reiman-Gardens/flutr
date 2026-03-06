@@ -17,7 +17,7 @@ export const scientificNameParamsSchema = z
   })
   .strict();
 
-export const publicInstitutionQuerySchema = z.looseObject({});
+export const publicInstitutionQuerySchema = z.object({}).strict();
 
 export const publicTextFilterSchema = z
   .object({

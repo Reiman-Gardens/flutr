@@ -3,7 +3,11 @@ import { z } from "zod";
 import { sanitizeText } from "@/lib/validation/sanitize";
 import type { UserRole } from "@/lib/authz";
 
-export const USER_ROLES = ["EMPLOYEE", "ADMIN", "SUPERUSER"] as const satisfies ReadonlyArray<UserRole>;
+export const USER_ROLES = [
+  "EMPLOYEE",
+  "ADMIN",
+  "SUPERUSER",
+] as const satisfies ReadonlyArray<UserRole>;
 
 export const userIdParamsSchema = z.object({ id: z.coerce.number().int().positive() }).strict();
 

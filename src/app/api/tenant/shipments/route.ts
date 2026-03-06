@@ -57,7 +57,8 @@ export async function POST(request: NextRequest) {
     const validBody = bodyResult.data;
 
     // Do not trust or echo any client-supplied institutionId from the body in tenant routes.
-    const { institutionId: _ignoredInstitutionId, ...sanitizedBody } = validBody as Record<string, unknown>;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { institutionId, ...sanitizedBody } = validBody as Record<string, unknown>;
 
     return ok({ shipment: null, body: sanitizedBody }, 201);
   } catch (error) {
