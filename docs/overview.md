@@ -89,7 +89,7 @@ Institution ─┬─ Users
 | `/api/institution/[id]`                                     | Platform institution detail/update        |
 | `/api/shipments`                                            | Shipment management                       |
 | `/api/shipments/[id]`                                       | Shipment detail                           |
-| `/api/shipments/[shipmentId]/releases`                      | Release event creation from shipment      |
+| `/api/shipments/[id]/releases`                              | Release event creation from shipment      |
 | `/api/releases/[releaseId]/in-flight`                       | Add in-flight row to release              |
 | `/api/in-flight/[id]`                                       | Update or delete in-flight row            |
 | `/api/suppliers`                                            | Supplier management                       |
