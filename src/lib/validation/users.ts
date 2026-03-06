@@ -22,6 +22,7 @@ export const createUserBodySchema = z
     name: sanitizedNonEmpty(200),
     email: z
       .string()
+      .trim()
       .email()
       .transform((v) => sanitizeText(v)),
     password: z.string().min(8).max(200),
@@ -35,6 +36,7 @@ export const updateUserBodySchema = z
     name: sanitizedNonEmpty(200).optional(),
     email: z
       .string()
+      .trim()
       .email()
       .transform((v) => sanitizeText(v))
       .optional(),

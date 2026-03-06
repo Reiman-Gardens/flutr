@@ -38,21 +38,25 @@ export const createSpeciesBodySchema = z
       .optional(),
     img_wings_open: z
       .string()
+      .trim()
       .url()
       .transform((v) => sanitizeText(v))
       .optional(),
     img_wings_closed: z
       .string()
+      .trim()
       .url()
       .transform((v) => sanitizeText(v))
       .optional(),
     extra_img_1: z
       .string()
+      .trim()
       .url()
       .transform((v) => sanitizeText(v))
       .optional(),
     extra_img_2: z
       .string()
+      .trim()
       .url()
       .transform((v) => sanitizeText(v))
       .optional(),

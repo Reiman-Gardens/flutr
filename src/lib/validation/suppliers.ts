@@ -21,6 +21,7 @@ export const createSupplierBodySchema = z
     country: sanitizedNonEmpty(100),
     website_url: z
       .string()
+      .trim()
       .url()
       .transform((v) => sanitizeText(v))
       .optional(),
