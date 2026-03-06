@@ -90,6 +90,22 @@ describe("POST /api/shipments/[shipmentId]/releases", () => {
     await expect(response.json()).resolves.toEqual({ error: "Invalid shipment id" });
   });
 
+  it("returns 400 for malformed JSON", async () => {
+    authMock.mockResolvedValue({ user: { id: "u1d", role: "EMPLOYEE", institutionId: 1 } });
+
+    const response = await createRelease(
+      new Request("http://localhost/api/shipments/11/releases", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "not valid json{",
+      }),
+      { params: Promise.resolve({ id: "11" }) },
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Invalid JSON payload" });
+  });
+
   it("returns 400 for invalid body", async () => {
     authMock.mockResolvedValue({ user: { id: "u1c", role: "EMPLOYEE", institutionId: 1 } });
 

@@ -42,11 +42,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Invalid shipment id" }, { status: 400 });
   }
 
-  let body: unknown = {};
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
-    body = {};
+    return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
   }
 
   const parsed = createReleaseFromShipmentSchema.safeParse(body);
