@@ -8,6 +8,19 @@ import type { Session } from "next-auth";
  */
 export type UserRole = "EMPLOYEE" | "ADMIN" | "SUPERUSER";
 
+/**
+ * Maps legacy/default DB role values to the normalized role system.
+ * The DB default is "user"; those users are treated as EMPLOYEE (lowest privilege).
+ *
+ * Call this in the auth `authorize` callback so every JWT token carries
+ * a role value that `requireUser` will accept.
+ */
+export function normalizeRole(role: string): UserRole {
+  if (role === "ADMIN" || role === "SUPERUSER") return role;
+  // "user" (DB default) and "EMPLOYEE" both map to EMPLOYEE
+  return "EMPLOYEE";
+}
+
 type RoleRank = Record<UserRole, number>;
 
 const roleRank: RoleRank = {

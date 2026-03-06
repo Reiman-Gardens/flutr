@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 import { db } from "@/lib/db";
 import { users } from "@/lib/schema";
 import { eq } from "drizzle-orm";
+import { normalizeRole } from "@/lib/authz";
 
 export default {
   providers: [
@@ -28,7 +29,7 @@ export default {
           id: String(user.id),
           name: user.name,
           email: user.email,
-          role: user.role,
+          role: normalizeRole(user.role),
           institutionId: user.institution_id,
         };
       },
