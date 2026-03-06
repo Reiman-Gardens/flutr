@@ -13,7 +13,7 @@ interface RouteContext {
 }
 
 // TODO: Flesh out the body schema once we know what fields we want to allow updating for in-flight releases
-const updateInFlightBodySchema = z.unknown();
+const updateInFlightBodySchema = z.object({}).strict();
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
