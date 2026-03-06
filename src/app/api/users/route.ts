@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
+import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
@@ -109,6 +110,16 @@ export async function POST(request: Request) {
   }
 
   try {
+    const [existing] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, payload.email))
+      .limit(1);
+
+    if (existing) {
+      return NextResponse.json({ error: "Email already in use" }, { status: 409 });
+    }
+
     const passwordHash = await bcrypt.hash(payload.password, 10);
 
     const [created] = await db
