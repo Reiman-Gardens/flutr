@@ -11,7 +11,7 @@ import {
   butterfly_species,
 } from "@/lib/schema";
 import { internalError, invalidRequest, notFound, ok } from "@/lib/api-response";
-import { institutionSlugParamsSchema, publicInstitutionQuerySchema } from "@/lib/validation/public";
+import { institutionSlugParamsSchema, publicEmptyQuerySchema } from "@/lib/validation/public";
 
 interface RouteContext {
   params: Promise<{
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const searchParams = request?.nextUrl?.searchParams;
     const query = searchParams ? Object.fromEntries(searchParams) : {};
 
-    const parsedQuery = publicInstitutionQuerySchema.safeParse(query);
+    const parsedQuery = publicEmptyQuerySchema.safeParse(query);
     if (!parsedQuery.success) {
       return invalidRequest("Invalid query parameters", parsedQuery.error.issues);
     }

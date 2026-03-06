@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { institutions } from "@/lib/schema";
-import { publicInstitutionQuerySchema } from "@/lib/validation/public";
+import { publicEmptyQuerySchema } from "@/lib/validation/public";
 import { ok, internalError, invalidRequest } from "@/lib/api-response";
 
 export async function GET(request: NextRequest) {
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request?.nextUrl?.searchParams;
     const query = searchParams ? Object.fromEntries(searchParams) : {};
 
-    const parsed = publicInstitutionQuerySchema.safeParse(query);
+    const parsed = publicEmptyQuerySchema.safeParse(query);
     if (!parsed.success) {
       return invalidRequest("Invalid query parameters", parsed.error.issues);
     }
