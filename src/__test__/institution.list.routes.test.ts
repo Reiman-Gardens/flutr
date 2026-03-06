@@ -1,4 +1,4 @@
-import { GET as getInstitutions, POST as postInstitutions } from "@/app/api/institutions/route";
+import { GET as getInstitutions, POST as postInstitutions } from "@/app/api/institution/list/route";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
@@ -51,7 +51,7 @@ function jsonRequest(url: string, method: string, body: unknown) {
   });
 }
 
-describe("Institutions collection API routes", () => {
+describe("Institution list API routes", () => {
   beforeEach(() => {
     authMock.mockReset();
     (db.select as jest.Mock).mockReset();
@@ -59,7 +59,7 @@ describe("Institutions collection API routes", () => {
     (logger.error as jest.Mock).mockReset();
   });
 
-  describe("GET /api/institutions", () => {
+  describe("GET /api/institution/list", () => {
     it("returns 401 when unauthenticated", async () => {
       authMock.mockResolvedValue(null);
 
@@ -97,12 +97,12 @@ describe("Institutions collection API routes", () => {
     });
   });
 
-  describe("POST /api/institutions", () => {
+  describe("POST /api/institution/list", () => {
     it("returns 401 when unauthenticated", async () => {
       authMock.mockResolvedValue(null);
 
       const response = await postInstitutions(
-        jsonRequest("http://localhost/api/institutions", "POST", {
+        jsonRequest("http://localhost/api/institution/list", "POST", {
           slug: "new-house",
           name: "New House",
           street_address: "123 Lane",
@@ -120,7 +120,7 @@ describe("Institutions collection API routes", () => {
       authMock.mockResolvedValue({ user: { id: "3", role: "ADMIN", institutionId: 1 } });
 
       const response = await postInstitutions(
-        jsonRequest("http://localhost/api/institutions", "POST", {
+        jsonRequest("http://localhost/api/institution/list", "POST", {
           slug: "new-house",
           name: "New House",
           street_address: "123 Lane",
@@ -139,7 +139,7 @@ describe("Institutions collection API routes", () => {
       authMock.mockResolvedValue({ user: { id: "4", role: "SUPERUSER", institutionId: 1 } });
 
       const response = await postInstitutions(
-        new Request("http://localhost/api/institutions", {
+        new Request("http://localhost/api/institution/list", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: "{",
@@ -154,7 +154,7 @@ describe("Institutions collection API routes", () => {
       authMock.mockResolvedValue({ user: { id: "5", role: "SUPERUSER", institutionId: 1 } });
 
       const response = await postInstitutions(
-        jsonRequest("http://localhost/api/institutions", "POST", {
+        jsonRequest("http://localhost/api/institution/list", "POST", {
           name: "Missing Slug",
         }),
       );
@@ -170,7 +170,7 @@ describe("Institutions collection API routes", () => {
       (db.select as jest.Mock).mockImplementationOnce(() => makeSelect([{ id: 9 }]));
 
       const response = await postInstitutions(
-        jsonRequest("http://localhost/api/institutions", "POST", {
+        jsonRequest("http://localhost/api/institution/list", "POST", {
           slug: "monarch-house",
           name: "New House",
           street_address: "123 Lane",
@@ -205,7 +205,7 @@ describe("Institutions collection API routes", () => {
       );
 
       const response = await postInstitutions(
-        jsonRequest("http://localhost/api/institutions", "POST", {
+        jsonRequest("http://localhost/api/institution/list", "POST", {
           slug: "new-house",
           name: "New House",
           street_address: "123 Lane",
@@ -262,7 +262,7 @@ describe("Institutions collection API routes", () => {
       }));
 
       const firstResponse = await postInstitutions(
-        jsonRequest("http://localhost/api/institutions", "POST", {
+        jsonRequest("http://localhost/api/institution/list", "POST", {
           slug: "first-house",
           name: "First House",
           street_address: "123 Lane",
@@ -275,7 +275,7 @@ describe("Institutions collection API routes", () => {
       );
 
       const secondResponse = await postInstitutions(
-        jsonRequest("http://localhost/api/institutions", "POST", {
+        jsonRequest("http://localhost/api/institution/list", "POST", {
           slug: "second-house",
           name: "Second House",
           street_address: "456 Lane",

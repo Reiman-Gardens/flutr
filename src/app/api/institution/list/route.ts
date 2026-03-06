@@ -5,7 +5,7 @@ import { canCreateInstitution, canCrossTenant, requireUser } from "@/lib/authz";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { institutions } from "@/lib/schema";
-import { createInstitutionSchema } from "@/lib/validation/institutions";
+import { createInstitutionSchema } from "@/lib/validation/institution";
 
 function formatZodIssues(issues: { path: PropertyKey[]; message: string }[]) {
   return issues.map((issue) => ({

@@ -84,7 +84,9 @@ Institution ─┬─ Users
 | `/api/users`                                                | User management                           |
 | `/api/users/[id]`                                           | User detail management                    |
 | `/api/users/me`                                             | Current authenticated user profile        |
-| `/api/institution`                                          | Institution management                    |
+| `/api/institution`                                          | Tenant institution profile management     |
+| `/api/institution/list`                                     | Platform institution list/create          |
+| `/api/institution/[id]`                                     | Platform institution detail/update        |
 | `/api/shipments`                                            | Shipment management                       |
 | `/api/shipments/[id]`                                       | Shipment detail                           |
 | `/api/shipments/[shipmentId]/releases`                      | Release event creation from shipment      |

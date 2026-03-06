@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { institutions } from "@/lib/schema";
 import { ensureTenantExists } from "@/lib/tenant";
-import { updateInstitutionSchema } from "@/lib/validation/institutions";
+import { updateInstitutionSchema } from "@/lib/validation/institution";
 
 function formatZodIssues(issues: { path: PropertyKey[]; message: string }[]) {
   return issues.map((issue) => ({

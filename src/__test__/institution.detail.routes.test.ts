@@ -1,7 +1,4 @@
-import {
-  GET as getInstitution,
-  PATCH as patchInstitution,
-} from "@/app/api/institutions/[id]/route";
+import { GET as getInstitution, PATCH as patchInstitution } from "@/app/api/institution/[id]/route";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
@@ -47,14 +44,6 @@ function makeSelect(result: SelectResult) {
   };
 }
 
-function makeUpdate(result: Record<string, unknown>[]) {
-  return {
-    set: jest.fn().mockReturnThis(),
-    where: jest.fn().mockReturnThis(),
-    returning: jest.fn().mockResolvedValue(result),
-  };
-}
-
 function jsonRequest(url: string, method: string, body: unknown) {
   return new Request(url, {
     method,
@@ -63,7 +52,7 @@ function jsonRequest(url: string, method: string, body: unknown) {
   });
 }
 
-describe("Institutions detail API routes", () => {
+describe("Institution detail API routes", () => {
   beforeEach(() => {
     authMock.mockReset();
     ensureTenantExistsMock.mockReset();
@@ -73,11 +62,11 @@ describe("Institutions detail API routes", () => {
     (logger.error as jest.Mock).mockReset();
   });
 
-  describe("GET /api/institutions/[id]", () => {
+  describe("GET /api/institution/[id]", () => {
     it("returns 401 when unauthenticated", async () => {
       authMock.mockResolvedValue(null);
 
-      const response = await getInstitution(new Request("http://localhost/api/institutions/1"), {
+      const response = await getInstitution(new Request("http://localhost/api/institution/1"), {
         params: Promise.resolve({ id: "1" }),
       });
 
@@ -88,7 +77,7 @@ describe("Institutions detail API routes", () => {
     it("returns 403 for non-superuser", async () => {
       authMock.mockResolvedValue({ user: { id: "1", role: "ADMIN", institutionId: 1 } });
 
-      const response = await getInstitution(new Request("http://localhost/api/institutions/1"), {
+      const response = await getInstitution(new Request("http://localhost/api/institution/1"), {
         params: Promise.resolve({ id: "1" }),
       });
 
@@ -100,7 +89,7 @@ describe("Institutions detail API routes", () => {
       authMock.mockResolvedValue({ user: { id: "2", role: "SUPERUSER", institutionId: 1 } });
 
       const response = await getInstitution(
-        new Request("http://localhost/api/institutions/not-a-number"),
+        new Request("http://localhost/api/institution/not-a-number"),
         {
           params: Promise.resolve({ id: "not-a-number" }),
         },
@@ -114,7 +103,7 @@ describe("Institutions detail API routes", () => {
       authMock.mockResolvedValue({ user: { id: "3", role: "SUPERUSER", institutionId: 1 } });
       ensureTenantExistsMock.mockRejectedValueOnce(new Error("Institution not found"));
 
-      const response = await getInstitution(new Request("http://localhost/api/institutions/99"), {
+      const response = await getInstitution(new Request("http://localhost/api/institution/99"), {
         params: Promise.resolve({ id: "99" }),
       });
 
@@ -135,7 +124,7 @@ describe("Institutions detail API routes", () => {
         ]),
       );
 
-      const response = await getInstitution(new Request("http://localhost/api/institutions/1"), {
+      const response = await getInstitution(new Request("http://localhost/api/institution/1"), {
         params: Promise.resolve({ id: "1" }),
       });
 
@@ -149,12 +138,12 @@ describe("Institutions detail API routes", () => {
     });
   });
 
-  describe("PATCH /api/institutions/[id]", () => {
+  describe("PATCH /api/institution/[id]", () => {
     it("returns 401 when unauthenticated", async () => {
       authMock.mockResolvedValue(null);
 
       const response = await patchInstitution(
-        jsonRequest("http://localhost/api/institutions/1", "PATCH", { name: "Updated" }),
+        jsonRequest("http://localhost/api/institution/1", "PATCH", { name: "Updated" }),
         { params: Promise.resolve({ id: "1" }) },
       );
 
@@ -165,7 +154,7 @@ describe("Institutions detail API routes", () => {
       authMock.mockResolvedValue({ user: { id: "5", role: "ADMIN", institutionId: 1 } });
 
       const response = await patchInstitution(
-        jsonRequest("http://localhost/api/institutions/1", "PATCH", { name: "Updated" }),
+        jsonRequest("http://localhost/api/institution/1", "PATCH", { name: "Updated" }),
         { params: Promise.resolve({ id: "1" }) },
       );
 
@@ -177,7 +166,7 @@ describe("Institutions detail API routes", () => {
       authMock.mockResolvedValue({ user: { id: "6", role: "SUPERUSER", institutionId: 1 } });
 
       const response = await patchInstitution(
-        jsonRequest("http://localhost/api/institutions/abc", "PATCH", { name: "Updated" }),
+        jsonRequest("http://localhost/api/institution/abc", "PATCH", { name: "Updated" }),
         { params: Promise.resolve({ id: "abc" }) },
       );
 
@@ -190,7 +179,7 @@ describe("Institutions detail API routes", () => {
       ensureTenantExistsMock.mockRejectedValueOnce(new Error("Institution not found"));
 
       const response = await patchInstitution(
-        jsonRequest("http://localhost/api/institutions/88", "PATCH", { name: "Updated" }),
+        jsonRequest("http://localhost/api/institution/88", "PATCH", { name: "Updated" }),
         { params: Promise.resolve({ id: "88" }) },
       );
 
@@ -202,7 +191,7 @@ describe("Institutions detail API routes", () => {
       authMock.mockResolvedValue({ user: { id: "8", role: "SUPERUSER", institutionId: 1 } });
 
       const response = await patchInstitution(
-        new Request("http://localhost/api/institutions/1", {
+        new Request("http://localhost/api/institution/1", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: "{",
@@ -218,7 +207,7 @@ describe("Institutions detail API routes", () => {
       authMock.mockResolvedValue({ user: { id: "9", role: "SUPERUSER", institutionId: 1 } });
 
       const response = await patchInstitution(
-        jsonRequest("http://localhost/api/institutions/1", "PATCH", {}),
+        jsonRequest("http://localhost/api/institution/1", "PATCH", {}),
         { params: Promise.resolve({ id: "1" }) },
       );
 
@@ -232,7 +221,7 @@ describe("Institutions detail API routes", () => {
       authMock.mockResolvedValue({ user: { id: "10", role: "SUPERUSER", institutionId: 1 } });
 
       const response = await patchInstitution(
-        jsonRequest("http://localhost/api/institutions/1", "PATCH", { id: 999, name: "Updated" }),
+        jsonRequest("http://localhost/api/institution/1", "PATCH", { id: 999, name: "Updated" }),
         { params: Promise.resolve({ id: "1" }) },
       );
 
@@ -246,7 +235,7 @@ describe("Institutions detail API routes", () => {
       (db.select as jest.Mock).mockImplementationOnce(() => makeSelect([{ id: 2 }]));
 
       const response = await patchInstitution(
-        jsonRequest("http://localhost/api/institutions/1", "PATCH", { slug: "atlas-dome" }),
+        jsonRequest("http://localhost/api/institution/1", "PATCH", { slug: "atlas-dome" }),
         { params: Promise.resolve({ id: "1" }) },
       );
 
@@ -276,7 +265,7 @@ describe("Institutions detail API routes", () => {
       }));
 
       const response = await patchInstitution(
-        jsonRequest("http://localhost/api/institutions/1", "PATCH", { name: "Updated Name" }),
+        jsonRequest("http://localhost/api/institution/1", "PATCH", { name: "Updated Name" }),
         { params: Promise.resolve({ id: "1" }) },
       );
 

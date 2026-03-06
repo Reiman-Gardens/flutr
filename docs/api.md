@@ -476,7 +476,9 @@ Authentication required. Role and tenant scope rules apply per endpoint.
 
 ### Platform Institutions
 
-#### GET /api/institutions
+- **Canonical routes:** `/api/institution/list` and `/api/institution/:id`
+
+#### GET /api/institution/list
 
 - **Roles:** `SUPERUSER`
 - **Purpose:** List all institutions across tenants.
@@ -487,7 +489,7 @@ Authentication required. Role and tenant scope rules apply per endpoint.
   - `403 { "error": "Forbidden" }`
   - `500 { "error": "Unable to load institutions" }`
 
-#### POST /api/institutions
+#### POST /api/institution/list
 
 - **Roles:** `SUPERUSER`
 - **Purpose:** Create a new institution.
@@ -523,7 +525,7 @@ Authentication required. Role and tenant scope rules apply per endpoint.
   - `403 { "error": "Forbidden" }`
   - `500 { "error": "Unable to create institution" }`
 
-#### GET /api/institutions/:id
+#### GET /api/institution/:id
 
 - **Roles:** `SUPERUSER`
 - **Purpose:** Fetch full institution detail by id.
@@ -538,7 +540,7 @@ Authentication required. Role and tenant scope rules apply per endpoint.
   - `404 { "error": "Institution not found" }`
   - `500 { "error": "Unable to load institution" }`
 
-#### PATCH /api/institutions/:id
+#### PATCH /api/institution/:id
 
 - **Roles:** `SUPERUSER`
 - **Purpose:** Update institution by id (`id` is immutable; unknown keys are rejected).
