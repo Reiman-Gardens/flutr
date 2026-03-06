@@ -55,11 +55,7 @@ export async function POST(request: NextRequest) {
     if ("error" in bodyResult) return bodyResult.error;
     const validBody = bodyResult.data;
 
-    // Do not trust or echo any client-supplied institutionId from the body in tenant routes.
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { institutionId, ...sanitizedBody } = validBody as Record<string, unknown>;
-
-    return ok({ shipment: null, body: sanitizedBody }, 201);
+    return ok({ shipment: null, body: validBody }, 201);
   } catch (error) {
     logger.error("Unexpected POST /tenant/shipments error:", error);
     return internalError();
