@@ -1,4 +1,4 @@
-## Flutr V2 Backend API Architecture
+# Flutr V2 Backend API Architecture
 
 Authoritative spec for rebuilding the backend API layer from scratch. New projects/agents should treat this as the contract for all API work.
 

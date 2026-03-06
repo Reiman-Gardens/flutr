@@ -5,7 +5,8 @@ import { logger } from "@/lib/logger";
 import { canCreateRelease, requireUser } from "@/lib/authz";
 import { forbidden, internalError, invalidRequest, ok, unauthorized } from "@/lib/api-response";
 import { requireValidBody } from "@/lib/validation/request";
-import { shipmentIdParamsSchema, createReleaseBodySchema } from "@/lib/validation/releases";
+import { createReleaseBodySchema } from "@/lib/validation/releases";
+import { shipmentIdParamsSchema } from "@/lib/validation/shipments";
 
 interface RouteContext {
   params: Promise<{ id: string }>;

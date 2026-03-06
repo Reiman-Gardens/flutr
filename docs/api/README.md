@@ -1,4 +1,4 @@
-## Flutr V2 API
+# Flutr V2 API
 
 This document is the quick index for the API layer. The authoritative contract is `API_ARCHITECTURE_V2.md`.
 

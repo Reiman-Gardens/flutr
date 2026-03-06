@@ -2,18 +2,6 @@ import { z } from "zod";
 
 import { sanitizeText } from "@/lib/validation/sanitize";
 
-export const releaseIdParamsSchema = z
-  .object({
-    id: z.coerce.number().int().positive(),
-  })
-  .strict();
-
-export const shipmentIdParamsSchema = z
-  .object({
-    id: z.coerce.number().int().positive(),
-  })
-  .strict();
-
 export const createReleaseBodySchema = z
   .object({
     release_date: z.coerce.date(),

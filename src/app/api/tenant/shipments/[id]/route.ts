@@ -3,8 +3,8 @@ import { NextRequest } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { canReadShipment, canWriteShipment, requireUser } from "@/lib/authz";
-import { parseJsonBody } from "@/lib/validation/shared";
 import { forbidden, internalError, invalidRequest, ok, unauthorized } from "@/lib/api-response";
+import { requireValidBody } from "@/lib/validation/request";
 import { shipmentIdParamsSchema, updateShipmentBodySchema } from "@/lib/validation/shipments";
 
 interface RouteContext {
@@ -64,16 +64,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     }
 
     const params = paramResult.data;
-    const bodyResult = await parseJsonBody(request, updateShipmentBodySchema);
-
-    if (!bodyResult.success && bodyResult.type === "invalid_json") {
-      return invalidRequest("Malformed JSON body");
-    }
-
-    if (!bodyResult.success && bodyResult.type === "validation_error") {
-      return invalidRequest("Invalid request body", bodyResult.issues);
-    }
-
+    const bodyResult = await requireValidBody(request, updateShipmentBodySchema);
+    if ("error" in bodyResult) return bodyResult.error;
     const validBody = bodyResult.data;
 
     return ok({ shipment: null, params, body: validBody });
