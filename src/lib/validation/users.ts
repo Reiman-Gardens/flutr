@@ -3,6 +3,8 @@ import { z } from "zod";
 import { sanitizeText } from "@/lib/validation/sanitize";
 import type { UserRole } from "@/lib/authz";
 
+export const USER_ROLES = ["EMPLOYEE", "ADMIN", "SUPERUSER"] as const satisfies ReadonlyArray<UserRole>;
+
 export const userIdParamsSchema = z.object({ id: z.coerce.number().int().positive() }).strict();
 
 export const listUsersQuerySchema = z
@@ -23,7 +25,7 @@ export const createUserBodySchema = z
       .email()
       .transform((v) => sanitizeText(v)),
     password: z.string().min(8).max(200),
-    role: z.enum(["EMPLOYEE", "ADMIN", "SUPERUSER"] satisfies Array<UserRole>).optional(),
+    role: z.enum(USER_ROLES).optional(),
     institutionId: z.coerce.number().int().positive().optional(),
   })
   .strict();
@@ -41,7 +43,7 @@ export const updateUserBodySchema = z
       .email()
       .transform((v) => sanitizeText(v))
       .optional(),
-    role: z.enum(["EMPLOYEE", "ADMIN", "SUPERUSER"] satisfies Array<UserRole>).optional(),
+    role: z.enum(USER_ROLES).optional(),
     institutionId: z.coerce.number().int().positive().optional(),
   })
   .strict();
