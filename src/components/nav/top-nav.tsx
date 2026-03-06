@@ -5,9 +5,14 @@ import { usePathname } from "next/navigation";
 import { Bug } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useInstitution } from "@/hooks/use-institution";
-import { NAV_LINKS, isAuthenticated } from "./nav-links";
+import type { NavLink } from "./nav-links";
 
-export function TopNav() {
+interface TopNavProps {
+  links: NavLink[];
+  isAuthenticated: boolean;
+}
+
+export function TopNav({ links, isAuthenticated }: TopNavProps) {
   const { basePath } = useInstitution();
   const pathname = usePathname();
 
@@ -27,7 +32,7 @@ export function TopNav() {
           aria-label="Main navigation"
           className="absolute inset-x-0 flex items-center justify-center gap-1"
         >
-          {NAV_LINKS.map((link) => {
+          {links.map((link) => {
             const href = `${basePath}${link.href}`;
             const isActive = link.href === "" ? pathname === basePath : pathname.startsWith(href);
 

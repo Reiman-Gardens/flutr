@@ -4,6 +4,7 @@ import "./globals.css";
 import { Navbar } from "@/components/nav/nav";
 import { Footer } from "@/components/nav/footer";
 import { Toaster } from "@/components/ui/sonner";
+import { SessionProvider } from "@/components/providers/session-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,15 +37,17 @@ export default function RootLayout({
         >
           Skip to main content
         </a>
-        <Navbar />
-        <main
-          id="main-content"
-          className="mx-auto max-w-[90vw] flex-1 px-4 py-6 pb-20 sm:px-6 md:pb-6 lg:px-8"
-        >
-          {children}
-        </main>
-        <Footer />
-        <Toaster position="bottom-right" />
+        <SessionProvider>
+          <Navbar />
+          <main
+            id="main-content"
+            className="mx-auto max-w-[90vw] flex-1 px-4 py-6 pb-20 sm:px-6 md:pb-6 lg:px-8"
+          >
+            {children}
+          </main>
+          <Footer />
+          <Toaster position="bottom-right" />
+        </SessionProvider>
       </body>
     </html>
   );

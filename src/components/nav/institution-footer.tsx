@@ -2,8 +2,7 @@ import Link from "next/link";
 import { Mail, Phone, Twitter, Facebook, Instagram, Youtube } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useInstitution } from "@/hooks/use-institution";
-import { NAV_LINKS } from "@/components/nav/nav-links";
-import { Button } from "@/components/ui/button";
+import { PUBLIC_LINKS } from "@/components/nav/nav-links";
 import type { InstitutionInfo, SocialLinks } from "./footer";
 
 const socialIcons: { key: keyof SocialLinks; icon: LucideIcon; label: string }[] = [
@@ -19,7 +18,7 @@ export function InstitutionFooter({ institution }: { institution: InstitutionInf
   const activeSocials = socialIcons.filter((s) => institution.social_links?.[s.key]);
 
   return (
-    <div className="grid gap-10 md:grid-cols-3">
+    <div className="grid gap-10 md:grid-cols-2">
       {/* Column 1: Institution Info */}
       <div className="space-y-3">
         <h3 className="text-lg font-semibold">{institution.name}</h3>
@@ -77,7 +76,7 @@ export function InstitutionFooter({ institution }: { institution: InstitutionInf
       <div className="space-y-3">
         <h3 className="text-lg font-semibold">Explore</h3>
         <nav aria-label="Footer navigation" className="flex flex-col gap-2">
-          {NAV_LINKS.map((link) => (
+          {PUBLIC_LINKS.map((link) => (
             <Link
               key={link.label}
               href={`${basePath}${link.href}`}
@@ -99,30 +98,6 @@ export function InstitutionFooter({ institution }: { institution: InstitutionInf
             Volunteer
           </Link>
         </nav>
-      </div>
-
-      {/* Column 3: Flutr */}
-      <div className="space-y-3">
-        <h3 className="text-lg font-semibold">Flutr</h3>
-        <nav aria-label="Flutr links" className="flex flex-col gap-2">
-          <Link
-            href="/about"
-            className="text-muted-foreground hover:text-foreground w-fit text-sm transition-colors"
-          >
-            About
-          </Link>
-          <Link
-            href="/contact"
-            className="text-muted-foreground hover:text-foreground w-fit text-sm transition-colors"
-          >
-            Contact
-          </Link>
-        </nav>
-        <div className="pt-2">
-          <Button asChild variant="outline" size="sm">
-            <Link href="/login">Institution Login</Link>
-          </Button>
-        </div>
       </div>
     </div>
   );

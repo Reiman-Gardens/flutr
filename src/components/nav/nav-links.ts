@@ -15,20 +15,15 @@ export interface NavLink {
   icon: LucideIcon;
 }
 
-// TODO: Replace with real auth check
-export const isAuthenticated = false;
-
-const publicLinks: NavLink[] = [
+export const PUBLIC_LINKS: NavLink[] = [
   { label: "Home", href: "", icon: Home },
   { label: "Gallery", href: "/gallery", icon: Image },
   { label: "Stats", href: "/stats", icon: BarChart3 },
 ];
 
-const authLinks: NavLink[] = [
+export const AUTH_LINKS: NavLink[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Shipments", href: "/shipments", icon: Package },
   { label: "Inventory", href: "/inventory", icon: Warehouse },
   { label: "Analytics", href: "/analytics", icon: TrendingUp },
 ];
-
-export const NAV_LINKS: NavLink[] = isAuthenticated ? authLinks : publicLinks;
