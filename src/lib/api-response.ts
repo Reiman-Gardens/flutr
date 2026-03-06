@@ -22,6 +22,19 @@ export interface ErrorBody {
   };
 }
 
+function formatZodPath(segments: (string | number)[]): string {
+  let result = "";
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    if (typeof seg === "number") {
+      result += `[${seg}]`;
+    } else {
+      result += i > 0 ? `.${seg}` : seg;
+    }
+  }
+  return result;
+}
+
 export function jsonError(
   code: ErrorCode,
   message: string,
@@ -50,7 +63,7 @@ export function forbidden(message = "Forbidden") {
 export function invalidRequest(message = "Invalid request", issues?: ZodError["issues"]) {
   const details =
     issues?.map((issue) => ({
-      path: issue.path.join(".") || "",
+      path: formatZodPath(issue.path as (string | number)[]),
       message: issue.message,
     })) ?? [];
 

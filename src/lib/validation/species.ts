@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { sanitizeText } from "@/lib/validation/sanitize";
+import { sanitizeText, sanitizedNonEmpty } from "@/lib/validation/sanitize";
 
 export const speciesIdParamsSchema = z
   .object({
@@ -10,35 +10,12 @@ export const speciesIdParamsSchema = z
 
 export const createSpeciesBodySchema = z
   .object({
-    scientific_name: z
-      .string()
-      .min(1)
-      .max(200)
-      .transform((v) => sanitizeText(v)),
-    common_name: z
-      .string()
-      .min(1)
-      .max(200)
-      .transform((v) => sanitizeText(v)),
-    family: z
-      .string()
-      .min(1)
-      .max(200)
-      .transform((v) => sanitizeText(v)),
-    sub_family: z
-      .string()
-      .min(1)
-      .max(200)
-      .transform((v) => sanitizeText(v)),
+    scientific_name: sanitizedNonEmpty(200),
+    common_name: sanitizedNonEmpty(200),
+    family: sanitizedNonEmpty(200),
+    sub_family: sanitizedNonEmpty(200),
     lifespan_days: z.coerce.number().int().positive(),
-    range: z
-      .array(
-        z
-          .string()
-          .min(1)
-          .transform((v) => sanitizeText(v)),
-      )
-      .min(1),
+    range: z.array(sanitizedNonEmpty(200)).min(1),
     description: z
       .string()
       .max(5000)

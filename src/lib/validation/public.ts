@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { sanitizeText } from "@/lib/validation/sanitize";
+import { sanitizedNonEmpty } from "@/lib/validation/sanitize";
 
 const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const scientificNameRegex = /^[A-Za-z0-9_.-]+$/;
@@ -21,12 +21,7 @@ export const publicEmptyQuerySchema = z.object({}).strict();
 
 export const publicTextFilterSchema = z
   .object({
-    q: z
-      .string()
-      .min(1)
-      .max(200)
-      .transform((value) => sanitizeText(value))
-      .optional(),
+    q: sanitizedNonEmpty(200).optional(),
   })
   .strict();
 

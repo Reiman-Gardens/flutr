@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { sanitizeText } from "@/lib/validation/sanitize";
+import { sanitizedNonEmpty } from "@/lib/validation/sanitize";
 
 export const shipmentIdParamsSchema = z
   .object({
@@ -10,11 +10,7 @@ export const shipmentIdParamsSchema = z
 
 export const createShipmentBodySchema = z
   .object({
-    supplier_code: z
-      .string()
-      .min(1)
-      .max(50)
-      .transform((v) => sanitizeText(v)),
+    supplier_code: sanitizedNonEmpty(50),
     shipment_date: z.coerce.date(),
     arrival_date: z.coerce.date(),
     items: z

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { sanitizeText } from "@/lib/validation/sanitize";
+import { sanitizeText, sanitizedNonEmpty } from "@/lib/validation/sanitize";
 
 /**
  * This file defines Zod schemas for validating institution-related data across the platform.
@@ -21,13 +21,13 @@ export const platformInstitutionIdParamsSchema = z
 // 2. BASE SCHEMA (The single source of truth for institution fields)
 // ----------------------------------------------------------------------
 const baseInstitutionFields = {
-  name: z.string().min(1).max(200).transform(sanitizeText),
-  street_address: z.string().min(1).max(200).transform(sanitizeText),
+  name: sanitizedNonEmpty(200),
+  street_address: sanitizedNonEmpty(200),
   extended_address: z.string().max(200).transform(sanitizeText).optional(),
-  city: z.string().min(1).max(100).transform(sanitizeText),
-  state_province: z.string().min(1).max(100).transform(sanitizeText),
-  postal_code: z.string().min(1).max(30).transform(sanitizeText),
-  country: z.string().min(1).max(100).transform(sanitizeText),
+  city: sanitizedNonEmpty(100),
+  state_province: sanitizedNonEmpty(100),
+  postal_code: sanitizedNonEmpty(30),
+  country: sanitizedNonEmpty(100),
   phone_number: z.string().max(50).transform(sanitizeText).optional(),
   email_address: z.string().email().transform(sanitizeText).optional(),
   website_url: z.string().url().transform(sanitizeText).optional(),
@@ -43,7 +43,7 @@ export const platformCreateInstitutionSchema = z
   .object({
     ...baseInstitutionFields,
     // Superusers define the slug on creation
-    slug: z.string().min(1).max(100).transform(sanitizeText),
+    slug: sanitizedNonEmpty(100),
     iabes_member: z.boolean().optional(),
     stats_active: z.boolean().optional(),
   })

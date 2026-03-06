@@ -23,11 +23,10 @@ export async function GET(request: NextRequest) {
       return forbidden();
     }
 
-    const url = new URL(request.url);
-
-    const queryResult = requireValidQuery(listUsersQuerySchema, {
-      institutionId: url.searchParams.get("institutionId") ?? undefined,
-    });
+    const queryResult = requireValidQuery(
+      listUsersQuerySchema,
+      Object.fromEntries(request.nextUrl.searchParams),
+    );
 
     if ("error" in queryResult) return queryResult.error;
 

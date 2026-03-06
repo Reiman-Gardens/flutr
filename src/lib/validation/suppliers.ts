@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { sanitizeText } from "@/lib/validation/sanitize";
+import { sanitizeText, sanitizedNonEmpty } from "@/lib/validation/sanitize";
 
 export const supplierIdParamsSchema = z
   .object({
@@ -16,21 +16,9 @@ export const listSuppliersQuerySchema = z
 
 export const createSupplierBodySchema = z
   .object({
-    name: z
-      .string()
-      .min(1)
-      .max(200)
-      .transform((v) => sanitizeText(v)),
-    code: z
-      .string()
-      .min(1)
-      .max(50)
-      .transform((v) => sanitizeText(v)),
-    country: z
-      .string()
-      .min(1)
-      .max(100)
-      .transform((v) => sanitizeText(v)),
+    name: sanitizedNonEmpty(200),
+    code: sanitizedNonEmpty(50),
+    country: sanitizedNonEmpty(100),
     website_url: z
       .string()
       .url()

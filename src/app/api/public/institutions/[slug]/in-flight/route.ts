@@ -41,7 +41,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const institutionRows = await db
       .select({ id: institutions.id })
       .from(institutions)
-      .where(eq(institutions.slug, slug))
+      .where(and(eq(institutions.slug, slug), eq(institutions.stats_active, true)))
       .limit(1);
 
     if (!institutionRows.length) {

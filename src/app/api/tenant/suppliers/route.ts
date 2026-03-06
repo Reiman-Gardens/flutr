@@ -22,11 +22,10 @@ export async function GET(request: NextRequest) {
       return forbidden();
     }
 
-    const url = new URL(request.url);
-
-    const result = requireValidQuery(listSuppliersQuerySchema, {
-      institutionId: url.searchParams.get("institutionId") ?? undefined,
-    });
+    const result = requireValidQuery(
+      listSuppliersQuerySchema,
+      Object.fromEntries(request.nextUrl.searchParams),
+    );
     if ("error" in result) return result.error;
     const query = result.data;
 

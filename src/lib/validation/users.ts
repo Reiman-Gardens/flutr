@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { sanitizeText } from "@/lib/validation/sanitize";
+import { sanitizeText, sanitizedNonEmpty } from "@/lib/validation/sanitize";
 import type { UserRole } from "@/lib/authz";
 
 export const USER_ROLES = [
@@ -19,11 +19,7 @@ export const listUsersQuerySchema = z
 
 export const createUserBodySchema = z
   .object({
-    name: z
-      .string()
-      .min(1)
-      .max(200)
-      .transform((v) => sanitizeText(v)),
+    name: sanitizedNonEmpty(200),
     email: z
       .string()
       .email()
@@ -36,12 +32,7 @@ export const createUserBodySchema = z
 
 export const updateUserBodySchema = z
   .object({
-    name: z
-      .string()
-      .min(1)
-      .max(200)
-      .transform((v) => sanitizeText(v))
-      .optional(),
+    name: sanitizedNonEmpty(200).optional(),
     email: z
       .string()
       .email()

@@ -1,15 +1,11 @@
 import { z } from "zod";
 
-import { sanitizeText } from "@/lib/validation/sanitize";
+import { sanitizedNonEmpty } from "@/lib/validation/sanitize";
 
 export const createReleaseBodySchema = z
   .object({
     release_date: z.coerce.date(),
-    released_by: z
-      .string()
-      .min(1)
-      .max(200)
-      .transform((v) => sanitizeText(v)),
+    released_by: sanitizedNonEmpty(200),
     institutionId: z.coerce.number().int().positive().optional(),
   })
   .strict();
