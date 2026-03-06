@@ -130,6 +130,8 @@ Detailed documentation lives in `docs/`:
 | Authorization helpers | `requireUser`, `canX(...)` from `@/lib/authz`                      | Avoid raw role checks inside routes                         |
 | Tenant helpers        | `tenantCondition`, `resolveTenantId` from `@/lib/tenant`           | Enforce read/write tenant isolation                         |
 | Validation helpers    | `requireValidBody` / `requireValidQuery` from `@/lib/validation/*` | Standardized request validation flow                        |
+| Sanitize              | `sanitizeText` from `@/lib/validation/sanitize`                    | Strip HTML from user input                                  |
+| Sanitized non-empty   | `sanitizedNonEmpty(maxLen)` from `@/lib/validation/sanitize`       | Sanitize + trim before enforcing non-empty (required texts) |
 | DB client             | `db` from `@/lib/db`                                               | Drizzle ORM client with full schema                         |
 | Schema                | `* from @/lib/schema`                                              | All table definitions (institutions, users, species, etc.)  |
 | Auth                  | `auth` from `@/auth`                                               | NextAuth session helper                                     |

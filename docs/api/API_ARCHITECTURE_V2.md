@@ -211,6 +211,7 @@ All tenant and cross-tenant logic must be centralized in `src/lib/tenant.ts`.
   - Sanitize all free-text inputs via `sanitizeText` in the validation layer.
 - **Tenant visibility**:
   - Derive `institution_id` from the institution `slug` via `institutions` table.
+  - Slug lookups must also filter by `stats_active = true` to prevent exposing data for inactive institutions.
   - Filter all tenant-scoped tables by resolved `institution_id`.
 - **Statuses**:
   - `400` — invalid params/query.
@@ -286,10 +287,12 @@ All validation lives under `src/lib/validation`. Patterns:
 
 - **Rules**:
   - All Zod object schemas must call `.strict()`.
-  - All user-entered text must be sanitized via `sanitizeText` (strip HTML + trim) as a `.transform` in schemas.
+  - Required text fields must use `sanitizedNonEmpty(maxLength)` from `validation/sanitize.ts`. This sanitizes (strip HTML + trim) **before** enforcing `.min(1)` via `.pipe()`, preventing whitespace-only or HTML-only strings from passing validation.
+  - Optional text fields use `.transform(sanitizeText)` after `.max()` as before.
   - Route param & query schemas should:
     - Use `z.coerce.number()` (or equivalent preprocessors) for numeric ids from strings.
     - Enforce simple slug patterns for `[slug]` and `[scientific_name]` where appropriate.
+  - Tenant route query validation must pass the full query object (`Object.fromEntries(request.nextUrl.searchParams)`) into `requireValidQuery` so `.strict()` schemas can reject unknown keys.
 
 - **Helpers**:
   - `requireValidBody(request, schema)` for standardized JSON body parsing + validation mapping.
@@ -323,7 +326,7 @@ All API routes (public, tenant, platform) must use a consistent JSON envelope:
     - `INTERNAL_ERROR`
   - `error.message` — human-readable summary.
   - `error.details` — optional array for validation issues; each item has:
-    - `path` — string (e.g. `"items[0].butterflySpeciesId"` or `"slug"`).
+    - `path` — string using bracket notation for array indices (e.g. `"items[0].butterflySpeciesId"` or `"slug"`).
     - `message` — human-readable explanation.
 
 - **Status codes**:
