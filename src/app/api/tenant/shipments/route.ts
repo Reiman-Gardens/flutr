@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { requireUser, canReadShipment, canWriteShipment } from "@/lib/authz";
-import { forbidden, internalError, invalidRequest, ok, unauthorized } from "@/lib/api-response";
+import { forbidden, internalError, ok, unauthorized } from "@/lib/api-response";
 import { requireValidBody } from "@/lib/validation/request";
 import { listShipmentsQuerySchema, createShipmentBodySchema } from "@/lib/validation/shipments";
 import { requireValidQuery } from "@/lib/validation/query";
