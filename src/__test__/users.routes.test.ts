@@ -160,7 +160,10 @@ describe("Users API routes", () => {
         user: { id: "11", role: "ORG_SUPERUSER", institutionId: 1 },
       });
 
-      (db.select as jest.Mock).mockImplementationOnce(() => makeSelect([{ id: 1 }]));
+      // ensureTenantExists + email uniqueness check (no existing user)
+      (db.select as jest.Mock)
+        .mockImplementationOnce(() => makeSelect([{ id: 1 }]))
+        .mockImplementationOnce(() => makeSelect([]));
       (db.insert as jest.Mock).mockImplementationOnce(() =>
         makeInsert([
           {
@@ -192,6 +195,30 @@ describe("Users API routes", () => {
         role: "ADMIN",
         institutionId: 1,
       });
+    });
+
+    it("returns 409 when email is already in use", async () => {
+      authMock.mockResolvedValue({
+        user: { id: "11", role: "ORG_SUPERUSER", institutionId: 1 },
+      });
+
+      // ensureTenantExists succeeds, email check finds existing user
+      (db.select as jest.Mock)
+        .mockImplementationOnce(() => makeSelect([{ id: 1 }]))
+        .mockImplementationOnce(() => makeSelect([{ id: 42 }]));
+
+      const response = await postUsers(
+        jsonRequest("http://localhost/api/users", "POST", {
+          name: "Ada",
+          email: "ada@example.com",
+          password: "password123",
+          role: "ADMIN",
+          institutionId: 1,
+        }),
+      );
+
+      expect(response.status).toBe(409);
+      await expect(response.json()).resolves.toEqual({ error: "Email already in use" });
     });
   });
 
