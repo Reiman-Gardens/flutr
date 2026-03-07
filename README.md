@@ -42,6 +42,8 @@ docker compose version
 
 ## Getting Started
 
+Docker Compose runs PostgreSQL and Drizzle Studio. The Next.js dev server runs locally for fast hot reload.
+
 ```bash
 # Install dependencies
 pnpm install
@@ -50,14 +52,45 @@ pnpm install
 cp .env.example .env
 # Edit .env and set NEXTAUTH_SECRET (generate one with: openssl rand -base64 32)
 
-# Start PostgreSQL
+# Start Docker services (PostgreSQL + Drizzle Studio)
 docker compose up -d
 
-# Push database schema
+# Push database schema (run once, or after schema changes)
 pnpm db:push
 
 # Start dev server
 pnpm dev
+```
+
+| Service  | URL                          | Description                           |
+| -------- | ---------------------------- | ------------------------------------- |
+| `studio` | https://local.drizzle.studio | Drizzle Studio GUI (API on port 4983) |
+| `db`     | localhost:5432               | PostgreSQL 17                         |
+| dev      | http://localhost:3000        | Next.js dev server (run locally)      |
+
+Each Docker service is independently restartable:
+
+```bash
+docker compose restart studio    # Restart Drizzle Studio
+docker compose restart db        # Restart PostgreSQL
+
+docker compose logs -f studio    # Follow logs for a specific service
+docker compose up -d --build     # Rebuild after dependency changes
+```
+
+### Docker Lifecycle
+
+```bash
+docker compose down            # Stop and remove containers (volumes preserved)
+docker compose down -v         # Stop, remove containers, AND delete volumes (full reset)
+docker compose stop            # Stop containers without removing them
+docker compose start           # Restart stopped containers
+```
+
+**After changing `package.json`**, rebuild to update the studio container's dependencies:
+
+```bash
+docker compose up -d --build studio
 ```
 
 ## Seeding the Database (Development Only)
@@ -77,7 +110,7 @@ Then run:
 ```bash
 docker compose down -v     # Reset Docker volumes if data exists (caution: deletes all data)
 docker compose up -d
-pnpm db:push
+pnpm db:push               # Or: docker compose exec app pnpm db:push
 pnpm seed                  # Run seed script to populate initial data (Ensure .json files in scripts/data/ are present)
 ```
 
