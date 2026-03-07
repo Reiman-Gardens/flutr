@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Bug } from "lucide-react";
 import { LiveStats } from "@/components/public/home/live-stats";
 
@@ -19,11 +20,13 @@ export function HeroSection({
       {/* Full-width background image */}
       <div className="relative min-h-[420px] w-full sm:min-h-[460px] lg:min-h-[500px]">
         {facility_image_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={facility_image_url}
             alt=""
-            className="absolute inset-0 size-full object-cover"
+            fill
+            sizes="100vw"
+            className="object-cover"
+            priority
           />
         ) : (
           <div className="bg-muted absolute inset-0">
@@ -35,7 +38,7 @@ export function HeroSection({
         )}
 
         {/* Dark overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/10" />
+        <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/50 to-black/30" />
 
         {/* Text overlay — bottom left */}
         <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8 lg:p-12">

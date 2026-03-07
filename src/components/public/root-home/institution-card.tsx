@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Bug, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,6 +25,7 @@ export function InstitutionCard({
 }: InstitutionCardProps) {
   const initials = name
     .split(" ")
+    .filter(Boolean)
     .slice(0, 2)
     .map((w) => w[0])
     .join("")
@@ -39,11 +41,12 @@ export function InstitutionCard({
           {/* Facility image or placeholder */}
           <div className="relative aspect-video overflow-hidden">
             {facility_image_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <Image
                 src={facility_image_url}
                 alt={`${name} facility`}
-                className="absolute inset-0 size-full object-cover transition-transform group-hover:scale-105"
+                fill
+                sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                className="object-cover transition-transform group-hover:scale-105"
               />
             ) : (
               <div className="bg-muted flex size-full items-center justify-center">
@@ -62,8 +65,13 @@ export function InstitutionCard({
                 )}
               >
                 {logo_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={logo_url} alt="" className="size-10 rounded-full object-cover" />
+                  <Image
+                    src={logo_url}
+                    alt=""
+                    width={40}
+                    height={40}
+                    className="rounded-full object-cover"
+                  />
                 ) : (
                   <span className="text-muted-foreground text-xs font-semibold">{initials}</span>
                 )}

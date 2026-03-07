@@ -1,4 +1,4 @@
-import { eq, and, sum, isNotNull, countDistinct } from "drizzle-orm";
+import { eq, and, sum, isNotNull, countDistinct, exists } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   institutions,
@@ -18,11 +18,10 @@ interface InstitutionPageProps {
 export default async function InstitutionPage({ params }: InstitutionPageProps) {
   const { institution: slug } = await params;
 
-  // Resolve institution id + extra fields not in the layout's PublicInstitution
+  // Resolve institution id + fields needed by this page
   const [inst] = await db
     .select({
       id: institutions.id,
-      name: institutions.name,
       description: institutions.description,
       facility_image_url: institutions.facility_image_url,
     })
@@ -30,12 +29,11 @@ export default async function InstitutionPage({ params }: InstitutionPageProps) 
     .where(and(eq(institutions.slug, slug), eq(institutions.stats_active, true)))
     .limit(1);
 
-  // Layout already handles 404 if institution doesn't exist
   if (!inst) return null;
 
   const basePath = `/${slug}`;
 
-  // Parallel data fetching
+  // Parallel data fetching — stats, species list, and institution details
   const [inFlightResult, speciesRows] = await Promise.all([
     // Total butterflies + distinct species in flight
     db
@@ -54,6 +52,7 @@ export default async function InstitutionPage({ params }: InstitutionPageProps) 
       .where(eq(in_flight.institution_id, inst.id)),
 
     // Enabled species with images (for Butterfly of the Day)
+    // Includes an `is_in_flight` subquery so we don't need a sequential follow-up query
     db
       .select({
         scientific_name: butterfly_species.scientific_name,
@@ -62,6 +61,24 @@ export default async function InstitutionPage({ params }: InstitutionPageProps) 
         range: butterfly_species.range,
         lifespan_days: butterfly_species.lifespan_days,
         host_plant: butterfly_species.host_plant,
+        is_in_flight: exists(
+          db
+            .select({ id: in_flight.id })
+            .from(in_flight)
+            .innerJoin(
+              shipment_items,
+              and(
+                eq(in_flight.institution_id, shipment_items.institution_id),
+                eq(in_flight.shipment_item_id, shipment_items.id),
+              ),
+            )
+            .where(
+              and(
+                eq(in_flight.institution_id, inst.id),
+                eq(shipment_items.butterfly_species_id, butterfly_species.id),
+              ),
+            ),
+        ).as("is_in_flight"),
       })
       .from(butterfly_species_institution)
       .innerJoin(
@@ -79,32 +96,8 @@ export default async function InstitutionPage({ params }: InstitutionPageProps) 
   const totalButterflies = Number(inFlightResult[0]?.totalButterflies ?? 0);
   const totalSpecies = Number(inFlightResult[0]?.totalSpecies ?? 0);
 
-  // Pick a deterministic "Butterfly of the Day" based on the current date
+  // Pick a deterministic "Butterfly of the Day" based on the current UTC date
   const featured = speciesRows.length > 0 ? speciesRows[dayIndex(speciesRows.length)] : null;
-
-  // Check if featured species is currently in flight
-  let featuredInFlight = false;
-  if (featured) {
-    const [match] = await db
-      .select({ id: in_flight.id })
-      .from(in_flight)
-      .innerJoin(
-        shipment_items,
-        and(
-          eq(in_flight.institution_id, shipment_items.institution_id),
-          eq(in_flight.shipment_item_id, shipment_items.id),
-        ),
-      )
-      .innerJoin(butterfly_species, eq(shipment_items.butterfly_species_id, butterfly_species.id))
-      .where(
-        and(
-          eq(in_flight.institution_id, inst.id),
-          eq(butterfly_species.scientific_name, featured.scientific_name),
-        ),
-      )
-      .limit(1);
-    featuredInFlight = !!match;
-  }
 
   return (
     <div>
@@ -128,7 +121,7 @@ export default async function InstitutionPage({ params }: InstitutionPageProps) 
               range={featured.range}
               lifespan_days={featured.lifespan_days}
               host_plant={featured.host_plant}
-              is_in_flight={featuredInFlight}
+              is_in_flight={Boolean(featured.is_in_flight)}
             />
           )}
 
@@ -139,9 +132,8 @@ export default async function InstitutionPage({ params }: InstitutionPageProps) 
   );
 }
 
-/** Returns a stable index for today, cycling through `length` items. */
+/** Returns a stable index for today (UTC), cycling through `length` items. */
 function dayIndex(length: number): number {
-  const now = new Date();
-  const daysSinceEpoch = Math.floor(now.getTime() / (1000 * 60 * 60 * 24));
+  const daysSinceEpoch = Math.floor(Date.now() / 86_400_000);
   return daysSinceEpoch % length;
 }
