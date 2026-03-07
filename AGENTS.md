@@ -140,6 +140,7 @@ Detailed documentation lives in `docs/`:
 | DB client             | `db` from `@/lib/db`                                               | Drizzle ORM client with full schema                         |
 | Schema                | `* from @/lib/schema`                                              | All table definitions (institutions, users, species, etc.)  |
 | Auth                  | `auth` from `@/auth`                                               | NextAuth session helper                                     |
+| Link (no prefetch)    | `Link` from `@/components/ui/link`                                 | Next.js Link without scroll-prefetch (hover/focus only)     |
 
 ## Workflow Rules
 

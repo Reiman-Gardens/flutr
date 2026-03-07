@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Globe, Clock, Leaf, Activity } from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -33,12 +34,13 @@ export function FeaturedButterfly({
       <Card className="gap-0 overflow-hidden py-0 lg:flex lg:flex-row">
         {/* Image — fills card height on desktop */}
         {img_wings_open ? (
-          <div className="relative lg:w-2/5 lg:shrink-0">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+          <div className="relative aspect-4/3 lg:aspect-auto lg:w-2/5 lg:shrink-0">
+            <Image
               src={img_wings_open}
               alt={`${common_name} (${scientific_name})`}
-              className="aspect-4/3 w-full object-cover lg:absolute lg:inset-0 lg:aspect-auto lg:size-full"
+              fill
+              sizes="(min-width: 1024px) 40%, 100vw"
+              className="object-cover"
             />
             <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/70 to-transparent p-4">
               <p className="text-lg font-bold text-white">{common_name}</p>

@@ -5,9 +5,8 @@ interface LiveStatsProps {
 
 export function LiveStats({ totalButterflies, totalSpecies }: LiveStatsProps) {
   return (
-    <div
-      role="region"
-      aria-label="Live statistics"
+    <aside
+      aria-labelledby="live-stats-heading"
       className="bg-card relative overflow-hidden rounded-2xl px-8 py-6 shadow-lg sm:px-10"
     >
       {/* Corner decoration */}
@@ -18,9 +17,12 @@ export function LiveStats({ totalButterflies, totalSpecies }: LiveStatsProps) {
 
       <div className="relative">
         <div className="flex items-center gap-2">
-          <span className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">
+          <h2
+            id="live-stats-heading"
+            className="text-muted-foreground text-xs font-semibold tracking-widest uppercase"
+          >
             Live Statistics
-          </span>
+          </h2>
           <span className="bg-success inline-block size-2.5 rounded-full" aria-hidden="true" />
         </div>
 
@@ -48,6 +50,6 @@ export function LiveStats({ totalButterflies, totalSpecies }: LiveStatsProps) {
           </div>
         </div>
       </div>
-    </div>
+    </aside>
   );
 }

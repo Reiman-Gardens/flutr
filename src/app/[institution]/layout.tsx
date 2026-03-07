@@ -18,7 +18,9 @@ export default async function InstitutionLayout({ children, params }: Institutio
 
   const [row] = await db
     .select({
+      id: institutions.id,
       name: institutions.name,
+      description: institutions.description,
       street_address: institutions.street_address,
       extended_address: institutions.extended_address,
       city: institutions.city,
@@ -29,6 +31,7 @@ export default async function InstitutionLayout({ children, params }: Institutio
       phone_number: institutions.phone_number,
       website_url: institutions.website_url,
       logo_url: institutions.logo_url,
+      facility_image_url: institutions.facility_image_url,
       social_links: institutions.social_links,
     })
     .from(institutions)
