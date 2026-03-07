@@ -18,10 +18,7 @@ export function MobileNav({ links, className }: MobileNavProps) {
   return (
     <nav
       aria-label="Mobile navigation"
-      className={cn(
-        "bg-background/95 supports-backdrop-filter:bg-background/60 fixed bottom-0 left-0 z-50 w-full border-t backdrop-blur",
-        className,
-      )}
+      className={cn("bg-background fixed bottom-0 left-0 z-50 w-full border-t", className)}
     >
       <div className="flex h-16 items-center justify-around">
         {links.map((link) => {
@@ -35,9 +32,9 @@ export function MobileNav({ links, className }: MobileNavProps) {
               href={href}
               className={cn(
                 "flex flex-col items-center gap-1 rounded-md px-3 py-2 text-xs font-medium transition-colors",
-                "hover:text-accent-foreground",
+                "hover:text-primary hover:font-bold",
                 "focus-visible:ring-ring/50 focus-visible:ring-2 focus-visible:outline-none",
-                isActive ? "text-foreground" : "text-muted-foreground",
+                isActive ? "text-primary font-bold" : "text-muted-foreground",
               )}
               aria-current={isActive ? "page" : undefined}
             >

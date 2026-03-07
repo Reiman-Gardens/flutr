@@ -20,12 +20,7 @@ export function TopNav({ links, isAuthenticated, className }: TopNavProps) {
   const institution = useInstitutionData();
 
   return (
-    <header
-      className={cn(
-        "bg-background/95 supports-backdrop-filter:bg-background/60 sticky top-0 z-50 w-full border-b backdrop-blur",
-        className,
-      )}
-    >
+    <header className={cn("bg-background sticky top-0 z-50 w-full border-b", className)}>
       <div className="relative mx-auto flex h-14 max-w-[90vw] items-center px-4 sm:px-6 lg:px-8">
         <Link
           href={isAuthenticated ? `${basePath}/dashboard` : basePath}
@@ -61,10 +56,10 @@ export function TopNav({ links, isAuthenticated, className }: TopNavProps) {
                 key={link.label}
                 href={href}
                 className={cn(
-                  "rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                  "hover:bg-accent hover:text-accent-foreground",
+                  "rounded-md px-3 py-2 text-base font-medium transition-colors",
+                  "hover:text-primary hover:font-bold",
                   "focus-visible:ring-ring/50 focus-visible:ring-2 focus-visible:outline-none",
-                  isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground",
+                  isActive ? "text-primary font-bold" : "text-muted-foreground",
                 )}
                 aria-current={isActive ? "page" : undefined}
               >
