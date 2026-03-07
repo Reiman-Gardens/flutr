@@ -90,7 +90,8 @@ export default async function InstitutionPage({ params }: InstitutionPageProps) 
           eq(butterfly_species_institution.institution_id, inst.id),
           isNotNull(butterfly_species.img_wings_open),
         ),
-      ),
+      )
+      .orderBy(butterfly_species.scientific_name),
   ]);
 
   const totalButterflies = Number(inFlightResult[0]?.totalButterflies ?? 0);
@@ -133,7 +134,7 @@ export default async function InstitutionPage({ params }: InstitutionPageProps) 
 }
 
 /** Returns a stable index for today (UTC), cycling through `length` items. */
-function dayIndex(length: number): number {
+export function dayIndex(length: number): number {
   const daysSinceEpoch = Math.floor(Date.now() / 86_400_000);
   return daysSinceEpoch % length;
 }

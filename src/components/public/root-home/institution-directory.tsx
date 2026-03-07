@@ -16,31 +16,40 @@ interface InstitutionDirectoryProps {
   institutions: InstitutionCardProps[];
 }
 
+export function getUniqueStates(institutions: InstitutionCardProps[]): string[] {
+  const unique = [...new Set(institutions.map((i) => i.state_province))];
+  return unique.sort((a, b) => a.localeCompare(b));
+}
+
+export function filterInstitutions(
+  institutions: InstitutionCardProps[],
+  search: string,
+  stateFilter: string,
+): InstitutionCardProps[] {
+  const sorted = [...institutions].sort((a, b) => a.name.localeCompare(b.name));
+
+  return sorted.filter((inst) => {
+    const matchesSearch =
+      search === "" ||
+      inst.name.toLowerCase().includes(search.toLowerCase()) ||
+      inst.city.toLowerCase().includes(search.toLowerCase());
+
+    const matchesState = stateFilter === "all" || inst.state_province === stateFilter;
+
+    return matchesSearch && matchesState;
+  });
+}
+
 export function InstitutionDirectory({ institutions }: InstitutionDirectoryProps) {
   const [search, setSearch] = useState("");
   const [stateFilter, setStateFilter] = useState("all");
 
-  // Unique states sorted alphabetically
-  const states = useMemo(() => {
-    const unique = [...new Set(institutions.map((i) => i.state_province))];
-    return unique.sort((a, b) => a.localeCompare(b));
-  }, [institutions]);
+  const states = useMemo(() => getUniqueStates(institutions), [institutions]);
 
-  // Sorted alphabetically, then filtered
-  const filtered = useMemo(() => {
-    const sorted = [...institutions].sort((a, b) => a.name.localeCompare(b.name));
-
-    return sorted.filter((inst) => {
-      const matchesSearch =
-        search === "" ||
-        inst.name.toLowerCase().includes(search.toLowerCase()) ||
-        inst.city.toLowerCase().includes(search.toLowerCase());
-
-      const matchesState = stateFilter === "all" || inst.state_province === stateFilter;
-
-      return matchesSearch && matchesState;
-    });
-  }, [institutions, search, stateFilter]);
+  const filtered = useMemo(
+    () => filterInstitutions(institutions, search, stateFilter),
+    [institutions, search, stateFilter],
+  );
 
   return (
     <div>

@@ -14,6 +14,16 @@ export interface InstitutionCardProps {
   logo_url: string | null;
 }
 
+export function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+}
+
 export function InstitutionCard({
   slug,
   name,
@@ -23,13 +33,7 @@ export function InstitutionCard({
   facility_image_url,
   logo_url,
 }: InstitutionCardProps) {
-  const initials = name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
+  const initials = getInitials(name);
 
   return (
     <article>
