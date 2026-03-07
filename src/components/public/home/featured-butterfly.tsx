@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Globe, Clock, Leaf, Activity } from "lucide-react";
+import { Globe, Clock, Leaf, Activity, Wind } from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -12,7 +12,7 @@ interface FeaturedButterflyProps {
   range: string[];
   lifespan_days: number;
   host_plant: string | null;
-  is_in_flight: boolean;
+  in_flight_count: number;
 }
 
 export function FeaturedButterfly({
@@ -23,7 +23,7 @@ export function FeaturedButterfly({
   range,
   lifespan_days,
   host_plant,
-  is_in_flight,
+  in_flight_count,
 }: FeaturedButterflyProps) {
   return (
     <section aria-labelledby="featured-heading">
@@ -58,26 +58,31 @@ export function FeaturedButterfly({
         <div className="flex flex-1 flex-col py-6">
           <CardContent className="flex-1">
             <div className="grid grid-cols-2 gap-3">
+              {/* Left column — 2 items */}
               <DetailItem
                 icon={<Globe className="size-4" aria-hidden="true" />}
                 label="Origin"
                 value={range.length > 0 ? range[0] : "Unknown"}
               />
-              <DetailItem
-                icon={<Clock className="size-4" aria-hidden="true" />}
-                label="Lifespan"
-                value={`${lifespan_days} Days`}
-              />
-              <DetailItem
-                icon={<Leaf className="size-4" aria-hidden="true" />}
-                label="Host Plant"
-                value={host_plant ?? "Unknown"}
-              />
-              <DetailItem
-                icon={<Activity className="size-4" aria-hidden="true" />}
-                label="Status"
-                value={is_in_flight ? "Active Flight" : "In Collection"}
-              />
+              {/* Right column — 3 items */}
+              <div className="row-span-3 flex flex-col gap-3">
+                <DetailItem
+                  icon={<Clock className="size-4" aria-hidden="true" />}
+                  label="Lifespan"
+                  value={`${lifespan_days} Days`}
+                />
+                <DetailItem
+                  icon={<Activity className="size-4" aria-hidden="true" />}
+                  label="Status"
+                  value={in_flight_count > 0 ? "Active Flight" : "In Collection"}
+                />
+                <DetailItem
+                  icon={<Wind className="size-4" aria-hidden="true" />}
+                  label="In Flight"
+                  value={String(in_flight_count)}
+                />
+              </div>
+              <HostPlantItem host_plant={host_plant} />
             </div>
           </CardContent>
 
@@ -109,6 +114,41 @@ function DetailItem({
       <div>
         <p className="text-muted-foreground text-xs tracking-wide uppercase">{label}</p>
         <p className="text-sm font-medium">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+const MAX_VISIBLE_PLANTS = 2;
+
+function HostPlantItem({ host_plant }: { host_plant: string | null }) {
+  const plants = host_plant
+    ? host_plant
+        .split(",")
+        .map((p) => p.trim())
+        .filter(Boolean)
+    : [];
+
+  const visible = plants.slice(0, MAX_VISIBLE_PLANTS);
+  const remaining = plants.length - MAX_VISIBLE_PLANTS;
+
+  return (
+    <div className="flex items-start gap-2">
+      <span className="text-muted-foreground mt-0.5">
+        <Leaf className="size-4" aria-hidden="true" />
+      </span>
+      <div>
+        <p className="text-muted-foreground text-xs tracking-wide uppercase">Host Plant</p>
+        {plants.length === 0 ? (
+          <p className="text-sm font-medium">Unknown</p>
+        ) : (
+          <p className="text-sm font-medium">
+            {visible.join(", ")}
+            {remaining > 0 && (
+              <span className="text-muted-foreground ml-1 text-xs">+{remaining} more</span>
+            )}
+          </p>
+        )}
       </div>
     </div>
   );
