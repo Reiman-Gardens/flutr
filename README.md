@@ -78,6 +78,7 @@ docker compose logs -f studio    # Follow logs for a specific service
 docker compose up -d --build     # Rebuild after dependency changes
 ```
 
+
 ### Docker Lifecycle
 
 ```bash
@@ -92,6 +93,7 @@ docker compose start           # Restart stopped containers
 ```bash
 docker compose up -d --build studio
 ```
+
 
 ## Seeding the Database (Development Only)
 
