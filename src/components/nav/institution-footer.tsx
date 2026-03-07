@@ -3,7 +3,7 @@ import { Mail, Phone, Twitter, Facebook, Instagram, Youtube } from "lucide-react
 import type { LucideIcon } from "lucide-react";
 import { useInstitution } from "@/hooks/use-institution";
 import { PUBLIC_LINKS } from "@/components/nav/nav-links";
-import type { InstitutionInfo, SocialLinks } from "./footer";
+import type { PublicInstitution, SocialLinks } from "@/types/institution";
 
 const socialIcons: { key: keyof SocialLinks; icon: LucideIcon; label: string }[] = [
   { key: "x", icon: Twitter, label: "X (Twitter)" },
@@ -12,7 +12,7 @@ const socialIcons: { key: keyof SocialLinks; icon: LucideIcon; label: string }[]
   { key: "youtube", icon: Youtube, label: "YouTube" },
 ];
 
-export function InstitutionFooter({ institution }: { institution: InstitutionInfo }) {
+export function InstitutionFooter({ institution }: { institution: PublicInstitution }) {
   const { basePath } = useInstitution();
 
   const activeSocials = socialIcons.filter((s) => institution.social_links?.[s.key]);

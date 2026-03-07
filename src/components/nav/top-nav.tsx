@@ -1,10 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bug } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useInstitution } from "@/hooks/use-institution";
+import { useInstitutionData } from "@/components/providers/institution-provider";
 import type { NavLink } from "./nav-links";
 
 interface TopNavProps {
@@ -15,6 +16,7 @@ interface TopNavProps {
 export function TopNav({ links, isAuthenticated }: TopNavProps) {
   const { basePath } = useInstitution();
   const pathname = usePathname();
+  const institution = useInstitutionData();
 
   return (
     <header className="bg-background/95 supports-backdrop-filter:bg-background/60 sticky top-0 z-50 w-full border-b backdrop-blur">
@@ -22,10 +24,22 @@ export function TopNav({ links, isAuthenticated }: TopNavProps) {
         <Link
           href={isAuthenticated ? `${basePath}/dashboard` : basePath}
           className="z-10 flex items-center gap-2 font-semibold"
-          aria-label={isAuthenticated ? "Flutr dashboard" : "Flutr home"}
+          aria-label={
+            institution?.name ? `${institution.name} home` : isAuthenticated ? "Dashboard" : "Home"
+          }
         >
-          <Bug className="size-5" aria-hidden="true" />
-          <span>Flutr</span>
+          {institution?.logo_url ? (
+            <Image
+              src={institution.logo_url}
+              alt={institution.name}
+              width={32}
+              height={32}
+              sizes="(max-width: 640px) 24px, (max-width: 1024px) 28px, 32px"
+              className="size-6 object-contain sm:size-7 lg:size-8"
+            />
+          ) : (
+            <span>{institution?.name ?? "Flutr"}</span>
+          )}
         </Link>
 
         <nav

@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Navbar } from "@/components/nav/nav";
-import { Footer } from "@/components/nav/footer";
 import { Toaster } from "@/components/ui/sonner";
 import { SessionProvider } from "@/components/providers/session-provider";
 
@@ -38,14 +36,7 @@ export default function RootLayout({
           Skip to main content
         </a>
         <SessionProvider>
-          <Navbar />
-          <main
-            id="main-content"
-            className="mx-auto max-w-[90vw] flex-1 px-4 py-6 pb-20 sm:px-6 md:pb-6 lg:px-8"
-          >
-            {children}
-          </main>
-          <Footer />
+          {children}
           <Toaster position="bottom-right" />
         </SessionProvider>
       </body>
