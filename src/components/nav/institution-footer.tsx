@@ -21,7 +21,7 @@ export function InstitutionFooter({ institution }: { institution: PublicInstitut
   });
 
   return (
-    <div className="grid gap-10 md:grid-cols-2">
+    <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr]">
       {/* Column 1: Institution Info */}
       <div className="space-y-3">
         <h3 className="text-lg font-semibold">{institution.name}</h3>
@@ -78,7 +78,7 @@ export function InstitutionFooter({ institution }: { institution: PublicInstitut
       {/* Column 2: Explore */}
       <div className="space-y-3">
         <h3 className="text-lg font-semibold">Explore</h3>
-        <nav aria-label="Footer navigation" className="flex flex-col gap-2">
+        <nav aria-label="Explore links" className="flex flex-col gap-2">
           {PUBLIC_LINKS.map((link) => (
             <Link
               key={link.label}
@@ -88,6 +88,13 @@ export function InstitutionFooter({ institution }: { institution: PublicInstitut
               {link.label}
             </Link>
           ))}
+        </nav>
+      </div>
+
+      {/* Column 3: Get Involved */}
+      <div className="space-y-3">
+        <h3 className="text-lg font-semibold">Get Involved</h3>
+        <nav aria-label="Get involved links" className="flex flex-col gap-2">
           <Link
             href={`${basePath}/donate`}
             className="text-muted-foreground hover:text-foreground w-fit text-sm transition-colors"
@@ -99,6 +106,37 @@ export function InstitutionFooter({ institution }: { institution: PublicInstitut
             className="text-muted-foreground hover:text-foreground w-fit text-sm transition-colors"
           >
             Volunteer
+          </Link>
+          <Link
+            href={`${basePath}/contact`}
+            className="text-muted-foreground hover:text-foreground w-fit text-sm transition-colors"
+          >
+            Contact
+          </Link>
+        </nav>
+      </div>
+
+      {/* Column 4: About Flutr */}
+      <div className="space-y-3">
+        <h3 className="text-lg font-semibold">About Flutr</h3>
+        <nav aria-label="About Flutr links" className="flex flex-col gap-2">
+          <Link
+            href="/about"
+            className="text-muted-foreground hover:text-foreground w-fit text-sm transition-colors"
+          >
+            About
+          </Link>
+          <Link
+            href="/contact"
+            className="text-muted-foreground hover:text-foreground w-fit text-sm transition-colors"
+          >
+            Contact
+          </Link>
+          <Link
+            href="/privacy"
+            className="text-muted-foreground hover:text-foreground w-fit text-sm transition-colors"
+          >
+            Privacy Policy
           </Link>
         </nav>
       </div>
