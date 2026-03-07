@@ -42,6 +42,45 @@ docker compose version
 
 ## Getting Started
 
+There are two ways to run the app locally: **fully containerized** (recommended) or **hybrid** (database in Docker, app on host).
+
+### Fully Containerized (Recommended)
+
+Runs PostgreSQL, the Next.js dev server, and Drizzle Studio all in Docker.
+
+```bash
+# Copy environment variables
+cp .env.example .env
+# Edit .env and set NEXTAUTH_SECRET (generate one with: openssl rand -base64 32)
+
+# Start all services
+docker compose up -d
+
+# Push database schema (run once, or after schema changes)
+docker compose exec app pnpm db:push
+```
+
+| Service  | URL                          | Description                           |
+| -------- | ---------------------------- | ------------------------------------- |
+| `app`    | http://localhost:3000        | Next.js dev server                    |
+| `studio` | https://local.drizzle.studio | Drizzle Studio GUI (API on port 4983) |
+| `db`     | localhost:5432               | PostgreSQL 17                         |
+
+Each service is independently restartable:
+
+```bash
+docker compose restart app       # Restart Next.js dev server
+docker compose restart studio    # Restart Drizzle Studio
+docker compose restart db        # Restart PostgreSQL
+
+docker compose logs -f app       # Follow logs for a specific service
+docker compose up -d --build     # Rebuild after dependency changes
+```
+
+### Hybrid (Database Only in Docker)
+
+If you prefer running Node.js on your host:
+
 ```bash
 # Install dependencies
 pnpm install
@@ -50,8 +89,8 @@ pnpm install
 cp .env.example .env
 # Edit .env and set NEXTAUTH_SECRET (generate one with: openssl rand -base64 32)
 
-# Start PostgreSQL
-docker compose up -d
+# Start PostgreSQL only
+docker compose up -d db
 
 # Push database schema
 pnpm db:push
@@ -59,6 +98,29 @@ pnpm db:push
 # Start dev server
 pnpm dev
 ```
+
+### Docker Lifecycle
+
+```bash
+docker compose down            # Stop and remove containers (volumes preserved)
+docker compose down -v         # Stop, remove containers, AND delete volumes (full reset)
+docker compose stop            # Stop containers without removing them
+docker compose start           # Restart stopped containers
+```
+
+**After changing `package.json`**, rebuild to update container dependencies:
+
+```bash
+docker compose up -d --build app studio
+```
+
+Alternatively, install directly inside the container:
+
+```bash
+docker compose exec app pnpm add <pkg>
+```
+
+> **Note:** Running `pnpm add` on your host does not affect the container — `node_modules` lives in a Docker volume separate from your host.
 
 ## Seeding the Database (Development Only)
 
@@ -77,7 +139,7 @@ Then run:
 ```bash
 docker compose down -v     # Reset Docker volumes if data exists (caution: deletes all data)
 docker compose up -d
-pnpm db:push
+pnpm db:push               # Or: docker compose exec app pnpm db:push
 pnpm seed                  # Run seed script to populate initial data (Ensure .json files in scripts/data/ are present)
 ```
 

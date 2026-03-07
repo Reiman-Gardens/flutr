@@ -104,8 +104,25 @@ Institution ─┬─ Users
 
 ### Local Development
 
+Docker Compose runs three services: PostgreSQL, the Next.js dev server, and Drizzle Studio.
+
 ```bash
-docker compose up -d       # Start PostgreSQL
+docker compose up -d       # Start all services (db, app, studio)
+docker compose exec app pnpm db:push  # Sync schema (first run)
+```
+
+| Service  | Port | Description        |
+| -------- | ---- | ------------------ |
+| `db`     | 5432 | PostgreSQL 17      |
+| `app`    | 3000 | Next.js dev server |
+| `studio` | 4983 | Drizzle Studio GUI |
+
+Each service can be restarted independently with `docker compose restart <service>`.
+
+For hybrid mode (database in Docker, app on host):
+
+```bash
+docker compose up -d db    # Start PostgreSQL only
 pnpm db:push               # Sync schema
 pnpm dev                   # Start Next.js dev server
 ```
