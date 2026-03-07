@@ -45,10 +45,7 @@ export default async function InstitutionLayout({ children, params }: Institutio
   return (
     <InstitutionDataProvider institution={institution}>
       <Navbar isAuthenticated={!!session} />
-      <main
-        id="main-content"
-        className="mx-auto max-w-[90vw] flex-1 px-4 py-6 pb-20 sm:px-6 md:pb-6 lg:px-8"
-      >
+      <main id="main-content" className="flex-1 pb-20 md:pb-6">
         {children}
       </main>
       <Footer />
