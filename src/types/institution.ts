@@ -11,7 +11,9 @@ export type SocialLinks = {
 
 export type PublicInstitution = Pick<
   Institution,
+  | "id"
   | "name"
+  | "description"
   | "street_address"
   | "extended_address"
   | "city"
@@ -22,6 +24,7 @@ export type PublicInstitution = Pick<
   | "phone_number"
   | "website_url"
   | "logo_url"
+  | "facility_image_url"
 > & {
   social_links?: SocialLinks | null;
 };
