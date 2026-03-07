@@ -15,7 +15,10 @@ const socialIcons: { key: keyof SocialLinks; icon: LucideIcon; label: string }[]
 export function InstitutionFooter({ institution }: { institution: PublicInstitution }) {
   const { basePath } = useInstitution();
 
-  const activeSocials = socialIcons.filter((s) => institution.social_links?.[s.key]);
+  const activeSocials = socialIcons.filter((s) => {
+    const url = institution.social_links?.[s.key];
+    return url && /^https?:\/\//i.test(url);
+  });
 
   return (
     <div className="grid gap-10 md:grid-cols-2">
