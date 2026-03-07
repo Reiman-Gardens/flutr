@@ -1,4 +1,4 @@
-import { eq, and, sum, isNotNull, countDistinct, exists } from "drizzle-orm";
+import { eq, and, sum, isNotNull, countDistinct, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   institutions,
@@ -52,7 +52,7 @@ export default async function InstitutionPage({ params }: InstitutionPageProps) 
       .where(eq(in_flight.institution_id, inst.id)),
 
     // Enabled species with images (for Butterfly of the Day)
-    // Includes an `is_in_flight` subquery so we don't need a sequential follow-up query
+    // Includes an `in_flight_count` scalar subquery so we don't need a sequential follow-up query
     db
       .select({
         scientific_name: butterfly_species.scientific_name,
@@ -61,24 +61,15 @@ export default async function InstitutionPage({ params }: InstitutionPageProps) 
         range: butterfly_species.range,
         lifespan_days: butterfly_species.lifespan_days,
         host_plant: butterfly_species.host_plant,
-        is_in_flight: exists(
-          db
-            .select({ id: in_flight.id })
-            .from(in_flight)
-            .innerJoin(
-              shipment_items,
-              and(
-                eq(in_flight.institution_id, shipment_items.institution_id),
-                eq(in_flight.shipment_item_id, shipment_items.id),
-              ),
-            )
-            .where(
-              and(
-                eq(in_flight.institution_id, inst.id),
-                eq(shipment_items.butterfly_species_id, butterfly_species.id),
-              ),
-            ),
-        ).as("is_in_flight"),
+        in_flight_count: sql<number>`coalesce((
+          select sum(${in_flight.quantity})
+          from ${in_flight}
+          inner join ${shipment_items}
+            on ${in_flight.institution_id} = ${shipment_items.institution_id}
+            and ${in_flight.shipment_item_id} = ${shipment_items.id}
+          where ${in_flight.institution_id} = ${inst.id}
+            and ${shipment_items.butterfly_species_id} = ${butterfly_species.id}
+        ), 0)`.as("in_flight_count"),
       })
       .from(butterfly_species_institution)
       .innerJoin(
@@ -122,7 +113,7 @@ export default async function InstitutionPage({ params }: InstitutionPageProps) 
               range={featured.range}
               lifespan_days={featured.lifespan_days}
               host_plant={featured.host_plant}
-              is_in_flight={Boolean(featured.is_in_flight)}
+              in_flight_count={Number(featured.in_flight_count)}
             />
           )}
 
