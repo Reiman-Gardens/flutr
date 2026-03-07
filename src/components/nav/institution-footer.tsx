@@ -62,7 +62,7 @@ export function InstitutionFooter({ institution }: { institution: PublicInstitut
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label={social.label}
+                  aria-label={`${social.label} (opens in new tab)`}
                 >
                   <Icon className="size-5" aria-hidden="true" />
                 </a>

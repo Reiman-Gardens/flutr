@@ -11,15 +11,21 @@ import type { NavLink } from "./nav-links";
 interface TopNavProps {
   links: NavLink[];
   isAuthenticated: boolean;
+  className?: string;
 }
 
-export function TopNav({ links, isAuthenticated }: TopNavProps) {
+export function TopNav({ links, isAuthenticated, className }: TopNavProps) {
   const { basePath } = useInstitution();
   const pathname = usePathname();
   const institution = useInstitutionData();
 
   return (
-    <header className="bg-background/95 supports-backdrop-filter:bg-background/60 sticky top-0 z-50 w-full border-b backdrop-blur">
+    <header
+      className={cn(
+        "bg-background/95 supports-backdrop-filter:bg-background/60 sticky top-0 z-50 w-full border-b backdrop-blur",
+        className,
+      )}
+    >
       <div className="relative mx-auto flex h-14 max-w-[90vw] items-center px-4 sm:px-6 lg:px-8">
         <Link
           href={isAuthenticated ? `${basePath}/dashboard` : basePath}

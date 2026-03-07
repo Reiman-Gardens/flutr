@@ -8,17 +8,20 @@ import type { NavLink } from "./nav-links";
 
 interface MobileNavProps {
   links: NavLink[];
-  isAuthenticated: boolean;
+  className?: string;
 }
 
-export function MobileNav({ links }: MobileNavProps) {
+export function MobileNav({ links, className }: MobileNavProps) {
   const { basePath } = useInstitution();
   const pathname = usePathname();
 
   return (
     <nav
       aria-label="Mobile navigation"
-      className="bg-background/95 supports-backdrop-filter:bg-background/60 fixed bottom-0 left-0 z-50 w-full border-t backdrop-blur"
+      className={cn(
+        "bg-background/95 supports-backdrop-filter:bg-background/60 fixed bottom-0 left-0 z-50 w-full border-t backdrop-blur",
+        className,
+      )}
     >
       <div className="flex h-16 items-center justify-around">
         {links.map((link) => {

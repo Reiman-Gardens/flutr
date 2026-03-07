@@ -1,5 +1,6 @@
 import { eq, and } from "drizzle-orm";
 import { notFound } from "next/navigation";
+import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { institutions } from "@/lib/schema";
 import { Navbar } from "@/components/nav/nav";
@@ -13,7 +14,7 @@ interface InstitutionLayoutProps {
 }
 
 export default async function InstitutionLayout({ children, params }: InstitutionLayoutProps) {
-  const { institution: slug } = await params;
+  const [{ institution: slug }, session] = await Promise.all([params, auth()]);
 
   const [row] = await db
     .select({
@@ -43,7 +44,7 @@ export default async function InstitutionLayout({ children, params }: Institutio
 
   return (
     <InstitutionDataProvider institution={institution}>
-      <Navbar />
+      <Navbar isAuthenticated={!!session} />
       <main
         id="main-content"
         className="mx-auto max-w-[90vw] flex-1 px-4 py-6 pb-20 sm:px-6 md:pb-6 lg:px-8"

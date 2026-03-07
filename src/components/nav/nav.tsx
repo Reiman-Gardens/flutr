@@ -1,21 +1,20 @@
 "use client";
 
-import { useSession } from "next-auth/react";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { TopNav } from "./top-nav";
 import { MobileNav } from "./mobile-nav";
 import { PUBLIC_LINKS, AUTH_LINKS } from "./nav-links";
 
-export function Navbar() {
-  const isMobile = useIsMobile();
-  const { status } = useSession();
+interface NavbarProps {
+  isAuthenticated: boolean;
+}
 
-  const isAuthenticated = status === "authenticated";
+export function Navbar({ isAuthenticated }: NavbarProps) {
   const links = isAuthenticated ? AUTH_LINKS : PUBLIC_LINKS;
 
-  return isMobile ? (
-    <MobileNav links={links} isAuthenticated={isAuthenticated} />
-  ) : (
-    <TopNav links={links} isAuthenticated={isAuthenticated} />
+  return (
+    <>
+      <TopNav links={links} isAuthenticated={isAuthenticated} className="hidden md:block" />
+      <MobileNav links={links} className="md:hidden" />
+    </>
   );
 }
