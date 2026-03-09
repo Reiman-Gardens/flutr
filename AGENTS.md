@@ -21,8 +21,9 @@ A WCAG-compliant, multi-tenant web application for butterfly houses to track shi
 ```
 src/
 ├── app/                    # Next.js pages and API routes
-│   ├── page.tsx            # Root public landing page
-│   ├── login/              # Login page
+│   ├── (platform)/         # Platform-level routes (landing, login)
+│   │   ├── page.tsx        # Root public landing page
+│   │   └── login/          # Login page
 │   ├── [institution]/      # Multi-tenant institution routes
 │   │   ├── (admin)/        # Protected admin routes
 │   │   │   ├── dashboard/  # Admin dashboard
@@ -41,9 +42,12 @@ src/
 ├── components/             # React components by feature
 │   ├── admin/              # Admin-specific components
 │   ├── auth/               # Auth-specific components
+│   ├── nav/                # Navigation components (top-nav, mobile-nav, footer)
+│   ├── providers/          # Context providers (session, institution data)
 │   ├── public/             # Public-facing components
 │   └── ui/                 # 55 Shadcn/UI primitives
 ├── hooks/                  # Custom React hooks
+│   ├── use-institution.ts  # Institution slug/basePath from URL params
 │   └── use-mobile.ts       # Responsive design hook
 ├── lib/                    # Utilities and configuration
 │   ├── api-response.ts     # Standard API response helpers
@@ -55,6 +59,7 @@ src/
 │   ├── logger.ts           # Dev-only logging utility
 │   └── utils.ts            # Tailwind class merging (cn)
 ├── types/                  # TypeScript type definitions
+│   ├── institution.ts      # Public institution type definitions
 │   └── next-auth.d.ts      # NextAuth session augmentation
 └── __test__/               # Jest test files
 docs/                       # Project documentation
