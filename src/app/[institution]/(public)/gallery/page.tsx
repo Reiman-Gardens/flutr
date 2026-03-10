@@ -11,8 +11,9 @@ interface GalleryPageProps {
 export default async function GalleryPage({ params }: GalleryPageProps) {
   const { institution: slug } = await params;
 
-  const inst = await getPublicInstitution(slug);
-  if (!inst) return null;
+  // Layout already validates institution exists and calls notFound().
+  // This call is deduped by React cache().
+  const inst = (await getPublicInstitution(slug))!;
 
   const { species } = await getGalleryData(inst.id);
 

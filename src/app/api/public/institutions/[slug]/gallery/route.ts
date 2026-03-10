@@ -64,7 +64,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
       )
       .where(eq(butterfly_species_institution.institution_id, institutionId));
 
-    return ok({ gallery: rows });
+    const gallery = rows.map((row) => ({
+      ...row,
+      common_name: row.common_name_override ?? row.common_name,
+      common_name_override: undefined,
+    }));
+
+    return ok({ gallery });
   } catch (error) {
     logger.error("Unexpected GET /public/institutions/[slug]/gallery error:", error);
     return internalError();

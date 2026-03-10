@@ -49,7 +49,7 @@ export function SpeciesCard({
 
               {/* Region badge */}
               {region && (
-                <span className="absolute top-2 left-2 rounded-full bg-white/90 px-2.5 py-0.5 text-xs font-medium text-gray-700 shadow-sm">
+                <span className="bg-background/90 text-foreground absolute top-2 left-2 rounded-full px-2.5 py-0.5 text-xs font-medium shadow-sm">
                   {region}
                 </span>
               )}

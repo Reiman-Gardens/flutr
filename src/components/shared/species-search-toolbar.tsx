@@ -260,7 +260,7 @@ export function SpeciesSearchToolbar({
                     families: filters.families.filter((f) => f !== family),
                   })
                 }
-                className="hover:text-foreground ml-0.5 rounded-full"
+                className="hover:text-foreground focus-visible:ring-ring ml-0.5 rounded-full focus-visible:ring-2 focus-visible:outline-none"
                 aria-label={`Remove ${family} filter`}
               >
                 <X className="size-3" aria-hidden="true" />
@@ -270,7 +270,7 @@ export function SpeciesSearchToolbar({
           <button
             type="button"
             onClick={onReset}
-            className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs font-medium transition-colors"
+            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex items-center gap-1 rounded text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
           >
             <RotateCcw className="size-3" aria-hidden="true" />
             Reset All

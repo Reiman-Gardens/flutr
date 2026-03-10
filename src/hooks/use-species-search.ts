@@ -50,13 +50,18 @@ const PRIORITY_ORDER: Record<SortField, SortField[]> = {
 };
 
 /** Build a regex matching the start of any word (prefix match). */
-function prefixRegex(term: string): RegExp {
+export function prefixRegex(term: string): RegExp {
   const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return new RegExp(`\\b${escaped}`, "i");
 }
 
+/** Pre-compile an array of prefix regexes from search terms. */
+export function compileTerms(terms: string[]): RegExp[] {
+  return terms.map(prefixRegex);
+}
+
 /** Get the value of a sort field from a species item. */
-function getField(item: SpeciesItem, field: SortField): string {
+export function getField(item: SpeciesItem, field: SortField): string {
   switch (field) {
     case "common_name":
       return item.common_name;
@@ -71,10 +76,10 @@ function getField(item: SpeciesItem, field: SortField): string {
  * Return the highest-priority field index (0 = best) where ALL search terms
  * match as word prefixes. Returns Infinity if no single field matches all terms.
  */
-function matchPriority(item: SpeciesItem, terms: string[], order: SortField[]): number {
+export function matchPriority(item: SpeciesItem, regexes: RegExp[], order: SortField[]): number {
   for (let i = 0; i < order.length; i++) {
     const value = getField(item, order[i]);
-    if (terms.every((t) => prefixRegex(t).test(value))) {
+    if (regexes.every((re) => re.test(value))) {
       return i;
     }
   }
@@ -82,9 +87,8 @@ function matchPriority(item: SpeciesItem, terms: string[], order: SortField[]): 
 }
 
 /** Check if an item matches all search terms across any combination of name fields. */
-function matchesAllTerms<T extends SpeciesItem>(item: T, terms: string[]): boolean {
-  return terms.every((t) => {
-    const re = prefixRegex(t);
+export function matchesAllTerms<T extends SpeciesItem>(item: T, regexes: RegExp[]): boolean {
+  return regexes.every((re) => {
     return re.test(item.common_name) || re.test(item.scientific_name) || re.test(item.family);
   });
 }
@@ -160,9 +164,10 @@ export function useSpeciesSearch<T extends SpeciesItem>({
     // Search filter (word-prefix matching, AND across terms)
     const trimmed = query.trim();
     const terms = trimmed ? trimmed.split(/\s+/) : [];
+    const regexes = compileTerms(terms);
 
-    if (terms.length > 0) {
-      filtered = filtered.filter((s) => matchesAllTerms(s, terms));
+    if (regexes.length > 0) {
+      filtered = filtered.filter((s) => matchesAllTerms(s, regexes));
     }
 
     // Sort comparator
@@ -174,11 +179,11 @@ export function useSpeciesSearch<T extends SpeciesItem>({
     };
 
     // With an active search query, sort by priority tier first, then by sort field within tiers
-    if (terms.length > 0) {
+    if (regexes.length > 0) {
       const order = PRIORITY_ORDER[sortField];
       return [...filtered].sort((a, b) => {
-        const pa = matchPriority(a, terms, order);
-        const pb = matchPriority(b, terms, order);
+        const pa = matchPriority(a, regexes, order);
+        const pb = matchPriority(b, regexes, order);
         if (pa !== pb) return pa - pb;
         return compare(a, b);
       });
