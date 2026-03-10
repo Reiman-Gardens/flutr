@@ -13,8 +13,6 @@ interface InstitutionPageProps {
 export default async function InstitutionPage({ params }: InstitutionPageProps) {
   const { institution: slug } = await params;
 
-  // Layout already validates institution exists and calls notFound().
-  // This call is deduped by React cache().
   const inst = (await getPublicInstitution(slug))!;
 
   const basePath = `/${slug}`;

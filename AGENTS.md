@@ -90,6 +90,7 @@ pnpm db:studio      # Open Drizzle Studio GUI
 
 - Path alias: `@/` maps to `/src/`
 - Multi-tenant routing: `[institution]` dynamic segment isolates data per institution
+- Institution validation: `[institution]/layout.tsx` calls `getPublicInstitution(slug)` and triggers `notFound()` if the institution doesn't exist. Child pages can use `(await getPublicInstitution(slug))!` (non-null assertion) since the layout guarantees validity and React `cache()` deduplicates the call. The root `src/app/not-found.tsx` catches the 404.
 - Route groups: `(admin)` for protected routes, `(public)` for public-facing pages
 - Client components marked with `"use client"`
 - Auth: NextAuth 5 with credentials provider, JWT tokens carry `role` and `institutionId`
