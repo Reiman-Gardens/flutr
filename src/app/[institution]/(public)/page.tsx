@@ -4,6 +4,8 @@ import { HeroSection } from "@/components/public/home/hero-section";
 import { FeaturedButterfly } from "@/components/public/home/featured-butterfly";
 import { ExploreLinks } from "@/components/public/home/explore-links";
 
+export const dynamic = "force-dynamic";
+
 interface InstitutionPageProps {
   params: Promise<{ institution: string }>;
 }

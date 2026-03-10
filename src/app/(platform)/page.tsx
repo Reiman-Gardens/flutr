@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { getActiveInstitutions } from "@/lib/queries/platform";
 import { InstitutionDirectory } from "@/components/public/root-home/institution-directory";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Flutr — Discover Butterfly Houses",
   description:
