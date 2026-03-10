@@ -126,20 +126,21 @@ Detailed documentation lives in `docs/`:
 
 ## Conventions & Utilities
 
-| Utility               | Import                                                             | Notes                                                       |
-| --------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------- |
-| Logger                | `logger` from `@/lib/logger`                                       | Use instead of `console.log` (dev-only log/warn/info/error) |
-| Class names           | `cn()` from `@/lib/utils`                                          | Always use for conditional/merged Tailwind class names      |
-| Toasts                | `toast` from `sonner`                                              | User feedback (success/error)                               |
-| API response helpers  | `ok`, `invalidRequest`, etc. from `@/lib/api-response`             | Keep response envelopes/status mapping consistent           |
-| Authorization helpers | `requireUser`, `canX(...)` from `@/lib/authz`                      | Avoid raw role checks inside routes                         |
-| Tenant helpers        | `tenantCondition`, `resolveTenantId` from `@/lib/tenant`           | Enforce read/write tenant isolation                         |
-| Validation helpers    | `requireValidBody` / `requireValidQuery` from `@/lib/validation/*` | Standardized request validation flow                        |
-| Sanitize              | `sanitizeText` from `@/lib/validation/sanitize`                    | Strip HTML from user input                                  |
-| Sanitized non-empty   | `sanitizedNonEmpty(maxLen)` from `@/lib/validation/sanitize`       | Sanitize + trim before enforcing non-empty (required texts) |
-| DB client             | `db` from `@/lib/db`                                               | Drizzle ORM client with full schema                         |
-| Schema                | `* from @/lib/schema`                                              | All table definitions (institutions, users, species, etc.)  |
-| Auth                  | `auth` from `@/auth`                                               | NextAuth session helper                                     |
+| Utility               | Import                                                             | Notes                                                                                            |
+| --------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| Logger                | `logger` from `@/lib/logger`                                       | Use instead of `console.log` (dev-only log/warn/info/error)                                      |
+| Class names           | `cn()` from `@/lib/utils`                                          | Always use for conditional/merged Tailwind class names                                           |
+| Toasts                | `toast` from `sonner`                                              | User feedback (success/error)                                                                    |
+| API response helpers  | `ok`, `invalidRequest`, etc. from `@/lib/api-response`             | Keep response envelopes/status mapping consistent                                                |
+| Authorization helpers | `requireUser`, `canX(...)` from `@/lib/authz`                      | Avoid raw role checks inside routes                                                              |
+| Tenant helpers        | `tenantCondition`, `resolveTenantId` from `@/lib/tenant`           | Enforce read/write tenant isolation                                                              |
+| Validation helpers    | `requireValidBody` / `requireValidQuery` from `@/lib/validation/*` | Standardized request validation flow                                                             |
+| Sanitize              | `sanitizeText` from `@/lib/validation/sanitize`                    | Strip HTML from user input                                                                       |
+| Sanitized non-empty   | `sanitizedNonEmpty(maxLen)` from `@/lib/validation/sanitize`       | Sanitize + trim before enforcing non-empty (required texts)                                      |
+| DB client             | `db` from `@/lib/db`                                               | Drizzle ORM client with full schema                                                              |
+| Schema                | `* from @/lib/schema`                                              | All table definitions (institutions, users, species, etc.)                                       |
+| Auth                  | `auth` from `@/auth`                                               | NextAuth session helper                                                                          |
+| Link (no prefetch)    | `Link` from `@/components/ui/link`                                 | Next.js Link without scroll-prefetch (hover/focus only). Used for large lists to reduce requests |
 
 ## Workflow Rules
 
