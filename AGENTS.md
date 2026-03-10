@@ -21,7 +21,9 @@ A WCAG-compliant, multi-tenant web application for butterfly houses to track shi
 ```
 src/
 ├── app/                    # Next.js pages and API routes
-│   ├── login/              # Login page
+│   ├── (platform)/         # Platform-level routes (landing, login)
+│   │   ├── page.tsx        # Root public landing page
+│   │   └── login/          # Login page
 │   ├── [institution]/      # Multi-tenant institution routes
 │   │   ├── (admin)/        # Protected admin routes
 │   │   │   ├── dashboard/  # Admin dashboard
@@ -32,21 +34,32 @@ src/
 │   │       └── [butterfly]/ # Individual species detail
 │   └── api/                # API routes
 │       ├── auth/[...nextauth]/ # NextAuth handlers
-│       ├── users/          # User management
-│       └── institution/    # Institution management
+│       ├── public/         # Public no-auth API routes
+│       ├── tenant/         # Tenant-scoped authenticated API routes
+│       ├── platform/       # Platform/SUPERUSER API routes
+│       ├── users/          # Legacy compatibility route
+│       └── institution/    # Legacy compatibility route
 ├── components/             # React components by feature
 │   ├── admin/              # Admin-specific components
 │   ├── auth/               # Auth-specific components
+│   ├── nav/                # Navigation components (top-nav, mobile-nav, footer)
+│   ├── providers/          # Context providers (session, institution data)
 │   ├── public/             # Public-facing components
-│   └── ui/                 # 55+ Shadcn/UI primitives
+│   └── ui/                 # 55 Shadcn/UI primitives
 ├── hooks/                  # Custom React hooks
+│   ├── use-institution.ts  # Institution slug/basePath from URL params
 │   └── use-mobile.ts       # Responsive design hook
 ├── lib/                    # Utilities and configuration
+│   ├── api-response.ts     # Standard API response helpers
+│   ├── authz.ts            # Authorization policy helpers
 │   ├── db.ts               # Drizzle ORM client
 │   ├── schema.ts           # Database schema definitions
+│   ├── tenant.ts           # Tenant resolution/enforcement helpers
+│   ├── validation/         # Zod schemas + request/query helpers
 │   ├── logger.ts           # Dev-only logging utility
 │   └── utils.ts            # Tailwind class merging (cn)
 ├── types/                  # TypeScript type definitions
+│   ├── institution.ts      # Public institution type definitions
 │   └── next-auth.d.ts      # NextAuth session augmentation
 └── __test__/               # Jest test files
 docs/                       # Project documentation
@@ -109,18 +122,24 @@ Detailed documentation lives in `docs/`:
 - `docs/commands/` — Agent command templates
   - `review.md` — Code review checklist
   - `deploy-check.md` — Pre-deployment verification
-  - `new-component.md` — Component creation conventions
+  - `test-and-fix.md` — Targeted test + fix workflow
 
 ## Conventions & Utilities
 
-| Utility     | Import                       | Notes                                                       |
-| ----------- | ---------------------------- | ----------------------------------------------------------- |
-| Logger      | `logger` from `@/lib/logger` | Use instead of `console.log` (dev-only log/warn/info/error) |
-| Class names | `cn()` from `@/lib/utils`    | Always use for conditional/merged Tailwind class names      |
-| Toasts      | `toast` from `sonner`        | User feedback (success/error)                               |
-| DB client   | `db` from `@/lib/db`         | Drizzle ORM client with full schema                         |
-| Schema      | `* from @/lib/schema`        | All table definitions (institutions, users, species, etc.)  |
-| Auth        | `auth` from `@/auth`         | NextAuth session helper                                     |
+| Utility               | Import                                                             | Notes                                                       |
+| --------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------- |
+| Logger                | `logger` from `@/lib/logger`                                       | Use instead of `console.log` (dev-only log/warn/info/error) |
+| Class names           | `cn()` from `@/lib/utils`                                          | Always use for conditional/merged Tailwind class names      |
+| Toasts                | `toast` from `sonner`                                              | User feedback (success/error)                               |
+| API response helpers  | `ok`, `invalidRequest`, etc. from `@/lib/api-response`             | Keep response envelopes/status mapping consistent           |
+| Authorization helpers | `requireUser`, `canX(...)` from `@/lib/authz`                      | Avoid raw role checks inside routes                         |
+| Tenant helpers        | `tenantCondition`, `resolveTenantId` from `@/lib/tenant`           | Enforce read/write tenant isolation                         |
+| Validation helpers    | `requireValidBody` / `requireValidQuery` from `@/lib/validation/*` | Standardized request validation flow                        |
+| Sanitize              | `sanitizeText` from `@/lib/validation/sanitize`                    | Strip HTML from user input                                  |
+| Sanitized non-empty   | `sanitizedNonEmpty(maxLen)` from `@/lib/validation/sanitize`       | Sanitize + trim before enforcing non-empty (required texts) |
+| DB client             | `db` from `@/lib/db`                                               | Drizzle ORM client with full schema                         |
+| Schema                | `* from @/lib/schema`                                              | All table definitions (institutions, users, species, etc.)  |
+| Auth                  | `auth` from `@/auth`                                               | NextAuth session helper                                     |
 
 ## Workflow Rules
 

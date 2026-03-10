@@ -50,7 +50,7 @@ PostgreSQL 17 managed via Drizzle ORM:
 
 ### Component Architecture
 
-- **Shadcn/UI**: 55+ pre-installed primitives in `src/components/ui/`
+- **Shadcn/UI**: 55 pre-installed primitives in `src/components/ui/`
 - **Feature components**: Organized by domain (`admin/`, `auth/`, `public/`)
 - **Forms**: React Hook Form with Zod validation
 - **Charts**: Recharts for statistics dashboards
@@ -78,11 +78,27 @@ Institution ─┬─ Users
 
 ## API Routes
 
-| Endpoint                  | Purpose                 |
-| ------------------------- | ----------------------- |
-| `/api/auth/[...nextauth]` | NextAuth authentication |
-| `/api/users`              | User management         |
-| `/api/institution`        | Institution management  |
+### Public (`/api/public/*`)
+
+- `/api/public/institutions` — List public institutions.
+- `/api/public/institutions/[slug]` — Public institution details.
+- `/api/public/institutions/[slug]/gallery` — Public gallery data for an institution.
+- `/api/public/institutions/[slug]/in-flight` — Current in-flight data for an institution.
+- `/api/public/institutions/[slug]/species` — Species visible for an institution.
+- `/api/public/institutions/[slug]/species/[scientific_name]` — Detailed species view for an institution.
+- `/api/public/species` — Global species listing.
+
+### Tenant & Platform
+
+- `/api/auth/[...nextauth]` — NextAuth authentication.
+- `/api/public/*` — Public, no-auth API surface (see `docs/api/README.md` for index).
+- `/api/tenant/*` — Authenticated, tenant-scoped API surface.
+- `/api/platform/*` — SUPERUSER-only API surface.
+
+### Compatibility
+
+- `/api/users` — Legacy compatibility placeholder route.
+- `/api/institution` — Legacy compatibility placeholder route.
 
 ## Infrastructure
 
