@@ -16,5 +16,23 @@ services:
       timeout: 5s
       retries: 5
 
+  studio:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: pnpm db:studio --host 0.0.0.0
+    restart: unless-stopped
+    ports:
+      - "4983:4983"
+    volumes:
+      - .:/app
+      - studio_node_modules:/app/node_modules
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/flutr-db
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   pgdata:
+  studio_node_modules:

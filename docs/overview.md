@@ -104,11 +104,20 @@ Institution ─┬─ Users
 
 ### Local Development
 
+Docker Compose runs PostgreSQL and Drizzle Studio. The Next.js dev server runs locally for fast hot reload with Turbopack.
+
 ```bash
-docker compose up -d       # Start PostgreSQL
-pnpm db:push               # Sync schema
+docker compose up -d       # Start PostgreSQL + Drizzle Studio
+pnpm db:push               # Sync schema (first run)
 pnpm dev                   # Start Next.js dev server
 ```
+
+| Service  | Port | Description        |
+| -------- | ---- | ------------------ |
+| `db`     | 5432 | PostgreSQL 17      |
+| `studio` | 4983 | Drizzle Studio GUI |
+
+Each Docker service can be restarted independently with `docker compose restart <service>`.
 
 ### Environment Variables
 
