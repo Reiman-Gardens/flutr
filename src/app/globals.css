@@ -131,4 +131,14 @@
     @apply bg-background text-foreground;
     @apply bg-background text-foreground;
   }
+  button,
+  [role="button"],
+  a,
+  select,
+  summary,
+  [type="button"],
+  [type="submit"],
+  [type="reset"] {
+    cursor: pointer;
+  }
 }

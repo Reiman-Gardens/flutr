@@ -50,6 +50,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
         scientific_name: butterfly_species.scientific_name,
         common_name: butterfly_species.common_name,
         common_name_override: butterfly_species_institution.common_name_override,
+        family: butterfly_species.family,
+        range: butterfly_species.range,
         img_wings_open: butterfly_species.img_wings_open,
         img_wings_closed: butterfly_species.img_wings_closed,
         extra_img_1: butterfly_species.extra_img_1,

@@ -1,7 +1,26 @@
-export default function GalleryPage() {
+import { getPublicInstitution } from "@/lib/queries/institution";
+import { getGalleryData } from "@/lib/queries/gallery";
+import { GalleryHeader } from "@/components/public/gallery/gallery-header";
+import { GalleryContent } from "@/components/public/gallery/gallery-content";
+import { CuratorsNote } from "@/components/public/gallery/curators-note";
+
+interface GalleryPageProps {
+  params: Promise<{ institution: string }>;
+}
+
+export default async function GalleryPage({ params }: GalleryPageProps) {
+  const { institution: slug } = await params;
+
+  const inst = await getPublicInstitution(slug);
+  if (!inst) return null;
+
+  const { species } = await getGalleryData(inst.id);
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <h1>Gallery</h1>
+      <GalleryHeader />
+      <GalleryContent slug={slug} species={species} />
+      <CuratorsNote />
     </div>
   );
 }
