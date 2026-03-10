@@ -18,15 +18,7 @@ const createdBySchema = z
   .transform((value) => sanitizeText(value))
   .optional();
 
-export const createReleaseFromShipmentSchema = z.object({
-  released_at: releasedAtSchema,
-  notes: notesSchema,
-  created_by: createdBySchema,
-});
-
-export type CreateReleaseFromShipmentInput = z.infer<typeof createReleaseFromShipmentSchema>;
-
-export const createInFlightRowSchema = z.object({
+const releaseAllocationSchema = z.object({
   shipment_item_id: z
     .number({ message: "shipment_item_id is required" })
     .int("shipment_item_id must be an integer")
@@ -36,6 +28,17 @@ export const createInFlightRowSchema = z.object({
     .int("quantity must be an integer")
     .positive("quantity must be greater than 0"),
 });
+
+export const createReleaseFromShipmentSchema = z.object({
+  released_at: releasedAtSchema,
+  notes: notesSchema,
+  created_by: createdBySchema,
+  items: z.array(releaseAllocationSchema).optional(),
+});
+
+export type CreateReleaseFromShipmentInput = z.infer<typeof createReleaseFromShipmentSchema>;
+
+export const createInFlightRowSchema = releaseAllocationSchema;
 
 export type CreateInFlightRowInput = z.infer<typeof createInFlightRowSchema>;
 

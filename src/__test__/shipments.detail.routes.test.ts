@@ -44,6 +44,7 @@ function makeSelect(result: Record<string, unknown>[]) {
     where: jest.fn().mockReturnThis(),
     leftJoin: jest.fn().mockReturnThis(),
     limit: jest.fn().mockResolvedValue(result),
+    groupBy: jest.fn().mockResolvedValue(result),
     then: (resolve: (value: Record<string, unknown>[]) => void) =>
       Promise.resolve(result).then(resolve),
   };
@@ -148,6 +149,7 @@ describe("Shipment detail API routes", () => {
               scientificName: "Danaus plexippus",
               imageOpen: "https://example.com/open.jpg",
               imageClosed: null,
+              inFlightQuantity: "4",
             },
           ]),
         );
@@ -179,6 +181,7 @@ describe("Shipment detail API routes", () => {
             poorEmergence: 0,
             scientificName: "Danaus plexippus",
             imageUrl: "https://example.com/open.jpg",
+            inFlightQuantity: 4,
           },
         ],
       });

@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
-import { butterfly_species, shipment_items, shipments, suppliers } from "@/lib/schema";
+import { butterfly_species, in_flight, shipment_items, shipments, suppliers } from "@/lib/schema";
 import { updateShipmentSchema } from "@/lib/validation/shipments";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { canReadShipment, canWriteShipment, requireUser } from "@/lib/authz";
 import { ensureTenantExists, resolveTenantId, tenantCondition } from "@/lib/tenant";
 import { deleteShipmentTenantSchema } from "@/lib/validation/shipments";
@@ -82,10 +82,34 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         scientificName: butterfly_species.scientific_name,
         imageOpen: butterfly_species.img_wings_open,
         imageClosed: butterfly_species.img_wings_closed,
+        inFlightQuantity: sql<number>`coalesce(sum(${in_flight.quantity}), 0)`.as(
+          "in_flight_quantity",
+        ),
       })
       .from(shipment_items)
       .leftJoin(butterfly_species, eq(shipment_items.butterfly_species_id, butterfly_species.id))
-      .where(itemsCondition);
+      .leftJoin(
+        in_flight,
+        and(
+          eq(shipment_items.id, in_flight.shipment_item_id),
+          eq(shipment_items.institution_id, in_flight.institution_id),
+        ),
+      )
+      .where(itemsCondition)
+      .groupBy(
+        shipment_items.id,
+        shipment_items.butterfly_species_id,
+        shipment_items.number_received,
+        shipment_items.emerged_in_transit,
+        shipment_items.damaged_in_transit,
+        shipment_items.diseased_in_transit,
+        shipment_items.parasite,
+        shipment_items.non_emergence,
+        shipment_items.poor_emergence,
+        butterfly_species.scientific_name,
+        butterfly_species.img_wings_open,
+        butterfly_species.img_wings_closed,
+      );
 
     const items = rawItems.map((item) => ({
       id: item.id,
@@ -99,6 +123,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       poorEmergence: item.poorEmergence,
       scientificName: item.scientificName ?? "Unknown species",
       imageUrl: item.imageOpen ?? item.imageClosed ?? null,
+      inFlightQuantity: Number(item.inFlightQuantity ?? 0),
     }));
 
     return NextResponse.json({ shipment, items });

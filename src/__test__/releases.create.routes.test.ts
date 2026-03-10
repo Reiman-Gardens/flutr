@@ -11,6 +11,7 @@ jest.mock("@/lib/db", () => ({
   db: {
     select: jest.fn(),
     insert: jest.fn(),
+    transaction: jest.fn(),
   },
 }));
 
@@ -44,11 +45,25 @@ function makeInsert(result: Record<string, unknown>[]) {
   };
 }
 
+function makeInsertWithoutReturning() {
+  return {
+    values: jest.fn().mockResolvedValue(undefined),
+  };
+}
+
 describe("POST /api/shipments/[shipmentId]/releases", () => {
   beforeEach(() => {
     authMock.mockReset();
     (db.select as jest.Mock).mockReset();
     (db.insert as jest.Mock).mockReset();
+    (db.transaction as jest.Mock).mockReset();
+    (db.transaction as jest.Mock).mockImplementation(async (callback) =>
+      callback({
+        select: db.select,
+        insert: db.insert,
+        execute: jest.fn().mockResolvedValue({}),
+      }),
+    );
     (logger.error as jest.Mock).mockReset();
   });
 
@@ -176,6 +191,224 @@ describe("POST /api/shipments/[shipmentId]/releases", () => {
     const body = await response.json();
     expect(body.id).toBe(70);
     expect(body.shipment_id).toBe(33);
+  });
+
+  it("returns 201 and creates in-flight rows when partial allocations are provided", async () => {
+    authMock.mockResolvedValue({
+      user: { id: "u3b", name: "Ada", role: "EMPLOYEE", institutionId: 1 },
+    });
+
+    (db.select as jest.Mock)
+      .mockImplementationOnce(() => makeSelect([{ id: 33, institution_id: 1 }]))
+      .mockImplementationOnce(() =>
+        makeSelect([
+          {
+            id: 700,
+            number_received: 10,
+            damaged_in_transit: 1,
+            diseased_in_transit: 0,
+            parasite: 0,
+            non_emergence: 0,
+            poor_emergence: 0,
+          },
+        ]),
+      )
+      .mockImplementationOnce(() => makeSelect([{ quantity: 2 }]))
+      .mockImplementationOnce(() =>
+        makeSelect([
+          {
+            id: 701,
+            number_received: 6,
+            damaged_in_transit: 0,
+            diseased_in_transit: 0,
+            parasite: 0,
+            non_emergence: 1,
+            poor_emergence: 0,
+          },
+        ]),
+      )
+      .mockImplementationOnce(() => makeSelect([{ quantity: 1 }]));
+
+    (db.insert as jest.Mock)
+      .mockImplementationOnce(() =>
+        makeInsert([
+          {
+            id: 71,
+            institution_id: 1,
+            shipment_id: 33,
+            release_date: new Date("2026-02-27T00:00:00.000Z"),
+            released_by: "Ada",
+            created_at: new Date("2026-02-27T00:00:00.000Z"),
+            updated_at: new Date("2026-02-27T00:00:00.000Z"),
+          },
+        ]),
+      )
+      .mockImplementationOnce(() => makeInsertWithoutReturning())
+      .mockImplementationOnce(() => makeInsertWithoutReturning());
+
+    const response = await createRelease(
+      new Request("http://localhost/api/shipments/33/releases", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          released_at: "2026-02-27T00:00:00.000Z",
+          items: [
+            { shipment_item_id: 700, quantity: 3 },
+            { shipment_item_id: 701, quantity: 2 },
+          ],
+        }),
+      }),
+      { params: Promise.resolve({ id: "33" }) },
+    );
+
+    expect(response.status).toBe(201);
+    const body = await response.json();
+    expect(body.id).toBe(71);
+    expect(body.shipment_id).toBe(33);
+    expect(db.insert).toHaveBeenCalledTimes(3);
+  });
+
+  it("returns 400 when a provided shipment item does not belong to the shipment", async () => {
+    authMock.mockResolvedValue({
+      user: { id: "u3c", name: "Ada", role: "EMPLOYEE", institutionId: 1 },
+    });
+
+    (db.select as jest.Mock)
+      .mockImplementationOnce(() => makeSelect([{ id: 33, institution_id: 1 }]))
+      .mockImplementationOnce(() => makeSelect([]));
+
+    (db.insert as jest.Mock).mockImplementationOnce(() =>
+      makeInsert([
+        {
+          id: 72,
+          institution_id: 1,
+          shipment_id: 33,
+          release_date: new Date("2026-02-27T00:00:00.000Z"),
+          released_by: "Ada",
+          created_at: new Date("2026-02-27T00:00:00.000Z"),
+          updated_at: new Date("2026-02-27T00:00:00.000Z"),
+        },
+      ]),
+    );
+
+    const response = await createRelease(
+      new Request("http://localhost/api/shipments/33/releases", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: [{ shipment_item_id: 999, quantity: 1 }] }),
+      }),
+      { params: Promise.resolve({ id: "33" }) },
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Invalid shipment_item" });
+  });
+
+  it("returns 400 when partial allocation quantity exceeds remaining", async () => {
+    authMock.mockResolvedValue({
+      user: { id: "u3d", name: "Ada", role: "EMPLOYEE", institutionId: 1 },
+    });
+
+    (db.select as jest.Mock)
+      .mockImplementationOnce(() => makeSelect([{ id: 33, institution_id: 1 }]))
+      .mockImplementationOnce(() =>
+        makeSelect([
+          {
+            id: 700,
+            number_received: 10,
+            damaged_in_transit: 1,
+            diseased_in_transit: 1,
+            parasite: 1,
+            non_emergence: 1,
+            poor_emergence: 0,
+          },
+        ]),
+      )
+      .mockImplementationOnce(() => makeSelect([{ quantity: 5 }]));
+
+    (db.insert as jest.Mock).mockImplementationOnce(() =>
+      makeInsert([
+        {
+          id: 73,
+          institution_id: 1,
+          shipment_id: 33,
+          release_date: new Date("2026-02-27T00:00:00.000Z"),
+          released_by: "Ada",
+          created_at: new Date("2026-02-27T00:00:00.000Z"),
+          updated_at: new Date("2026-02-27T00:00:00.000Z"),
+        },
+      ]),
+    );
+
+    const response = await createRelease(
+      new Request("http://localhost/api/shipments/33/releases", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: [{ shipment_item_id: 700, quantity: 3 }] }),
+      }),
+      { params: Promise.resolve({ id: "33" }) },
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Quantity exceeds remaining" });
+  });
+
+  it("returns 400 when duplicate shipment_item_id values are provided", async () => {
+    authMock.mockResolvedValue({
+      user: { id: "u3e", name: "Ada", role: "EMPLOYEE", institutionId: 1 },
+    });
+
+    (db.select as jest.Mock)
+      .mockImplementationOnce(() => makeSelect([{ id: 33, institution_id: 1 }]))
+      .mockImplementationOnce(() =>
+        makeSelect([
+          {
+            id: 700,
+            number_received: 10,
+            damaged_in_transit: 0,
+            diseased_in_transit: 0,
+            parasite: 0,
+            non_emergence: 0,
+            poor_emergence: 0,
+          },
+        ]),
+      )
+      .mockImplementationOnce(() => makeSelect([{ quantity: 0 }]));
+
+    (db.insert as jest.Mock)
+      .mockImplementationOnce(() =>
+        makeInsert([
+          {
+            id: 74,
+            institution_id: 1,
+            shipment_id: 33,
+            release_date: new Date("2026-02-27T00:00:00.000Z"),
+            released_by: "Ada",
+            created_at: new Date("2026-02-27T00:00:00.000Z"),
+            updated_at: new Date("2026-02-27T00:00:00.000Z"),
+          },
+        ]),
+      )
+      .mockImplementationOnce(() => makeInsertWithoutReturning());
+
+    const response = await createRelease(
+      new Request("http://localhost/api/shipments/33/releases", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: [
+            { shipment_item_id: 700, quantity: 1 },
+            { shipment_item_id: 700, quantity: 1 },
+          ],
+        }),
+      }),
+      { params: Promise.resolve({ id: "33" }) },
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Duplicate shipment_item_id in items",
+    });
   });
 
   it("respects tenant scoping and returns 404 for out-of-tenant shipment", async () => {

@@ -625,6 +625,7 @@ Authentication required. Role and tenant scope rules apply per endpoint.
   - `{`
     - `shipment: {`
       - `id: number`
+      - `institutionId: number`
       - `supplierCode: string`
       - `shipmentDate: string`
       - `arrivalDate: string`
@@ -642,6 +643,7 @@ Authentication required. Role and tenant scope rules apply per endpoint.
       - `poorEmergence: number`
       - `scientificName: string`
       - `imageUrl: string | null`
+      - `inFlightQuantity: number`
     - `}>`
   - `}`
 - **Errors:**
@@ -722,7 +724,12 @@ Authentication required. Role and tenant scope rules apply per endpoint.
   - `{`
     - `released_at?: string`
     - `created_by?: string`
+    - `items?: Array<{ shipment_item_id: number; quantity: number }>`
   - `}`
+- **Behavior:**
+  - Always creates a `release_events` row.
+  - When `items` is provided, inserts matching `in_flight` rows in the same transaction.
+  - Each `shipment_item_id` must belong to the same shipment; requested quantity must not exceed remaining releasable quantity.
 - **Response 201:**
   - `{`
     - `id: number`
@@ -736,6 +743,9 @@ Authentication required. Role and tenant scope rules apply per endpoint.
 - **Errors:**
   - `400 { "error": "Invalid shipment id" }`
   - `400 { "error": "Invalid request", "details": [...] }`
+  - `400 { "error": "Invalid shipment_item" }`
+  - `400 { "error": "Quantity exceeds remaining" }`
+  - `400 { "error": "Duplicate shipment_item_id in items" }`
   - `401 { "error": "Unauthorized" }`
   - `403 { "error": "Forbidden" }`
   - `404 { "error": "Shipment not found" }`
