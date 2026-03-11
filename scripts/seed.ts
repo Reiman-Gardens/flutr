@@ -1,5 +1,6 @@
 import "dotenv/config";
 import bcrypt from "bcrypt";
+import { eq } from "drizzle-orm";
 import { db } from "../src/lib/db";
 import {
   institutions,
@@ -10,6 +11,8 @@ import {
   shipment_items,
   suppliers,
   users,
+  release_events,
+  in_flight,
 } from "../src/lib/schema";
 import usersData from "./data/users.json";
 import shipmentsData from "./data/shipments.json";
@@ -205,7 +208,13 @@ async function main() {
   console.log(`Enabled ${mappedInstitutionSpecies.length} species for institution`);
 
   // 9. Insert users
-  const mappedUsers = [];
+  const mappedUsers: {
+    name: string;
+    email: string;
+    password_hash: string;
+    institution_id: number;
+    role: string;
+  }[] = [];
 
   for (const user of usersData) {
     const passwordHash = await bcrypt.hash(user.password, 10);
@@ -223,6 +232,99 @@ async function main() {
     await db.insert(users).values(mappedUsers);
   }
   console.log(`Inserted ${mappedUsers.length} users`);
+
+  // 10. Insert release events + in_flight items (derived from shipment numberReleased)
+  const releasers = usersData.map((u) => u.name);
+  let totalReleaseEvents = 0;
+  let totalInFlightItems = 0;
+
+  await db.transaction(async (tx) => {
+    // We need shipment IDs and their shipment_item IDs from the DB.
+    // Re-query shipments in insertion order (by id) to match shipmentsData index.
+    const dbShipments = await tx
+      .select({ id: shipments.id, arrival_date: shipments.arrival_date })
+      .from(shipments)
+      .orderBy(shipments.id);
+
+    for (let i = 0; i < shipmentsData.length; i++) {
+      const shipmentSource = shipmentsData[i];
+      const dbShipment = dbShipments[i];
+
+      // Only create a release event if at least one species was released
+      const releasedDetails = shipmentSource.butterflyDetails.filter(
+        (d: { numberReleased: number }) => d.numberReleased > 0,
+      );
+      if (releasedDetails.length === 0) continue;
+
+      // Release date: 1-3 days after arrival
+      const arrivalDate = new Date(dbShipment.arrival_date);
+      const daysAfter = (i % 3) + 1; // deterministic 1-3 day offset
+      const releaseDate = new Date(arrivalDate);
+      releaseDate.setDate(releaseDate.getDate() + daysAfter);
+
+      const releasedBy = releasers[i % releasers.length];
+
+      const insertedEvent = await tx
+        .insert(release_events)
+        .values({
+          institution_id: institutionId,
+          shipment_id: dbShipment.id,
+          release_date: releaseDate,
+          released_by: releasedBy,
+        })
+        .returning({ id: release_events.id });
+
+      const releaseEventId = insertedEvent[0].id;
+      totalReleaseEvents++;
+
+      // Get shipment_items for this shipment to map buttId -> shipment_item.id
+      const dbItems = await tx
+        .select({
+          id: shipment_items.id,
+          butterfly_species_id: shipment_items.butterfly_species_id,
+        })
+        .from(shipment_items)
+        .where(eq(shipment_items.shipment_id, dbShipment.id));
+
+      const speciesIdToItemId = new Map<number, number>();
+      for (const item of dbItems) {
+        speciesIdToItemId.set(item.butterfly_species_id, item.id);
+      }
+
+      const inFlightValues = releasedDetails
+        .map((detail: { buttId: string; numberReleased: number }) => {
+          const speciesId = speciesIdMap.get(detail.buttId.trim());
+          if (!speciesId) return null;
+          const shipmentItemId = speciesIdToItemId.get(speciesId);
+          if (!shipmentItemId) return null;
+
+          return {
+            institution_id: institutionId,
+            release_event_id: releaseEventId,
+            shipment_item_id: shipmentItemId,
+            quantity: detail.numberReleased,
+          };
+        })
+        .filter(
+          (
+            v,
+          ): v is {
+            institution_id: number;
+            release_event_id: number;
+            shipment_item_id: number;
+            quantity: number;
+          } => v !== null,
+        );
+
+      if (inFlightValues.length > 0) {
+        await tx.insert(in_flight).values(inFlightValues);
+        totalInFlightItems += inFlightValues.length;
+      }
+    }
+  });
+
+  console.log(`Inserted ${totalReleaseEvents} release events`);
+  console.log(`Inserted ${totalInFlightItems} in-flight items`);
 }
 
 main()

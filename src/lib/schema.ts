@@ -5,6 +5,7 @@ import {
   text,
   timestamp,
   uniqueIndex,
+  index,
   jsonb,
   boolean,
   foreignKey,
@@ -83,22 +84,31 @@ export const institutions = pgTable("institutions", {
  * - Allows scheduling
  * - Allows history
  */
-export const institution_news = pgTable("institution_news", {
-  id: serial("id").primaryKey(),
+export const institution_news = pgTable(
+  "institution_news",
+  {
+    id: serial("id").primaryKey(),
 
-  institution_id: integer("institution_id")
-    .notNull()
-    .references(() => institutions.id, { onDelete: "cascade" }),
+    institution_id: integer("institution_id")
+      .notNull()
+      .references(() => institutions.id, { onDelete: "cascade" }),
 
-  title: text("title").notNull(),
-  content: text("content").notNull(),
-  image_url: text("image_url"),
+    title: text("title").notNull(),
+    content: text("content").notNull(),
+    image_url: text("image_url"),
 
-  is_active: boolean("is_active").notNull().default(true),
+    is_active: boolean("is_active").notNull().default(true),
 
-  created_at: timestamp("created_at").defaultNow().notNull(),
-  updated_at: timestamp("updated_at").defaultNow().notNull(),
-});
+    created_at: timestamp("created_at").defaultNow().notNull(),
+    updated_at: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    // Tenant-scoped lookups (active news for an institution)
+    idx_institution_news_institution_id: index("idx_institution_news_institution_id").on(
+      table.institution_id,
+    ),
+  }),
+);
 
 /**
  * Users
@@ -106,22 +116,29 @@ export const institution_news = pgTable("institution_news", {
  * Scoped to an institution.
  * Roles: SUPERUSER | ORG SUPER | ORG ADMIN | ORG EMPLOYEE (future enforcement via enum).
  */
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
+export const users = pgTable(
+  "users",
+  {
+    id: serial("id").primaryKey(),
 
-  name: text("name").notNull(),
-  email: text("email").notNull().unique(),
-  password_hash: text("password_hash").notNull(),
+    name: text("name").notNull(),
+    email: text("email").notNull().unique(),
+    password_hash: text("password_hash").notNull(),
 
-  institution_id: integer("institution_id")
-    .notNull()
-    .references(() => institutions.id, { onDelete: "cascade" }),
+    institution_id: integer("institution_id")
+      .notNull()
+      .references(() => institutions.id, { onDelete: "cascade" }),
 
-  role: text("role").notNull().default("user"),
+    role: text("role").notNull().default("user"),
 
-  created_at: timestamp("created_at").defaultNow().notNull(),
-  updated_at: timestamp("updated_at").defaultNow().notNull(),
-});
+    created_at: timestamp("created_at").defaultNow().notNull(),
+    updated_at: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    // Tenant-scoped user lookups
+    idx_users_institution_id: index("idx_users_institution_id").on(table.institution_id),
+  }),
+);
 
 /**
  * Global Butterfly Species Catalog
@@ -199,6 +216,9 @@ export const butterfly_species_institution = pgTable(
       table.butterfly_species_id,
       table.institution_id,
     ),
+
+    // Tenant-scoped species lookups (gallery, home, species list)
+    idx_bsi_institution_id: index("idx_bsi_institution_id").on(table.institution_id),
   }),
 );
 
@@ -331,6 +351,12 @@ export const shipment_items = pgTable(
       table.butterfly_species_id,
     ),
 
+    // Lookup shipment items by institution + species (gallery/home aggregation)
+    idx_shipment_items_institution_species: index("idx_shipment_items_institution_species").on(
+      table.institution_id,
+      table.butterfly_species_id,
+    ),
+
     // Needed so other tables can FK to (institution_id, id)
     unique_shipment_item_id_per_institution: unique("unique_shipment_item_id_per_institution").on(
       table.institution_id,
@@ -412,6 +438,12 @@ export const in_flight = pgTable(
   (table) => ({
     unique_in_flight_shipment_item: uniqueIndex("unique_in_flight_shipment_item").on(
       table.release_event_id,
+      table.shipment_item_id,
+    ),
+
+    // Lookup in-flight rows by institution + shipment item (gallery/home aggregation)
+    idx_in_flight_institution_shipment_item: index("idx_in_flight_institution_shipment_item").on(
+      table.institution_id,
       table.shipment_item_id,
     ),
 

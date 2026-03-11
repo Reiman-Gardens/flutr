@@ -18,7 +18,9 @@ describe("GET /api/public/species", () => {
   });
 
   it("returns 200 on success", async () => {
-    mockDb.db.select.mockReturnValueOnce(createThenableQuery([]));
+    mockDb.db.select
+      .mockReturnValueOnce(createThenableQuery([]))
+      .mockReturnValueOnce(createThenableQuery([{ total: 0 }]));
 
     const res = await GET({} as NextRequest);
     expect(res.status).toBe(200);

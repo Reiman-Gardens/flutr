@@ -30,6 +30,7 @@ src/
 │   │   │   ├── inventory/  # Butterfly inventory management
 │   │   │   └── shipments/  # Shipment tracking (list + add)
 │   │   └── (public)/       # Public-facing routes
+│   │       ├── gallery/    # Butterfly species gallery
 │   │       ├── stats/      # Institution statistics
 │   │       └── [butterfly]/ # Individual species detail
 │   └── api/                # API routes
@@ -45,14 +46,17 @@ src/
 │   ├── nav/                # Navigation components (top-nav, mobile-nav, footer)
 │   ├── providers/          # Context providers (session, institution data)
 │   ├── public/             # Public-facing components
+│   ├── shared/             # Shared components used across public/admin
 │   └── ui/                 # 55 Shadcn/UI primitives
 ├── hooks/                  # Custom React hooks
 │   ├── use-institution.ts  # Institution slug/basePath from URL params
-│   └── use-mobile.ts       # Responsive design hook
+│   ├── use-mobile.ts       # Responsive design hook
+│   └── use-species-search.ts # Client-side species search, sort, filter, pagination
 ├── lib/                    # Utilities and configuration
 │   ├── api-response.ts     # Standard API response helpers
 │   ├── authz.ts            # Authorization policy helpers
 │   ├── db.ts               # Drizzle ORM client
+│   ├── queries/            # Cached server-side data queries (gallery, home, institution)
 │   ├── schema.ts           # Database schema definitions
 │   ├── tenant.ts           # Tenant resolution/enforcement helpers
 │   ├── validation/         # Zod schemas + request/query helpers
@@ -86,6 +90,7 @@ pnpm db:studio      # Open Drizzle Studio GUI
 
 - Path alias: `@/` maps to `/src/`
 - Multi-tenant routing: `[institution]` dynamic segment isolates data per institution
+- Institution validation: `[institution]/layout.tsx` calls `getPublicInstitution(slug)` and triggers `notFound()` if the institution doesn't exist. Child pages can use `(await getPublicInstitution(slug))!` (non-null assertion) since the layout guarantees validity and React `cache()` deduplicates the call. The root `src/app/not-found.tsx` catches the 404.
 - Route groups: `(admin)` for protected routes, `(public)` for public-facing pages
 - Client components marked with `"use client"`
 - Auth: NextAuth 5 with credentials provider, JWT tokens carry `role` and `institutionId`
@@ -126,20 +131,21 @@ Detailed documentation lives in `docs/`:
 
 ## Conventions & Utilities
 
-| Utility               | Import                                                             | Notes                                                       |
-| --------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------- |
-| Logger                | `logger` from `@/lib/logger`                                       | Use instead of `console.log` (dev-only log/warn/info/error) |
-| Class names           | `cn()` from `@/lib/utils`                                          | Always use for conditional/merged Tailwind class names      |
-| Toasts                | `toast` from `sonner`                                              | User feedback (success/error)                               |
-| API response helpers  | `ok`, `invalidRequest`, etc. from `@/lib/api-response`             | Keep response envelopes/status mapping consistent           |
-| Authorization helpers | `requireUser`, `canX(...)` from `@/lib/authz`                      | Avoid raw role checks inside routes                         |
-| Tenant helpers        | `tenantCondition`, `resolveTenantId` from `@/lib/tenant`           | Enforce read/write tenant isolation                         |
-| Validation helpers    | `requireValidBody` / `requireValidQuery` from `@/lib/validation/*` | Standardized request validation flow                        |
-| Sanitize              | `sanitizeText` from `@/lib/validation/sanitize`                    | Strip HTML from user input                                  |
-| Sanitized non-empty   | `sanitizedNonEmpty(maxLen)` from `@/lib/validation/sanitize`       | Sanitize + trim before enforcing non-empty (required texts) |
-| DB client             | `db` from `@/lib/db`                                               | Drizzle ORM client with full schema                         |
-| Schema                | `* from @/lib/schema`                                              | All table definitions (institutions, users, species, etc.)  |
-| Auth                  | `auth` from `@/auth`                                               | NextAuth session helper                                     |
+| Utility               | Import                                                             | Notes                                                                                            |
+| --------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| Logger                | `logger` from `@/lib/logger`                                       | Use instead of `console.log` (dev-only log/warn/info/error)                                      |
+| Class names           | `cn()` from `@/lib/utils`                                          | Always use for conditional/merged Tailwind class names                                           |
+| Toasts                | `toast` from `sonner`                                              | User feedback (success/error)                                                                    |
+| API response helpers  | `ok`, `invalidRequest`, etc. from `@/lib/api-response`             | Keep response envelopes/status mapping consistent                                                |
+| Authorization helpers | `requireUser`, `canX(...)` from `@/lib/authz`                      | Avoid raw role checks inside routes                                                              |
+| Tenant helpers        | `tenantCondition`, `resolveTenantId` from `@/lib/tenant`           | Enforce read/write tenant isolation                                                              |
+| Validation helpers    | `requireValidBody` / `requireValidQuery` from `@/lib/validation/*` | Standardized request validation flow                                                             |
+| Sanitize              | `sanitizeText` from `@/lib/validation/sanitize`                    | Strip HTML from user input                                                                       |
+| Sanitized non-empty   | `sanitizedNonEmpty(maxLen)` from `@/lib/validation/sanitize`       | Sanitize + trim before enforcing non-empty (required texts)                                      |
+| DB client             | `db` from `@/lib/db`                                               | Drizzle ORM client with full schema                                                              |
+| Schema                | `* from @/lib/schema`                                              | All table definitions (institutions, users, species, etc.)                                       |
+| Auth                  | `auth` from `@/auth`                                               | NextAuth session helper                                                                          |
+| Link (no prefetch)    | `Link` from `@/components/ui/link`                                 | Next.js Link without scroll-prefetch (hover/focus only). Used for large lists to reduce requests |
 
 ## Workflow Rules
 
