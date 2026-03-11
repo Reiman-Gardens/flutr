@@ -1,6 +1,6 @@
 import { useMemo, useState, useCallback } from "react";
 
-export type SortField = "common_name" | "scientific_name" | "family";
+export type SortField = "common_name" | "scientific_name" | "family" | "in_flight";
 export type SortDirection = "asc" | "desc";
 
 export interface SpeciesItem {
@@ -17,6 +17,8 @@ export interface UseSpeciesSearchOptions<T extends SpeciesItem> {
   initialQuery?: string;
   initialFamilies?: string[];
   initialVisibleCount?: number;
+  /** Numeric field accessor for custom sort fields like in_flight. */
+  getNumericField?: (item: T, field: SortField) => number | undefined;
 }
 
 export interface UseSpeciesSearchReturn<T extends SpeciesItem> {
@@ -39,6 +41,9 @@ export interface UseSpeciesSearchReturn<T extends SpeciesItem> {
 
 const DEFAULT_PAGE_SIZE = 12;
 
+/** Text-based sort fields used for search-match ranking. */
+const TEXT_SORT_FIELDS: SortField[] = ["common_name", "scientific_name", "family"];
+
 /**
  * Priority order for search-match ranking, based on the active sort field.
  * The field being sorted on is ranked first for relevance.
@@ -47,6 +52,7 @@ const PRIORITY_ORDER: Record<SortField, SortField[]> = {
   common_name: ["common_name", "scientific_name", "family"],
   scientific_name: ["scientific_name", "common_name", "family"],
   family: ["family", "common_name", "scientific_name"],
+  in_flight: ["common_name", "scientific_name", "family"],
 };
 
 /** Build a regex matching the start of any word (prefix match). */
@@ -60,7 +66,7 @@ export function compileTerms(terms: string[]): RegExp[] {
   return terms.map(prefixRegex);
 }
 
-/** Get the value of a sort field from a species item. */
+/** Get the value of a text sort field from a species item. */
 export function getField(item: SpeciesItem, field: SortField): string {
   switch (field) {
     case "common_name":
@@ -69,6 +75,8 @@ export function getField(item: SpeciesItem, field: SortField): string {
       return item.scientific_name;
     case "family":
       return item.family;
+    default:
+      return item.common_name;
   }
 }
 
@@ -101,6 +109,7 @@ export function useSpeciesSearch<T extends SpeciesItem>({
   initialQuery = "",
   initialFamilies = [],
   initialVisibleCount,
+  getNumericField,
 }: UseSpeciesSearchOptions<T>): UseSpeciesSearchReturn<T> {
   const [query, setQuery] = useState(initialQuery);
   const [sortField, setSortField] = useState<SortField>(defaultSortField);
@@ -146,11 +155,11 @@ export function useSpeciesSearch<T extends SpeciesItem>({
 
   const resetAll = useCallback(() => {
     setQuery("");
-    setSortField("common_name");
-    setSortDirection("asc");
+    setSortField(defaultSortField);
+    setSortDirection(defaultSortDirection);
     setActiveFamilies([]);
     setVisibleCount(pageSize);
-  }, [pageSize]);
+  }, [defaultSortField, defaultSortDirection, pageSize]);
 
   // Filter → sort → prioritize
   const results = useMemo(() => {
@@ -170,9 +179,18 @@ export function useSpeciesSearch<T extends SpeciesItem>({
       filtered = filtered.filter((s) => matchesAllTerms(s, regexes));
     }
 
-    // Sort comparator
     const dir = sortDirection === "asc" ? 1 : -1;
+    const isTextSort = TEXT_SORT_FIELDS.includes(sortField);
+
+    // Sort comparator
     const compare = (a: T, b: T) => {
+      if (!isTextSort && getNumericField) {
+        const aNum = getNumericField(a, sortField) ?? 0;
+        const bNum = getNumericField(b, sortField) ?? 0;
+        if (aNum !== bNum) return (aNum - bNum) * dir;
+        // Tie-break by common_name asc
+        return a.common_name.toLowerCase().localeCompare(b.common_name.toLowerCase());
+      }
       const aVal = getField(a, sortField).toLowerCase();
       const bVal = getField(b, sortField).toLowerCase();
       return aVal.localeCompare(bVal) * dir;
@@ -190,7 +208,7 @@ export function useSpeciesSearch<T extends SpeciesItem>({
     }
 
     return [...filtered].sort(compare);
-  }, [items, activeFamilies, query, sortField, sortDirection]);
+  }, [items, activeFamilies, query, sortField, sortDirection, getNumericField]);
 
   const visibleResults = useMemo(() => results.slice(0, visibleCount), [results, visibleCount]);
 

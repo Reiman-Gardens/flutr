@@ -5,11 +5,23 @@ import { ArrowLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
-export function BackButton() {
+interface BackButtonProps {
+  fallbackHref?: string;
+}
+
+export function BackButton({ fallbackHref = "/" }: BackButtonProps) {
   const router = useRouter();
 
+  const handleClick = () => {
+    if (window.history.length > 1) {
+      router.back();
+    } else {
+      router.push(fallbackHref);
+    }
+  };
+
   return (
-    <Button variant="outline" onClick={() => router.back()}>
+    <Button variant="outline" onClick={handleClick}>
       <ArrowLeft className="size-4" aria-hidden="true" />
       Go back
     </Button>

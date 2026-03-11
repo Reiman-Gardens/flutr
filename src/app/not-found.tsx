@@ -6,7 +6,6 @@ export default function NotFound() {
   return (
     <main
       id="main-content"
-      role="alert"
       className="flex flex-1 flex-col items-center justify-center px-4 py-24 text-center"
     >
       {/* Decorative 404 + butterfly silhouette */}

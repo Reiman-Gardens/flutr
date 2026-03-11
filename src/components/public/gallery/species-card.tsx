@@ -11,6 +11,7 @@ interface SpeciesCardProps {
   family: string;
   range: string[];
   img_wings_open: string | null;
+  in_flight_count: number;
 }
 
 export function SpeciesCard({
@@ -20,6 +21,7 @@ export function SpeciesCard({
   family,
   range,
   img_wings_open,
+  in_flight_count,
 }: SpeciesCardProps) {
   const region = range.length > 0 ? range[0] : null;
 
@@ -47,28 +49,34 @@ export function SpeciesCard({
                 </div>
               )}
 
-              {/* Region badge */}
-              {region && (
-                <span className="bg-background/90 text-foreground absolute top-2 left-2 rounded-full px-2.5 py-0.5 text-xs font-medium shadow-sm">
-                  {region}
+              {/* Chips */}
+              <div className="absolute top-2 left-2 flex flex-wrap gap-1.5">
+                {region && (
+                  <span className="bg-background/90 text-foreground rounded-full px-2.5 py-0.5 text-xs font-medium shadow-sm">
+                    <span className="sr-only">Region: </span>
+                    {region}
+                  </span>
+                )}
+                <span className="bg-background/90 text-foreground rounded-full px-2.5 py-0.5 text-xs font-medium shadow-sm">
+                  {family}
                 </span>
-              )}
+                <span className="bg-background/90 text-foreground rounded-full px-2.5 py-0.5 text-xs font-medium shadow-sm">
+                  <span className="sr-only">Number of butterflies in flight: </span>
+                  {in_flight_count} Flying Today
+                </span>
+              </div>
             </div>
 
             {/* Info */}
             <CardContent className="py-3">
-              <h3 className="truncate text-sm font-semibold">{common_name}</h3>
-              <p className="text-muted-foreground truncate text-xs italic">{scientific_name}</p>
-
-              <div className="mt-2 flex items-center gap-1">
-                <span className="text-primary text-xs font-semibold tracking-wide uppercase">
-                  {family}
-                </span>
+              <div className="flex items-center gap-1">
+                <h3 className="truncate text-sm font-semibold">{common_name}</h3>
                 <ChevronRight
-                  className="text-primary size-3.5 transition-transform group-hover:translate-x-0.5"
+                  className="text-muted-foreground size-3.5 shrink-0 transition-transform group-hover:translate-x-0.5"
                   aria-hidden="true"
                 />
               </div>
+              <p className="text-muted-foreground truncate text-xs italic">{scientific_name}</p>
             </CardContent>
           </Card>
         </Link>

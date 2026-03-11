@@ -2,9 +2,14 @@ import { NextRequest } from "next/server";
 
 import { GET } from "@/app/api/public/institutions/[slug]/gallery/route";
 import * as dbModule from "@/lib/db";
+import * as galleryModule from "@/lib/queries/gallery";
 import { createThenableQuery } from "@/__test__/api/_utils/mockDb";
 
 jest.mock("@/lib/db");
+jest.mock("@/lib/queries/gallery", () => ({
+  ...jest.requireActual("@/lib/queries/gallery"),
+  getGalleryDetailData: jest.fn(),
+}));
 
 describe("GET /api/public/institutions/[slug]/gallery", () => {
   const mockDb = dbModule as unknown as {
@@ -12,6 +17,8 @@ describe("GET /api/public/institutions/[slug]/gallery", () => {
       select: jest.Mock;
     };
   };
+
+  const mockGetGalleryDetailData = galleryModule.getGalleryDetailData as jest.Mock;
 
   beforeEach(() => {
     jest.resetAllMocks();
@@ -34,9 +41,8 @@ describe("GET /api/public/institutions/[slug]/gallery", () => {
   });
 
   it("returns 200 on success", async () => {
-    mockDb.db.select
-      .mockReturnValueOnce(createThenableQuery([{ id: 1 }]))
-      .mockReturnValueOnce(createThenableQuery([]));
+    mockDb.db.select.mockReturnValueOnce(createThenableQuery([{ id: 1 }]));
+    mockGetGalleryDetailData.mockResolvedValueOnce([]);
 
     const res = await GET({} as NextRequest, {
       params: Promise.resolve({ slug: "some-slug" }),

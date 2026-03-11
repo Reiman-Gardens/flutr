@@ -3,9 +3,10 @@ import { and, eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
-import { institutions, butterfly_species_institution, butterfly_species } from "@/lib/schema";
+import { institutions } from "@/lib/schema";
 import { internalError, invalidRequest, notFound, ok } from "@/lib/api-response";
 import { institutionSlugParamsSchema, publicEmptyQuerySchema } from "@/lib/validation/public";
+import { getGalleryDetailData } from "@/lib/queries/gallery";
 
 interface RouteContext {
   params: Promise<{
@@ -42,33 +43,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       return notFound("Institution not found");
     }
 
-    const institutionId = institutionRows[0].id;
-
-    const rows = await db
-      .select({
-        speciesId: butterfly_species.id,
-        scientific_name: butterfly_species.scientific_name,
-        common_name: butterfly_species.common_name,
-        common_name_override: butterfly_species_institution.common_name_override,
-        family: butterfly_species.family,
-        range: butterfly_species.range,
-        img_wings_open: butterfly_species.img_wings_open,
-        img_wings_closed: butterfly_species.img_wings_closed,
-        extra_img_1: butterfly_species.extra_img_1,
-        extra_img_2: butterfly_species.extra_img_2,
-      })
-      .from(butterfly_species_institution)
-      .innerJoin(
-        butterfly_species,
-        eq(butterfly_species_institution.butterfly_species_id, butterfly_species.id),
-      )
-      .where(eq(butterfly_species_institution.institution_id, institutionId));
-
-    const gallery = rows.map((row) => ({
-      ...row,
-      common_name: row.common_name_override ?? row.common_name,
-      common_name_override: undefined,
-    }));
+    const gallery = await getGalleryDetailData(institutionRows[0].id);
 
     return ok({ gallery });
   } catch (error) {

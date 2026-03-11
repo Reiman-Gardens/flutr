@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import { getPublicInstitution } from "@/lib/queries/institution";
 import { getGalleryData } from "@/lib/queries/gallery";
 import { GalleryHeader } from "@/components/public/gallery/gallery-header";
@@ -6,6 +8,14 @@ import { CuratorsNote } from "@/components/public/gallery/curators-note";
 
 interface GalleryPageProps {
   params: Promise<{ institution: string }>;
+}
+
+export async function generateMetadata({ params }: GalleryPageProps): Promise<Metadata> {
+  const { institution: slug } = await params;
+  const inst = await getPublicInstitution(slug);
+  return {
+    title: inst ? `Species Gallery — ${inst.name}` : "Species Gallery",
+  };
 }
 
 export default async function GalleryPage({ params }: GalleryPageProps) {

@@ -217,6 +217,7 @@ describe("search pipeline (filter + sort)", () => {
         common_name: ["common_name", "scientific_name", "family"],
         scientific_name: ["scientific_name", "common_name", "family"],
         family: ["family", "common_name", "scientific_name"],
+        in_flight: ["common_name", "scientific_name", "family"],
       };
       const order = PRIORITY_ORDER[sortField];
       return [...filtered].sort((a, b) => {

@@ -9,6 +9,7 @@ import { useSpeciesSearch, type SortField, type SortDirection } from "@/hooks/us
 import {
   SpeciesSearchToolbar,
   type SpeciesFilters,
+  type SortOption,
 } from "@/components/shared/species-search-toolbar";
 import { SpeciesCard } from "./species-card";
 
@@ -19,6 +20,7 @@ interface GallerySpecies {
   family: string;
   range: string[];
   img_wings_open: string | null;
+  in_flight_count: number;
 }
 
 interface GalleryContentProps {
@@ -26,9 +28,50 @@ interface GalleryContentProps {
   species: GallerySpecies[];
 }
 
-const SORT_FIELDS: SortField[] = ["common_name", "scientific_name", "family"];
+const SORT_FIELDS: SortField[] = ["common_name", "scientific_name", "family", "in_flight"];
 const SORT_DIRS: SortDirection[] = ["asc", "desc"];
 const PAGE_SIZE = 12;
+
+const GALLERY_SORT_OPTIONS: SortOption[] = [
+  {
+    value: "in_flight-desc",
+    label: "In Flight (High\u2013Low)",
+    field: "in_flight",
+    direction: "desc",
+  },
+  {
+    value: "in_flight-asc",
+    label: "In Flight (Low\u2013High)",
+    field: "in_flight",
+    direction: "asc",
+  },
+  { value: "common_name-asc", label: "Name (A\u2013Z)", field: "common_name", direction: "asc" },
+  {
+    value: "common_name-desc",
+    label: "Name (Z\u2013A)",
+    field: "common_name",
+    direction: "desc",
+  },
+  {
+    value: "scientific_name-asc",
+    label: "Scientific (A\u2013Z)",
+    field: "scientific_name",
+    direction: "asc",
+  },
+  {
+    value: "scientific_name-desc",
+    label: "Scientific (Z\u2013A)",
+    field: "scientific_name",
+    direction: "desc",
+  },
+  { value: "family-asc", label: "Family (A\u2013Z)", field: "family", direction: "asc" },
+  { value: "family-desc", label: "Family (Z\u2013A)", field: "family", direction: "desc" },
+];
+
+const getNumericField = (item: GallerySpecies, field: SortField): number | undefined => {
+  if (field === "in_flight") return item.in_flight_count;
+  return undefined;
+};
 
 /** Read initial state from URL search params (populated on back-navigation). */
 function parseInitialState(searchParams: URLSearchParams) {
@@ -40,8 +83,8 @@ function parseInitialState(searchParams: URLSearchParams) {
 
   return {
     query: q,
-    sortField: sf && SORT_FIELDS.includes(sf) ? sf : ("common_name" as SortField),
-    sortDirection: sd && SORT_DIRS.includes(sd) ? sd : ("asc" as SortDirection),
+    sortField: sf && SORT_FIELDS.includes(sf) ? sf : ("in_flight" as SortField),
+    sortDirection: sd && SORT_DIRS.includes(sd) ? sd : ("desc" as SortDirection),
     families: fam ? fam.split(",") : [],
     visibleCount: vc ? Math.max(PAGE_SIZE, parseInt(vc, 10) || PAGE_SIZE) : undefined,
   };
@@ -62,6 +105,7 @@ export function GalleryContent({ slug, species }: GalleryContentProps) {
     initialQuery: initial.query,
     initialFamilies: initial.families,
     initialVisibleCount: initial.visibleCount,
+    getNumericField,
   });
 
   const { setActiveFamilies } = search;
@@ -74,8 +118,8 @@ export function GalleryContent({ slug, species }: GalleryContentProps) {
   const syncToUrl = useCallback(() => {
     const params = new URLSearchParams();
     if (search.query) params.set("q", search.query);
-    if (search.sortField !== "common_name") params.set("sf", search.sortField);
-    if (search.sortDirection !== "asc") params.set("sd", search.sortDirection);
+    if (search.sortField !== "in_flight") params.set("sf", search.sortField);
+    if (search.sortDirection !== "desc") params.set("sd", search.sortDirection);
     if (search.activeFamilies.length > 0) params.set("fam", search.activeFamilies.join(","));
     if (search.visibleCount > PAGE_SIZE) params.set("vc", String(search.visibleCount));
 
@@ -102,6 +146,7 @@ export function GalleryContent({ slug, species }: GalleryContentProps) {
         sortDirection={search.sortDirection}
         filters={{ families: search.activeFamilies }}
         families={search.families}
+        sortOptions={GALLERY_SORT_OPTIONS}
         onQueryChange={search.setQuery}
         onSortChange={search.setSort}
         onFiltersChange={handleFiltersChange}
@@ -125,6 +170,7 @@ export function GalleryContent({ slug, species }: GalleryContentProps) {
               family={s.family}
               range={s.range}
               img_wings_open={s.img_wings_open}
+              in_flight_count={s.in_flight_count}
             />
           ))}
         </ul>

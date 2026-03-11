@@ -29,42 +29,49 @@ export interface SpeciesFilters {
   families: string[];
 }
 
+export interface SortOption {
+  value: string;
+  label: string;
+  field: SortField;
+  direction: SortDirection;
+}
+
 interface SpeciesSearchToolbarProps {
   query: string;
   sortField: SortField;
   sortDirection: SortDirection;
   filters: SpeciesFilters;
   families: string[];
+  sortOptions?: SortOption[];
   onQueryChange: (q: string) => void;
   onSortChange: (field: SortField, direction: SortDirection) => void;
   onFiltersChange: (filters: SpeciesFilters) => void;
   onReset: () => void;
 }
 
-const SORT_OPTIONS: { value: string; label: string; field: SortField; direction: SortDirection }[] =
-  [
-    { value: "common_name-asc", label: "Name (A\u2013Z)", field: "common_name", direction: "asc" },
-    {
-      value: "common_name-desc",
-      label: "Name (Z\u2013A)",
-      field: "common_name",
-      direction: "desc",
-    },
-    {
-      value: "scientific_name-asc",
-      label: "Scientific (A\u2013Z)",
-      field: "scientific_name",
-      direction: "asc",
-    },
-    {
-      value: "scientific_name-desc",
-      label: "Scientific (Z\u2013A)",
-      field: "scientific_name",
-      direction: "desc",
-    },
-    { value: "family-asc", label: "Family (A\u2013Z)", field: "family", direction: "asc" },
-    { value: "family-desc", label: "Family (Z\u2013A)", field: "family", direction: "desc" },
-  ];
+const DEFAULT_SORT_OPTIONS: SortOption[] = [
+  { value: "common_name-asc", label: "Name (A\u2013Z)", field: "common_name", direction: "asc" },
+  {
+    value: "common_name-desc",
+    label: "Name (Z\u2013A)",
+    field: "common_name",
+    direction: "desc",
+  },
+  {
+    value: "scientific_name-asc",
+    label: "Scientific (A\u2013Z)",
+    field: "scientific_name",
+    direction: "asc",
+  },
+  {
+    value: "scientific_name-desc",
+    label: "Scientific (Z\u2013A)",
+    field: "scientific_name",
+    direction: "desc",
+  },
+  { value: "family-asc", label: "Family (A\u2013Z)", field: "family", direction: "asc" },
+  { value: "family-desc", label: "Family (Z\u2013A)", field: "family", direction: "desc" },
+];
 
 const DEBOUNCE_MS = 300;
 
@@ -74,6 +81,7 @@ export function SpeciesSearchToolbar({
   sortDirection,
   filters,
   families,
+  sortOptions = DEFAULT_SORT_OPTIONS,
   onQueryChange,
   onSortChange,
   onFiltersChange,
@@ -107,10 +115,10 @@ export function SpeciesSearchToolbar({
 
   const handleSortChange = useCallback(
     (value: string) => {
-      const option = SORT_OPTIONS.find((o) => o.value === value);
+      const option = sortOptions.find((o) => o.value === value);
       if (option) onSortChange(option.field, option.direction);
     },
-    [onSortChange],
+    [onSortChange, sortOptions],
   );
 
   // Draft filter state inside the modal (applied on "Apply")
@@ -168,7 +176,7 @@ export function SpeciesSearchToolbar({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {SORT_OPTIONS.map((opt) => (
+            {sortOptions.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
                 {opt.label}
               </SelectItem>
@@ -182,7 +190,9 @@ export function SpeciesSearchToolbar({
               variant="outline"
               size="icon"
               className="relative shrink-0"
-              aria-label="Filters"
+              aria-label={
+                activeFilterCount > 0 ? `Filters (${activeFilterCount} active)` : "Filters"
+              }
             >
               <SlidersHorizontal className="size-4" />
               {activeFilterCount > 0 && (
@@ -208,6 +218,7 @@ export function SpeciesSearchToolbar({
                     <button
                       key={family}
                       type="button"
+                      aria-pressed={isSelected}
                       onClick={() =>
                         setDraftFilters((prev) => ({
                           ...prev,
