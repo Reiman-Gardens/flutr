@@ -13,7 +13,7 @@ export function BackButton({ fallbackHref = "/" }: BackButtonProps) {
   const router = useRouter();
 
   const handleClick = () => {
-    if (window.history.length > 1) {
+    if (document.referrer && new URL(document.referrer).origin === window.location.origin) {
       router.back();
     } else {
       router.push(fallbackHref);

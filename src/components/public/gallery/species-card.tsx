@@ -41,7 +41,7 @@ export function SpeciesCard({
                   alt={`${common_name} (${scientific_name})`}
                   fill
                   sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
-                  className="object-cover transition-transform group-hover:scale-105"
+                  className="object-cover transition-transform motion-safe:group-hover:scale-105"
                 />
               ) : (
                 <div className="bg-muted flex size-full items-center justify-center">
@@ -52,15 +52,15 @@ export function SpeciesCard({
               {/* Chips */}
               <div className="absolute top-2 left-2 flex flex-wrap gap-1.5">
                 {region && (
-                  <span className="bg-background/90 text-foreground rounded-full px-2.5 py-0.5 text-xs font-medium shadow-sm">
+                  <span className="bg-background text-foreground rounded-full px-2.5 py-0.5 text-xs font-medium shadow-sm">
                     <span className="sr-only">Region: </span>
                     {region}
                   </span>
                 )}
-                <span className="bg-background/90 text-foreground rounded-full px-2.5 py-0.5 text-xs font-medium shadow-sm">
+                <span className="bg-background text-foreground rounded-full px-2.5 py-0.5 text-xs font-medium shadow-sm">
                   {family}
                 </span>
-                <span className="bg-background/90 text-foreground rounded-full px-2.5 py-0.5 text-xs font-medium shadow-sm">
+                <span className="bg-background text-foreground rounded-full px-2.5 py-0.5 text-xs font-medium shadow-sm">
                   <span className="sr-only">Number of butterflies in flight: </span>
                   {in_flight_count} Flying Today
                 </span>

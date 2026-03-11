@@ -11,17 +11,8 @@ import {
   type SpeciesFilters,
   type SortOption,
 } from "@/components/shared/species-search-toolbar";
+import type { GallerySpecies } from "@/lib/queries/gallery";
 import { SpeciesCard } from "./species-card";
-
-interface GallerySpecies {
-  id: number;
-  scientific_name: string;
-  common_name: string;
-  family: string;
-  range: string[];
-  img_wings_open: string | null;
-  in_flight_count: number;
-}
 
 interface GalleryContentProps {
   slug: string;
@@ -147,6 +138,8 @@ export function GalleryContent({ slug, species }: GalleryContentProps) {
         filters={{ families: search.activeFamilies }}
         families={search.families}
         sortOptions={GALLERY_SORT_OPTIONS}
+        defaultSortField={initial.sortField}
+        defaultSortDirection={initial.sortDirection}
         onQueryChange={search.setQuery}
         onSortChange={search.setSort}
         onFiltersChange={handleFiltersChange}
@@ -154,9 +147,11 @@ export function GalleryContent({ slug, species }: GalleryContentProps) {
       />
 
       {/* Results count */}
-      <p aria-live="polite" className="text-muted-foreground text-sm">
-        Showing {search.visibleCount} of {search.totalCount} species
-      </p>
+      {search.totalCount > 0 && (
+        <p aria-live="polite" className="text-muted-foreground text-sm">
+          Showing {search.visibleCount} of {search.totalCount} species
+        </p>
+      )}
 
       {/* Species grid */}
       {search.totalCount > 0 ? (

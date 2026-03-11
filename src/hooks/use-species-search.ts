@@ -48,7 +48,7 @@ const TEXT_SORT_FIELDS: SortField[] = ["common_name", "scientific_name", "family
  * Priority order for search-match ranking, based on the active sort field.
  * The field being sorted on is ranked first for relevance.
  */
-const PRIORITY_ORDER: Record<SortField, SortField[]> = {
+export const PRIORITY_ORDER: Record<SortField, SortField[]> = {
   common_name: ["common_name", "scientific_name", "family"],
   scientific_name: ["scientific_name", "common_name", "family"],
   family: ["family", "common_name", "scientific_name"],

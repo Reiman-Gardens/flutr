@@ -4,6 +4,7 @@ import {
   getField,
   matchPriority,
   matchesAllTerms,
+  PRIORITY_ORDER,
   type SpeciesItem,
   type SortField,
 } from "@/hooks/use-species-search";
@@ -100,6 +101,10 @@ describe("getField", () => {
   it("returns family", () => {
     expect(getField(monarch, "family")).toBe("Nymphalidae");
   });
+
+  it("falls back to common_name for non-text sort fields", () => {
+    expect(getField(monarch, "in_flight")).toBe("Monarch");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -135,6 +140,12 @@ describe("matchesAllTerms", () => {
     // "painted" does not match monarch
     expect(matchesAllTerms(monarch, regexes)).toBe(false);
   });
+
+  it("handles items with empty string fields", () => {
+    const empty: SpeciesItem = { common_name: "", scientific_name: "", family: "" };
+    const regexes = compileTerms(["anything"]);
+    expect(matchesAllTerms(empty, regexes)).toBe(false);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -142,7 +153,7 @@ describe("matchesAllTerms", () => {
 // ---------------------------------------------------------------------------
 
 describe("matchPriority", () => {
-  const defaultOrder: SortField[] = ["common_name", "scientific_name", "family"];
+  const defaultOrder = PRIORITY_ORDER.common_name;
 
   it("returns 0 when all terms match the first priority field", () => {
     const regexes = compileTerms(["mon"]);
@@ -166,7 +177,7 @@ describe("matchPriority", () => {
   });
 
   it("respects custom priority order", () => {
-    const sciOrder: SortField[] = ["scientific_name", "common_name", "family"];
+    const sciOrder = PRIORITY_ORDER.scientific_name;
     const regexes = compileTerms(["dan"]);
     // "dan" matches scientific_name which is now index 0
     expect(matchPriority(monarch, regexes, sciOrder)).toBe(0);
@@ -213,12 +224,6 @@ describe("search pipeline (filter + sort)", () => {
     };
 
     if (regexes.length > 0) {
-      const PRIORITY_ORDER: Record<SortField, SortField[]> = {
-        common_name: ["common_name", "scientific_name", "family"],
-        scientific_name: ["scientific_name", "common_name", "family"],
-        family: ["family", "common_name", "scientific_name"],
-        in_flight: ["common_name", "scientific_name", "family"],
-      };
       const order = PRIORITY_ORDER[sortField];
       return [...filtered].sort((a, b) => {
         const pa = matchPriority(a, regexes, order);
@@ -295,14 +300,30 @@ describe("search pipeline (filter + sort)", () => {
     expect(result).toHaveLength(0);
   });
 
-  it("ranks common_name prefix match above scientific_name match", () => {
-    // "mo" matches "Monarch" (common_name) and "Morpho menelaus" (scientific_name for Blue Morpho)
-    // Both also match on common_name ("Monarch" starts with "Mo", "Blue Morpho" has "Mo" at word boundary in Morpho)
+  it("ranks common_name match first, then sorts alphabetically within tier", () => {
+    // "mo" matches "Monarch" (common_name) and "Blue Morpho" (common_name has "Morpho")
+    // Both match at priority 0 (common_name), so they sort alphabetically
     const result = filterAndSort(items, "mo", []);
     const names = result.map((s) => s.common_name);
-    // Both match common_name at a word boundary, so they sort alphabetically within same priority
-    expect(names).toContain("Monarch");
-    expect(names).toContain("Blue Morpho");
+    expect(names).toEqual(["Blue Morpho", "Monarch"]);
+  });
+
+  it("ranks scientific_name match below common_name match", () => {
+    // "pap" matches "Papilio glaucus" (scientific_name) and "Papilionidae" (family)
+    // Swallowtail matches scientific_name at priority 1 with common_name order
+    const result = filterAndSort(items, "pap", []);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBe(swallowtail);
+  });
+
+  it("handles empty items array", () => {
+    const result = filterAndSort([], "anything", []);
+    expect(result).toHaveLength(0);
+  });
+
+  it("handles whitespace-only search query", () => {
+    const result = filterAndSort(items, "   ", []);
+    expect(result).toHaveLength(4);
   });
 
   it("handles pagination slicing correctly", () => {

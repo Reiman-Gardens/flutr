@@ -43,6 +43,8 @@ interface SpeciesSearchToolbarProps {
   filters: SpeciesFilters;
   families: string[];
   sortOptions?: SortOption[];
+  defaultSortField?: SortField;
+  defaultSortDirection?: SortDirection;
   onQueryChange: (q: string) => void;
   onSortChange: (field: SortField, direction: SortDirection) => void;
   onFiltersChange: (filters: SpeciesFilters) => void;
@@ -82,6 +84,8 @@ export function SpeciesSearchToolbar({
   filters,
   families,
   sortOptions = DEFAULT_SORT_OPTIONS,
+  defaultSortField = "common_name",
+  defaultSortDirection = "asc",
   onQueryChange,
   onSortChange,
   onFiltersChange,
@@ -145,8 +149,8 @@ export function SpeciesSearchToolbar({
   const activeFilterCount = filters.families.length;
   const isNonDefault =
     query.length > 0 ||
-    sortField !== "common_name" ||
-    sortDirection !== "asc" ||
+    sortField !== defaultSortField ||
+    sortDirection !== defaultSortDirection ||
     activeFilterCount > 0;
 
   return (
@@ -271,7 +275,7 @@ export function SpeciesSearchToolbar({
                     families: filters.families.filter((f) => f !== family),
                   })
                 }
-                className="hover:text-foreground focus-visible:ring-ring ml-0.5 rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                className="hover:text-foreground focus-visible:ring-ring ml-0.5 inline-flex min-h-6 min-w-6 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
                 aria-label={`Remove ${family} filter`}
               >
                 <X className="size-3" aria-hidden="true" />
@@ -281,10 +285,10 @@ export function SpeciesSearchToolbar({
           <button
             type="button"
             onClick={onReset}
-            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex items-center gap-1 rounded text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex min-h-6 items-center gap-1 rounded px-1 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
           >
             <RotateCcw className="size-3" aria-hidden="true" />
-            Reset All
+            Reset all
           </button>
         </div>
       )}
