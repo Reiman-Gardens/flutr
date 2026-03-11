@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { eq, sql } from "drizzle-orm";
+import { eq, and, sql, sum } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import {
@@ -25,8 +25,33 @@ export interface GallerySpeciesDetail extends GallerySpecies {
   extra_img_2: string | null;
 }
 
+/**
+ * Pre-aggregated in-flight counts per species for a given institution.
+ * Single scan of in_flight + shipment_items instead of N correlated subqueries.
+ */
+function inFlightCountSubquery(institutionId: number) {
+  return db
+    .select({
+      butterfly_species_id: shipment_items.butterfly_species_id,
+      total: sum(in_flight.quantity).as("total"),
+    })
+    .from(in_flight)
+    .innerJoin(
+      shipment_items,
+      and(
+        eq(in_flight.institution_id, shipment_items.institution_id),
+        eq(in_flight.shipment_item_id, shipment_items.id),
+      ),
+    )
+    .where(eq(in_flight.institution_id, institutionId))
+    .groupBy(shipment_items.butterfly_species_id)
+    .as("ifc");
+}
+
 /** Base gallery query selecting all species columns for an institution. */
 async function queryGallerySpecies(institutionId: number) {
+  const ifc = inFlightCountSubquery(institutionId);
+
   return db
     .select({
       id: butterfly_species.id,
@@ -39,21 +64,14 @@ async function queryGallerySpecies(institutionId: number) {
       img_wings_closed: butterfly_species.img_wings_closed,
       extra_img_1: butterfly_species.extra_img_1,
       extra_img_2: butterfly_species.extra_img_2,
-      in_flight_count: sql<number>`coalesce((
-        select sum(${in_flight.quantity})
-        from ${in_flight}
-        inner join ${shipment_items}
-          on ${in_flight.institution_id} = ${shipment_items.institution_id}
-          and ${in_flight.shipment_item_id} = ${shipment_items.id}
-        where ${in_flight.institution_id} = ${institutionId}
-          and ${shipment_items.butterfly_species_id} = ${butterfly_species.id}
-      ), 0)`.as("in_flight_count"),
+      in_flight_count: sql<number>`coalesce(${ifc.total}, 0)`.as("in_flight_count"),
     })
     .from(butterfly_species_institution)
     .innerJoin(
       butterfly_species,
       eq(butterfly_species_institution.butterfly_species_id, butterfly_species.id),
     )
+    .leftJoin(ifc, eq(ifc.butterfly_species_id, butterfly_species.id))
     .where(eq(butterfly_species_institution.institution_id, institutionId))
     .orderBy(butterfly_species.common_name);
 }

@@ -36,7 +36,8 @@ describe("GET /api/public/institutions/[slug]/species", () => {
   it("returns 200 on success", async () => {
     mockDb.db.select
       .mockReturnValueOnce(createThenableQuery([{ id: 1 }]))
-      .mockReturnValueOnce(createThenableQuery([]));
+      .mockReturnValueOnce(createThenableQuery([]))
+      .mockReturnValueOnce(createThenableQuery([{ total: 0 }]));
 
     const res = await GET({} as NextRequest, {
       params: Promise.resolve({ slug: "some-slug" }),
