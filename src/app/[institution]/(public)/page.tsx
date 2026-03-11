@@ -13,8 +13,7 @@ interface InstitutionPageProps {
 export default async function InstitutionPage({ params }: InstitutionPageProps) {
   const { institution: slug } = await params;
 
-  const inst = await getPublicInstitution(slug);
-  if (!inst) return null;
+  const inst = (await getPublicInstitution(slug))!;
 
   const basePath = `/${slug}`;
 

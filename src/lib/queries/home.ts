@@ -9,8 +9,33 @@ import {
   in_flight,
 } from "@/lib/schema";
 
+/**
+ * Pre-aggregated in-flight counts per species for a given institution.
+ * Single scan of in_flight + shipment_items instead of N correlated subqueries.
+ */
+function inFlightCountSubquery(institutionId: number) {
+  return db
+    .select({
+      butterfly_species_id: shipment_items.butterfly_species_id,
+      total: sum(in_flight.quantity).as("total"),
+    })
+    .from(in_flight)
+    .innerJoin(
+      shipment_items,
+      and(
+        eq(in_flight.institution_id, shipment_items.institution_id),
+        eq(in_flight.shipment_item_id, shipment_items.id),
+      ),
+    )
+    .where(eq(in_flight.institution_id, institutionId))
+    .groupBy(shipment_items.butterfly_species_id)
+    .as("ifc");
+}
+
 /** In-flight stats and featured-species data for the institution home page. */
 export const getInstitutionHomeData = cache(async (institutionId: number) => {
+  const ifc = inFlightCountSubquery(institutionId);
+
   const [inFlightResult, speciesRows] = await Promise.all([
     // Total butterflies + distinct species in flight
     db
@@ -29,7 +54,6 @@ export const getInstitutionHomeData = cache(async (institutionId: number) => {
       .where(eq(in_flight.institution_id, institutionId)),
 
     // Enabled species with images (for Butterfly of the Day)
-    // Includes an `in_flight_count` scalar subquery so we don't need a sequential follow-up query
     db
       .select({
         scientific_name: butterfly_species.scientific_name,
@@ -38,21 +62,14 @@ export const getInstitutionHomeData = cache(async (institutionId: number) => {
         range: butterfly_species.range,
         lifespan_days: butterfly_species.lifespan_days,
         host_plant: butterfly_species.host_plant,
-        in_flight_count: sql<number>`coalesce((
-          select sum(${in_flight.quantity})
-          from ${in_flight}
-          inner join ${shipment_items}
-            on ${in_flight.institution_id} = ${shipment_items.institution_id}
-            and ${in_flight.shipment_item_id} = ${shipment_items.id}
-          where ${in_flight.institution_id} = ${institutionId}
-            and ${shipment_items.butterfly_species_id} = ${butterfly_species.id}
-        ), 0)`.as("in_flight_count"),
+        in_flight_count: sql<number>`coalesce(${ifc.total}, 0)`.as("in_flight_count"),
       })
       .from(butterfly_species_institution)
       .innerJoin(
         butterfly_species,
         eq(butterfly_species_institution.butterfly_species_id, butterfly_species.id),
       )
+      .leftJoin(ifc, eq(ifc.butterfly_species_id, butterfly_species.id))
       .where(
         and(
           eq(butterfly_species_institution.institution_id, institutionId),

@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "flutr-butt-images.nyc3.digitaloceanspaces.com",
       },
+      {
+        protocol: "https",
+        hostname: "flutr-butt-images.nyc3.cdn.digitaloceanspaces.com",
+      },
     ],
   },
 };
