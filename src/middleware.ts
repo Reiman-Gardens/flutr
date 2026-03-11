@@ -16,7 +16,6 @@ const ADMIN_PATH_PERMISSION_MAP: Record<string, Permission[]> = {
   releases: ["CREATE_RELEASE"],
   suppliers: ["MANAGE_SUPPLIERS"],
   employees: ["CREATE_EMPLOYEE"],
-  admins: ["CREATE_ADMIN"],
   users: ["MANAGE_USERS"],
   butterflies: ["CHANGE_BUTTERFLY"],
   dashboard: ["VIEW_DASHBOARD"],
