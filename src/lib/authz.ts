@@ -1,4 +1,6 @@
 import type { Session } from "next-auth";
+import type { Permission } from "@/lib/permissions";
+import { hasPermission } from "@/lib/permissions";
 
 /**
  * Role system
@@ -21,6 +23,10 @@ export function normalizeRole(role: string): UserRole {
   return "EMPLOYEE";
 }
 
+/**
+ * Role hierarchy for comparison (lower = less privileged)
+ * Used only for user-to-user relationship checks (can modify, assign role, delete)
+ */
 type RoleRank = Record<UserRole, number>;
 
 const roleRank: RoleRank = {
@@ -87,61 +93,85 @@ function isSupportedRole(role: string): role is UserRole {
   return role === "EMPLOYEE" || role === "ADMIN" || role === "SUPERUSER";
 }
 
-function hasAtLeast(user: AuthenticatedUser, minimum: UserRole): boolean {
-  return roleRank[user.role] >= roleRank[minimum];
+/**
+ * Generic permission check using the unified permission matrix.
+ * All authorization checks should delegate to this function.
+ */
+export function can(user: AuthenticatedUser, permission: Permission): boolean {
+  return hasPermission(user.role, permission);
 }
 
 // Shipments & releases
 
 export function canReadShipment(user: AuthenticatedUser): boolean {
-  return hasAtLeast(user, "EMPLOYEE");
+  return can(user, "VIEW_SHIPMENTS");
 }
 
 export function canWriteShipment(user: AuthenticatedUser): boolean {
-  return hasAtLeast(user, "EMPLOYEE");
+  return can(user, "CREATE_SHIPMENT");
 }
 
 export function canCreateRelease(user: AuthenticatedUser): boolean {
-  return hasAtLeast(user, "EMPLOYEE");
+  return can(user, "CREATE_RELEASE");
+}
+
+// Dashboard
+
+export function canViewDashboard(user: AuthenticatedUser): boolean {
+  return can(user, "VIEW_DASHBOARD");
+}
+
+// Inventory
+
+export function canViewInventory(user: AuthenticatedUser): boolean {
+  return can(user, "VIEW_INVENTORY");
+}
+
+export function canEditInventory(user: AuthenticatedUser): boolean {
+  return can(user, "EDIT_INVENTORY");
 }
 
 // Suppliers
 
 export function canReadSuppliers(user: AuthenticatedUser): boolean {
-  return hasAtLeast(user, "EMPLOYEE");
+  return can(user, "VIEW_SHIPMENTS"); // Suppliers visible to those who can view shipments
 }
 
 export function canManageSuppliers(user: AuthenticatedUser): boolean {
-  return hasAtLeast(user, "ADMIN");
+  return can(user, "MANAGE_SUPPLIERS");
 }
 
 // Institution profile
 
 export function canManageInstitutionProfile(user: AuthenticatedUser): boolean {
-  return hasAtLeast(user, "ADMIN");
+  return can(user, "MANAGE_INSTITUTION");
 }
 
 // Platform / global
 
 export function canCreateInstitution(user: AuthenticatedUser): boolean {
-  return user.role === "SUPERUSER";
+  return can(user, "CREATE_INSTITUTION");
 }
 
 export function canManageGlobalButterflies(user: AuthenticatedUser): boolean {
-  return user.role === "SUPERUSER";
+  return can(user, "MANAGE_BUTTERFLIES");
 }
 
 export function canCrossTenant(user: AuthenticatedUser): boolean {
-  return user.role === "SUPERUSER";
+  return can(user, "CROSS_TENANT_ACCESS");
 }
 
 // User management
 
 export function canManageUsers(user: AuthenticatedUser): boolean {
-  return hasAtLeast(user, "ADMIN");
+  return can(user, "MANAGE_USERS");
 }
 
 export function canModifyUser(actor: AuthenticatedUser, target: AuthenticatedUser): boolean {
+  if (!can(actor, "MANAGE_USERS")) {
+    return false;
+  }
+
   return roleRank[actor.role] >= roleRank[target.role];
 }
 
@@ -150,7 +180,7 @@ export function canAssignRole(
   newRole: UserRole,
   target?: AuthenticatedUser,
 ): boolean {
-  if (!hasAtLeast(actor, "ADMIN")) {
+  if (!can(actor, "MANAGE_USERS")) {
     return false;
   }
 
@@ -166,7 +196,7 @@ export function canAssignRole(
 }
 
 export function canDeleteUser(actor: AuthenticatedUser, target: AuthenticatedUser): boolean {
-  if (!hasAtLeast(actor, "ADMIN")) {
+  if (!can(actor, "MANAGE_USERS")) {
     return false;
   }
 
