@@ -75,7 +75,7 @@ export const getSpeciesDetail = cache(
         img_wings_closed: butterfly_species.img_wings_closed,
         extra_img_1: butterfly_species.extra_img_1,
         extra_img_2: butterfly_species.extra_img_2,
-        in_flight_count: sql<number>`coalesce(${ifc.total}, 0)`.as("in_flight_count"),
+        in_flight_count: sql<number>`coalesce(${ifc.total}, 0)::int`.as("in_flight_count"),
       })
       .from(butterfly_species_institution)
       .innerJoin(

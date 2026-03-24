@@ -12,7 +12,7 @@ interface SpeciesHeroProps {
 
 export function SpeciesHero({ slug, commonName, scientificName, imgWingsOpen }: SpeciesHeroProps) {
   return (
-    <section aria-labelledby="species-heading" className="relative w-full">
+    <section aria-label={`${commonName} hero`} className="relative w-full">
       <div className="relative min-h-[320px] w-full overflow-hidden sm:min-h-[380px] lg:min-h-[420px]">
         {imgWingsOpen ? (
           <Image

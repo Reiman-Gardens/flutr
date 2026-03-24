@@ -11,18 +11,20 @@ function formatLifespan(days: number): string {
   if (days <= 0) return "Unknown";
 
   if (days <= 14) {
-    return `${days} days`;
+    return `${days} ${days === 1 ? "day" : "days"}`;
   }
 
   if (days <= 60) {
     const floor = Math.floor(days / 7);
     const ceil = Math.ceil(days / 7);
-    return floor === ceil ? `${floor} weeks` : `${floor}\u2013${ceil} weeks`;
+    if (floor === ceil) return `${floor} ${floor === 1 ? "week" : "weeks"}`;
+    return `${floor}\u2013${ceil} weeks`;
   }
 
   const floor = Math.floor(days / 30);
   const ceil = Math.ceil(days / 30);
-  return floor === ceil ? `${floor} months` : `${floor}\u2013${ceil} months`;
+  if (floor === ceil) return `${floor} ${floor === 1 ? "month" : "months"}`;
+  return `${floor}\u2013${ceil} months`;
 }
 
 const stats = [
