@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { getPublicInstitution } from "@/lib/queries/institution";
 import { getInstitutionHomeData } from "@/lib/queries/home";
 import { HeroSection } from "@/components/public/home/hero-section";
@@ -14,6 +15,8 @@ export default async function InstitutionPage({ params }: InstitutionPageProps) 
   const { institution: slug } = await params;
 
   const inst = (await getPublicInstitution(slug))!;
+
+  if (!inst) notFound();
 
   const basePath = `/${slug}`;
 
