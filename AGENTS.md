@@ -43,7 +43,7 @@ src/
 │   ├── auth/               # Auth-specific components
 │   ├── nav/                # Navigation components (top-nav, mobile-nav, footer)
 │   ├── providers/          # Context providers (session, institution data)
-│   ├── public/             # Public-facing components
+│   ├── public/             # Public-facing components (gallery, home, species detail)
 │   ├── shared/             # Shared components used across public/admin
 │   └── ui/                 # 55 Shadcn/UI primitives
 ├── hooks/                  # Custom React hooks
