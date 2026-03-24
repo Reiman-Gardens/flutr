@@ -38,11 +38,11 @@ type MiddlewareToken = NonNullable<Awaited<ReturnType<typeof getToken>>>;
 
 function makeToken(
   role: "EMPLOYEE" | "ADMIN" | "SUPERUSER",
-  institutionId: string,
+  institutionSlug?: string,
 ): MiddlewareToken {
   return {
     role,
-    institutionId,
+    ...(institutionSlug !== undefined ? { institutionSlug } : {}),
   } as unknown as MiddlewareToken;
 }
 
@@ -66,39 +66,57 @@ describe("middleware", () => {
       expect(config.matcher).toHaveLength(1);
     });
 
-    it("matches both admin and employee routes", () => {
-      expect(config.matcher[0]).toBe("/:institution/(admin|employee)/:path*");
+    it("matches actual admin route segments", () => {
+      expect(config.matcher[0]).toBe(
+        "/:institution/(dashboard|inventory|shipments|analytics)/:path*",
+      );
     });
   });
 
   it("redirects unauthenticated users to /login", async () => {
     mockGetToken.mockResolvedValue(null);
 
-    const response = await middleware(makeRequest("/monarch-house/employee/dashboard"));
+    const response = await middleware(makeRequest("/monarch-house/dashboard"));
 
     expect(response.headers.get("location")).toContain("/login");
   });
 
-  it("allows EMPLOYEE users on employee routes in their own institution", async () => {
+  it("allows EMPLOYEE users on permitted routes in their own institution", async () => {
     mockGetToken.mockResolvedValue(makeToken("EMPLOYEE", "monarch-house"));
 
-    const response = await middleware(makeRequest("/monarch-house/employee/dashboard"));
+    const response = await middleware(makeRequest("/monarch-house/shipments"));
 
     expect(response.headers.get("location")).toBeNull();
   });
 
-  it("blocks EMPLOYEE users from admin routes", async () => {
+  it("blocks EMPLOYEE users from inventory (no VIEW_INVENTORY permission)", async () => {
     mockGetToken.mockResolvedValue(makeToken("EMPLOYEE", "monarch-house"));
 
-    const response = await middleware(makeRequest("/monarch-house/admin/shipments"));
+    const response = await middleware(makeRequest("/monarch-house/inventory"));
 
     expect(response.headers.get("location")).toContain("/unauthorized");
   });
 
-  it("allows ADMIN users on admin routes in their own institution", async () => {
+  it("allows ADMIN users on shipments route in their own institution", async () => {
     mockGetToken.mockResolvedValue(makeToken("ADMIN", "monarch-house"));
 
-    const response = await middleware(makeRequest("/monarch-house/admin/shipments"));
+    const response = await middleware(makeRequest("/monarch-house/shipments"));
+
+    expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("allows ADMIN users on inventory route", async () => {
+    mockGetToken.mockResolvedValue(makeToken("ADMIN", "monarch-house"));
+
+    const response = await middleware(makeRequest("/monarch-house/inventory"));
+
+    expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("allows EMPLOYEE to access shipments/add (has CREATE_SHIPMENT)", async () => {
+    mockGetToken.mockResolvedValue(makeToken("EMPLOYEE", "monarch-house"));
+
+    const response = await middleware(makeRequest("/monarch-house/shipments/add"));
 
     expect(response.headers.get("location")).toBeNull();
   });
@@ -106,7 +124,7 @@ describe("middleware", () => {
   it("blocks users from accessing another institution", async () => {
     mockGetToken.mockResolvedValue(makeToken("EMPLOYEE", "other-house"));
 
-    const response = await middleware(makeRequest("/monarch-house/employee/dashboard"));
+    const response = await middleware(makeRequest("/monarch-house/dashboard"));
 
     expect(response.headers.get("location")).toContain("/unauthorized");
   });
@@ -114,8 +132,16 @@ describe("middleware", () => {
   it("allows SUPERUSER across institutions", async () => {
     mockGetToken.mockResolvedValue(makeToken("SUPERUSER", "other-house"));
 
-    const response = await middleware(makeRequest("/monarch-house/admin/employees"));
+    const response = await middleware(makeRequest("/monarch-house/dashboard"));
 
     expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("redirects to /unauthorized when non-superuser has no institution slug", async () => {
+    mockGetToken.mockResolvedValue(makeToken("EMPLOYEE"));
+
+    const response = await middleware(makeRequest("/monarch-house/dashboard"));
+
+    expect(response.headers.get("location")).toContain("/unauthorized");
   });
 });

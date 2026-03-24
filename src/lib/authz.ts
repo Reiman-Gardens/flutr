@@ -99,6 +99,10 @@ function isSupportedRole(role: string): role is UserRole {
   return role === "EMPLOYEE" || role === "ADMIN" || role === "SUPERUSER";
 }
 
+function hasAtLeast(user: AuthenticatedUser, minimum: UserRole): boolean {
+  return roleRank[user.role] >= roleRank[minimum];
+}
+
 /**
  * Generic permission check using the unified permission matrix.
  * All authorization checks should delegate to this function.
@@ -160,7 +164,7 @@ export function canManageSpeciesOverrides(user: AuthenticatedUser): boolean {
 // Institution profile
 
 export function canManageInstitutionProfile(user: AuthenticatedUser): boolean {
-  return can(user, "MANAGE_INSTITUTION");
+  return hasAtLeast(user, "ADMIN");
 }
 
 // Platform / global
