@@ -4,10 +4,10 @@ import type { NextRequest } from "next/server";
 import type { Role, Permission } from "@/lib/permissions";
 import { hasPermission } from "@/lib/permissions";
 
-// Middleware matcher: protects both authenticated public and admin routes.
+// Middleware matcher: protects both authenticated employee and admin routes.
 // Public/unauthenticated routes (login, signup) bypass middleware.
 export const config = {
-  matcher: ["/:institution/(admin|public)/:path*"],
+  matcher: ["/:institution/(admin|employee)/:path*"],
 };
 
 // Admin subpath required permissions. Employees blocked from admin routes entirely.
@@ -45,7 +45,7 @@ export default async function middleware(req: NextRequest) {
   // Parse path parts: [institution, area, section, ...]
   const parts = req.nextUrl.pathname.split("/").filter(Boolean);
   const institutionParam = parts[0];
-  const area = parts[1]; // 'admin' or 'public'
+  const area = parts[1]; // 'admin' or 'employee'
   const section = parts[2] || "dashboard";
 
   const role = String(token.role || "").toUpperCase();
@@ -82,7 +82,7 @@ export default async function middleware(req: NextRequest) {
   }
 
   // EMPLOYEE
-  if (area === "public") {
+  if (area === "employee") {
     // EMPLOYEE, ADMIN, and SUPERUSER can access employee routes.
     if (!["EMPLOYEE", "ADMIN", "SUPERUSER"].includes(role)) {
       url.pathname = "/unauthorized";
