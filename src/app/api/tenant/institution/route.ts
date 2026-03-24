@@ -1,54 +1,80 @@
 import { NextRequest } from "next/server";
 
-import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
-import { canManageInstitutionProfile, requireUser } from "@/lib/authz";
-import { forbidden, internalError, ok, unauthorized } from "@/lib/api-response";
+import {
+  forbidden,
+  internalError,
+  notFound,
+  ok,
+  unauthorized,
+  invalidRequest,
+} from "@/lib/api-response";
 import { requireValidBody } from "@/lib/validation/request";
 import { tenantUpdateInstitutionSchema } from "@/lib/validation/institution";
+import { handleTenantError } from "@/lib/tenant";
 
+import {
+  getTenantInstitutionService,
+  updateTenantInstitutionService,
+} from "@/lib/services/tenant-institution";
+
+/**
+ * GET /api/tenant/institution
+ */
 export async function GET(request: NextRequest) {
   try {
-    void request;
-    const session = await auth();
-    let user;
-    try {
-      user = requireUser(session);
-    } catch {
-      return unauthorized();
+    const slug = request.headers.get("x-tenant-slug");
+
+    if (!slug) {
+      return invalidRequest("Missing tenant slug");
     }
 
-    if (!canManageInstitutionProfile(user)) {
-      return forbidden();
-    }
+    const institution = await getTenantInstitutionService(slug);
 
-    return ok({ institution: null });
+    return ok({ institution });
   } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === "UNAUTHORIZED") return unauthorized();
+      if (error.message === "FORBIDDEN") return forbidden();
+      if (error.message === "NOT_FOUND") return notFound("Institution not found");
+    }
+
+    const tenantError = handleTenantError(error);
+    if (tenantError) return tenantError;
+
     logger.error("Unexpected GET /tenant/institution error:", error);
     return internalError();
   }
 }
 
+/**
+ * PATCH /api/tenant/institution
+ */
 export async function PATCH(request: NextRequest) {
   try {
-    const session = await auth();
-    let user;
-    try {
-      user = requireUser(session);
-    } catch {
-      return unauthorized();
-    }
+    const slug = request.headers.get("x-tenant-slug");
 
-    if (!canManageInstitutionProfile(user)) {
-      return forbidden();
+    if (!slug) {
+      return invalidRequest("Missing tenant slug");
     }
 
     const bodyResult = await requireValidBody(request, tenantUpdateInstitutionSchema);
-    if ("error" in bodyResult) return bodyResult.error;
-    const validBody = bodyResult.data;
 
-    return ok({ institution: null, body: validBody });
+    if ("error" in bodyResult) return bodyResult.error;
+
+    const updated = await updateTenantInstitutionService(slug, bodyResult.data);
+
+    return ok({ institution: updated });
   } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === "UNAUTHORIZED") return unauthorized();
+      if (error.message === "FORBIDDEN") return forbidden();
+      if (error.message === "NOT_FOUND") return notFound("Institution not found");
+    }
+
+    const tenantError = handleTenantError(error);
+    if (tenantError) return tenantError;
+
     logger.error("Unexpected PATCH /tenant/institution error:", error);
     return internalError();
   }

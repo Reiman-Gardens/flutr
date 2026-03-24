@@ -1,6 +1,6 @@
 # API Route Conventions
 
-See `docs/api/API_ARCHITECTURE_V2.md` for the full authoritative spec. This file summarizes key rules.
+See `docs/api/API_ARCHITECTURE_V3.md` for the full authoritative spec. This file summarizes key rules.
 
 ## Error Response Format
 
@@ -29,7 +29,7 @@ Every protected API route must follow this order:
 2. **Authorize**: Use `canX(user)` helpers from `@/lib/authz` — never raw role checks
 3. **Validate input**: Zod schemas with `.strict()` for body, params, and query
 4. **Sanitize**: Required text fields use `sanitizedNonEmpty(maxLen)`, optional fields use `.transform(sanitizeText)`
-5. **Tenant resolution**: `tenantCondition` for reads, `resolveTenantId` for writes
+5. **Tenant resolution**: read `x-tenant-slug` header, call `resolveTenantBySlug(user, slug)` in the service layer; return `400` if header is missing
 
 ## Validation Rules
 
@@ -46,8 +46,8 @@ Every protected API route must follow this order:
 
 ## Multi-Tenant Isolation
 
-- All tenant-scoped reads use `tenantCondition` from `@/lib/tenant`
-- All tenant-scoped writes use `resolveTenantId` from `@/lib/tenant`
+- All tenant routes resolve the institution via `resolveTenantBySlug(user, slug)` in the service layer
+- `tenantCondition` from `@/lib/tenant` is used at the query layer only — not for access control
 - Never return data from other institutions unless the route is explicitly public
 
 ## Security

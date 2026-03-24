@@ -1,0 +1,169 @@
+import { and, asc, eq } from "drizzle-orm";
+
+import { db } from "@/lib/db";
+import { butterfly_species, butterfly_species_institution } from "@/lib/schema";
+
+import type {
+  CreateSpeciesBody,
+  UpdateSpeciesBody,
+  UpdateSpeciesOverrideBody,
+} from "@/lib/validation/species";
+
+/**
+ * TENANT QUERY
+ *
+ * List species for an institution with overrides applied.
+ */
+export async function listSpeciesForTenant(institutionId: number) {
+  return db
+    .select({
+      id: butterfly_species.id,
+      scientificName: butterfly_species.scientific_name,
+
+      commonName: butterfly_species.common_name,
+      commonNameOverride: butterfly_species_institution.common_name_override,
+
+      lifespanDays: butterfly_species.lifespan_days,
+      lifespanOverride: butterfly_species_institution.lifespan_override,
+
+      family: butterfly_species.family,
+      subFamily: butterfly_species.sub_family,
+      range: butterfly_species.range,
+
+      description: butterfly_species.description,
+      hostPlant: butterfly_species.host_plant,
+      habitat: butterfly_species.habitat,
+      funFacts: butterfly_species.fun_facts,
+
+      imgWingsOpen: butterfly_species.img_wings_open,
+      imgWingsClosed: butterfly_species.img_wings_closed,
+      extraImg1: butterfly_species.extra_img_1,
+      extraImg2: butterfly_species.extra_img_2,
+    })
+    .from(butterfly_species)
+    .leftJoin(
+      butterfly_species_institution,
+      and(
+        eq(butterfly_species_institution.butterfly_species_id, butterfly_species.id),
+        eq(butterfly_species_institution.institution_id, institutionId),
+      ),
+    )
+    .orderBy(asc(butterfly_species.scientific_name));
+}
+
+/**
+ * TENANT QUERY
+ *
+ * Upsert override for a species.
+ */
+export async function upsertSpeciesOverride(
+  institutionId: number,
+  speciesId: number,
+  input: UpdateSpeciesOverrideBody,
+) {
+  const hasCommonNameOverride = Object.prototype.hasOwnProperty.call(input, "common_name_override");
+  const hasLifespanOverride = Object.prototype.hasOwnProperty.call(input, "lifespan_override");
+
+  const updateData: Record<string, unknown> = {
+    updated_at: new Date(),
+  };
+
+  if (hasCommonNameOverride) {
+    updateData.common_name_override = input.common_name_override ?? null;
+  }
+
+  if (hasLifespanOverride) {
+    updateData.lifespan_override = input.lifespan_override ?? null;
+  }
+
+  const [row] = await db
+    .insert(butterfly_species_institution)
+    .values({
+      institution_id: institutionId,
+      butterfly_species_id: speciesId,
+      common_name_override: hasCommonNameOverride ? (input.common_name_override ?? null) : null,
+      lifespan_override: hasLifespanOverride ? (input.lifespan_override ?? null) : null,
+    })
+    .onConflictDoUpdate({
+      target: [
+        butterfly_species_institution.butterfly_species_id,
+        butterfly_species_institution.institution_id,
+      ],
+      set: updateData,
+    })
+    .returning({
+      id: butterfly_species_institution.id,
+      speciesId: butterfly_species_institution.butterfly_species_id,
+      institutionId: butterfly_species_institution.institution_id,
+      commonNameOverride: butterfly_species_institution.common_name_override,
+      lifespanOverride: butterfly_species_institution.lifespan_override,
+    });
+
+  return row;
+}
+
+/**
+ * PLATFORM QUERY
+ *
+ * List all global species.
+ */
+export async function listSpeciesGlobal() {
+  return db
+    .select({
+      id: butterfly_species.id,
+      scientificName: butterfly_species.scientific_name,
+      commonName: butterfly_species.common_name,
+      family: butterfly_species.family,
+      subFamily: butterfly_species.sub_family,
+      lifespanDays: butterfly_species.lifespan_days,
+      range: butterfly_species.range,
+      createdAt: butterfly_species.created_at,
+    })
+    .from(butterfly_species)
+    .orderBy(asc(butterfly_species.scientific_name));
+}
+
+/**
+ * Fetch species by ID.
+ */
+export async function getSpeciesById(speciesId: number) {
+  const [row] = await db
+    .select()
+    .from(butterfly_species)
+    .where(eq(butterfly_species.id, speciesId))
+    .limit(1);
+
+  return row ?? null;
+}
+
+/**
+ * PLATFORM QUERY
+ *
+ * Create species.
+ */
+export async function createSpecies(input: CreateSpeciesBody) {
+  const [row] = await db.insert(butterfly_species).values(input).returning();
+
+  return row;
+}
+
+/**
+ * PLATFORM QUERY
+ *
+ * Update species.
+ */
+export async function updateSpecies(speciesId: number, input: UpdateSpeciesBody) {
+  const updateData: Record<string, unknown> = {
+    updated_at: new Date(),
+  };
+
+  Object.assign(updateData, input);
+
+  const [row] = await db
+    .update(butterfly_species)
+    .set(updateData)
+    .where(eq(butterfly_species.id, speciesId))
+    .returning();
+
+  return row ?? null;
+}

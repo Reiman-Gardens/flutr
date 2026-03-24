@@ -1,7 +1,8 @@
-import { eq } from "drizzle-orm";
+import { eq, Column } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { institutions } from "@/lib/schema";
+import { forbidden, notFound } from "@/lib/api-response";
 import type { AuthenticatedUser } from "@/lib/authz";
 
 export const TENANT_ERRORS = {
@@ -12,9 +13,9 @@ export const TENANT_ERRORS = {
   INSTITUTION_NOT_FOUND: "Institution not found",
 } as const;
 
-export function tenantCondition<TColumn>(
+export function tenantCondition(
   user: AuthenticatedUser,
-  column: TColumn,
+  column: Column,
   targetInstitutionId?: number,
 ) {
   const normalizedTargetId =
@@ -31,9 +32,7 @@ export function tenantCondition<TColumn>(
 
   if (user.role === "SUPERUSER") {
     if (normalizedTargetId && normalizedTargetId > 0) {
-      // Explicit cross-tenant filter
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return eq(column as any, normalizedTargetId);
+      return eq(column, normalizedTargetId);
     }
 
     // Platform reads can omit tenant restriction
@@ -50,8 +49,7 @@ export function tenantCondition<TColumn>(
     throw new Error(TENANT_ERRORS.FORBIDDEN_CROSS_TENANT_ACCESS);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return eq(column as any, userInstitutionId);
+  return eq(column, userInstitutionId);
 }
 
 export function resolveTenantId(user: AuthenticatedUser, requestedInstitutionId?: number): number {
@@ -103,5 +101,44 @@ export async function ensureTenantExists(institutionId: number): Promise<void> {
 
   if (!rows.length) {
     throw new Error(TENANT_ERRORS.INSTITUTION_NOT_FOUND);
+  }
+}
+
+export async function resolveTenantBySlug(user: AuthenticatedUser, slug: string) {
+  const [institution] = await db
+    .select({
+      id: institutions.id,
+      slug: institutions.slug,
+    })
+    .from(institutions)
+    .where(eq(institutions.slug, slug))
+    .limit(1);
+
+  if (!institution) {
+    throw new Error("NOT_FOUND");
+  }
+
+  if (user.role !== "SUPERUSER" && user.institutionId !== institution.id) {
+    throw new Error("FORBIDDEN");
+  }
+
+  return institution.id;
+}
+
+export function handleTenantError(error: unknown) {
+  if (!(error instanceof Error)) return null;
+
+  switch (error.message) {
+    case TENANT_ERRORS.FORBIDDEN_CROSS_TENANT_ACCESS:
+    case TENANT_ERRORS.FORBIDDEN_CROSS_TENANT_WRITE:
+    case TENANT_ERRORS.TENANT_REQUIRED_FOR_WRITE:
+    case TENANT_ERRORS.TENANT_REQUIRED_NON_PLATFORM:
+      return forbidden(error.message);
+
+    case TENANT_ERRORS.INSTITUTION_NOT_FOUND:
+      return notFound(error.message);
+
+    default:
+      return null;
   }
 }

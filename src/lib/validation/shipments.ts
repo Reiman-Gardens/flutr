@@ -1,6 +1,23 @@
 import { z } from "zod";
+import { paginatedQuerySchema } from "./pagination";
 
-import { sanitizedNonEmpty } from "@/lib/validation/sanitize";
+/**
+ * ---------------------------
+ * Query: List Shipments
+ * GET /tenant/shipments
+ * ---------------------------
+ */
+
+export const listShipmentsQuerySchema = paginatedQuerySchema;
+
+export type ListShipmentsQuery = z.infer<typeof listShipmentsQuerySchema>;
+
+/**
+ * ---------------------------
+ * Params: Shipment ID
+ * /tenant/shipments/[id]
+ * ---------------------------
+ */
 
 export const shipmentIdParamsSchema = z
   .object({
@@ -8,33 +25,152 @@ export const shipmentIdParamsSchema = z
   })
   .strict();
 
-export const createShipmentBodySchema = z
+export type ShipmentIdParams = z.infer<typeof shipmentIdParamsSchema>;
+
+/**
+ * ---------------------------
+ * Shipment Item (Create)
+ * ---------------------------
+ */
+
+const shipmentItemCreateSchema = z
   .object({
-    supplier_code: sanitizedNonEmpty(50),
-    shipment_date: z.coerce.date(),
-    arrival_date: z.coerce.date(),
-    items: z
-      .array(
-        z
-          .object({
-            butterfly_species_id: z.coerce.number().int().positive(),
-            number_received: z.coerce.number().int().nonnegative(),
-            emerged_in_transit: z.coerce.number().int().nonnegative().optional(),
-            damaged_in_transit: z.coerce.number().int().nonnegative().optional(),
-            diseased_in_transit: z.coerce.number().int().nonnegative().optional(),
-            parasite: z.coerce.number().int().nonnegative().optional(),
-            non_emergence: z.coerce.number().int().nonnegative().optional(),
-            poor_emergence: z.coerce.number().int().nonnegative().optional(),
-          })
-          .strict(),
-      )
-      .min(1),
-    institutionId: z.coerce.number().int().positive().optional(),
+    butterfly_species_id: z.number({ message: "Butterfly species is required" }).int().positive(),
+    number_received: z.number({ message: "Number received is required" }).int().min(0),
+    emerged_in_transit: z.number().int().min(0).default(0),
+    damaged_in_transit: z.number().int().min(0).default(0),
+    diseased_in_transit: z.number().int().min(0).default(0),
+    parasite: z.number().int().min(0).default(0),
+    non_emergence: z.number().int().min(0).default(0),
+    poor_emergence: z.number().int().min(0).default(0),
   })
   .strict();
 
-export const listShipmentsQuerySchema = z
-  .object({ institutionId: z.coerce.number().int().positive().optional() })
+/**
+ * ---------------------------
+ * Create Shipment
+ * POST /tenant/shipments
+ * ---------------------------
+ */
+
+export const createShipmentBodySchema = z
+  .object({
+    supplier_code: z.string({ message: "Supplier code is required" }).min(1).max(30),
+    shipment_date: z.coerce.date(),
+    arrival_date: z.coerce.date(),
+    items: z.array(shipmentItemCreateSchema).min(1, "At least one shipment item is required"),
+  })
+  .strict()
+  .superRefine((data, ctx) => {
+    if (data.arrival_date < data.shipment_date) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Arrival date must be on or after shipment date",
+        path: ["arrival_date"],
+      });
+    }
+
+    const seen = new Set<number>();
+
+    for (const item of data.items) {
+      if (seen.has(item.butterfly_species_id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Butterfly species must be unique per shipment",
+          path: ["items"],
+        });
+        break;
+      }
+
+      seen.add(item.butterfly_species_id);
+    }
+  });
+
+export type CreateShipmentBody = z.infer<typeof createShipmentBodySchema>;
+
+/**
+ * ---------------------------
+ * Shipment Item (Update)
+ * ---------------------------
+ */
+
+const shipmentItemUpdateSchema = z
+  .object({
+    id: z.number().int().positive(),
+    number_received: z.number().int().min(0),
+    emerged_in_transit: z.number().int().min(0),
+    damaged_in_transit: z.number().int().min(0),
+    diseased_in_transit: z.number().int().min(0),
+    parasite: z.number().int().min(0),
+    non_emergence: z.number().int().min(0),
+    poor_emergence: z.number().int().min(0),
+  })
   .strict();
 
-export const updateShipmentBodySchema = createShipmentBodySchema.partial().strict();
+/**
+ * ---------------------------
+ * Shipment Item (Add)
+ * ---------------------------
+ */
+
+const shipmentItemAddSchema = shipmentItemCreateSchema;
+
+/**
+ * ---------------------------
+ * Update Shipment
+ * PATCH /tenant/shipments/[id]
+ * ---------------------------
+ */
+
+export const updateShipmentBodySchema = z
+  .object({
+    supplier_code: z.string().min(1).max(30).optional(),
+    shipment_date: z.coerce.date().optional(),
+    arrival_date: z.coerce.date().optional(),
+    update_items: z.array(shipmentItemUpdateSchema).optional(),
+    add_items: z.array(shipmentItemAddSchema).optional(),
+    delete_items: z.array(z.number().int().positive()).optional(),
+  })
+  .strict()
+  .superRefine((data, ctx) => {
+    if (
+      !data.supplier_code &&
+      !data.shipment_date &&
+      !data.arrival_date &&
+      !data.update_items &&
+      !data.add_items &&
+      !data.delete_items
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "At least one change is required",
+      });
+    }
+
+    if (data.shipment_date && data.arrival_date) {
+      if (data.arrival_date < data.shipment_date) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Arrival date must be on or after shipment date",
+          path: ["arrival_date"],
+        });
+      }
+    }
+  });
+
+export type UpdateShipmentBody = z.infer<typeof updateShipmentBodySchema>;
+
+/**
+ * ---------------------------
+ * Delete Shipment (Tenant)
+ * DELETE /tenant/shipments
+ * ---------------------------
+ *
+ * Used primarily for historical import testing.
+ */
+
+export const deleteShipmentTenantSchema = z.object({
+  // Tenant context is supplied via x-tenant-slug header.
+});
+
+export type DeleteShipmentTenantBody = z.infer<typeof deleteShipmentTenantSchema>;

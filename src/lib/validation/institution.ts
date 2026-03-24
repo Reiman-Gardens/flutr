@@ -9,17 +9,28 @@ import { sanitizeText, sanitizedNonEmpty } from "@/lib/validation/sanitize";
  * 3. Separate schemas for platform-level operations (superusers) and tenant-level operations (institution admins)
  * 4. Inferred TypeScript types for service layer inputs
  *
- * The goal is to have a single source of truth for institution data validation, ensuring consistency and security across the application.
+ * The goal is to have a single source of truth for institution data validation,
+ * ensuring consistency and security across the application.
  */
+
+/**
+ * ----------------------------------------------------------------------
+ * 1. PARAM SCHEMAS
+ * ----------------------------------------------------------------------
+ */
+
 export const platformInstitutionIdParamsSchema = z
   .object({
     id: z.coerce.number().int().positive(),
   })
   .strict();
 
-// ----------------------------------------------------------------------
-// 2. BASE SCHEMA (The single source of truth for institution fields)
-// ----------------------------------------------------------------------
+/**
+ * ----------------------------------------------------------------------
+ * 2. BASE SCHEMA (The single source of truth for institution fields)
+ * ----------------------------------------------------------------------
+ */
+
 const baseInstitutionFields = {
   name: sanitizedNonEmpty(200),
   street_address: sanitizedNonEmpty(200),
@@ -36,14 +47,20 @@ const baseInstitutionFields = {
   description: z.string().max(2000).transform(sanitizeText).optional(),
 };
 
-// ----------------------------------------------------------------------
-// 3. PLATFORM SCHEMAS (Superusers only)
-// ----------------------------------------------------------------------
+/**
+ * ----------------------------------------------------------------------
+ * 3. PLATFORM SCHEMAS (SUPERUSER)
+ * ----------------------------------------------------------------------
+ */
+
 export const platformCreateInstitutionSchema = z
   .object({
     ...baseInstitutionFields,
-    // Superusers define the slug on creation
+
+    // SUPERUSER defines slug on creation
     slug: sanitizedNonEmpty(100),
+
+    // Platform flags
     iabes_member: z.boolean().optional(),
     stats_active: z.boolean().optional(),
   })
@@ -51,24 +68,39 @@ export const platformCreateInstitutionSchema = z
 
 export const platformUpdateInstitutionSchema = platformCreateInstitutionSchema.partial().strict();
 
-// ----------------------------------------------------------------------
-// 4. TENANT SCHEMAS (Admins updating their own stuff)
-// ----------------------------------------------------------------------
-// - No `institutionId` (derived securely from session)
-// - No `slug` (Tenants cannot change their own URL structure)
-// - No `iabes_member` (Only Superusers verify this)
+/**
+ * ----------------------------------------------------------------------
+ * 4. TENANT SCHEMAS (Institution Admins)
+ * ----------------------------------------------------------------------
+ *
+ * Tenants cannot:
+ * - change slug
+ * - modify iabes_member
+ *
+ * Tenant context is supplied via the x-tenant-slug header — not the request body.
+ */
+
 export const tenantUpdateInstitutionSchema = z
   .object({
     ...baseInstitutionFields,
-    // Optional: Decide if tenants can toggle their own public visibility
+
+    // Optional: decide if tenants can toggle their own visibility
     stats_active: z.boolean().optional(),
+
+    // Fields not in baseInstitutionFields but present in the schema
+    theme_colors: z.array(z.string()).optional(),
+    social_links: z.record(z.string(), z.string()).optional(),
+    time_zone: z.string().max(100).optional(),
   })
   .partial()
   .strict();
 
-// ----------------------------------------------------------------------
-// INFERRED TYPES FOR SERVICES
-// ----------------------------------------------------------------------
+/**
+ * ----------------------------------------------------------------------
+ * 5. INFERRED TYPES
+ * ----------------------------------------------------------------------
+ */
+
 export type PlatformCreateInstitutionInput = z.infer<typeof platformCreateInstitutionSchema>;
 export type PlatformUpdateInstitutionInput = z.infer<typeof platformUpdateInstitutionSchema>;
 export type TenantUpdateInstitutionInput = z.infer<typeof tenantUpdateInstitutionSchema>;

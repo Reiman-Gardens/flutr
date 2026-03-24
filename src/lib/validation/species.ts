@@ -2,12 +2,20 @@ import { z } from "zod";
 
 import { sanitizeText, sanitizedNonEmpty } from "@/lib/validation/sanitize";
 
+/**
+ * Route param validation
+ */
 export const speciesIdParamsSchema = z
   .object({
     id: z.coerce.number().int().positive(),
   })
   .strict();
 
+export type SpeciesIdParams = z.infer<typeof speciesIdParamsSchema>;
+
+/**
+ * Platform: Create global species
+ */
 export const createSpeciesBodySchema = z
   .object({
     scientific_name: sanitizedNonEmpty(200),
@@ -63,4 +71,54 @@ export const createSpeciesBodySchema = z
   })
   .strict();
 
-export const updateSpeciesBodySchema = createSpeciesBodySchema.partial().strict();
+export type CreateSpeciesBody = z.infer<typeof createSpeciesBodySchema>;
+
+/**
+ * Platform: Update global species
+ *
+ * Prevent empty PATCH bodies.
+ */
+export const updateSpeciesBodySchema = createSpeciesBodySchema
+  .partial()
+  .strict()
+  .superRefine((data, ctx) => {
+    if (Object.keys(data).length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "At least one change is required",
+        path: [],
+      });
+    }
+  });
+
+export type UpdateSpeciesBody = z.infer<typeof updateSpeciesBodySchema>;
+
+/**
+ * Tenant: Override species fields for a specific institution.
+ *
+ * Overrides can also be cleared by sending null.
+ * Tenant context is supplied via the x-tenant-slug header — not the request body.
+ */
+export const updateSpeciesOverrideBodySchema = z
+  .object({
+    common_name_override: z
+      .string()
+      .max(200)
+      .transform((v) => sanitizeText(v))
+      .nullable()
+      .optional(),
+
+    lifespan_override: z.coerce.number().int().positive().nullable().optional(),
+  })
+  .strict()
+  .superRefine((data, ctx) => {
+    if (data.common_name_override === undefined && data.lifespan_override === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "At least one change is required",
+        path: [],
+      });
+    }
+  });
+
+export type UpdateSpeciesOverrideBody = z.infer<typeof updateSpeciesOverrideBodySchema>;
