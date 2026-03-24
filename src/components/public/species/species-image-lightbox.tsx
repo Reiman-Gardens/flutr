@@ -66,6 +66,7 @@ export function SpeciesImageLightbox({ commonName, images, children }: SpeciesIm
 
           {/* Close button */}
           <button
+            type="button"
             onClick={() => setOpen(false)}
             className="absolute top-3 right-3 z-10 flex size-9 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:outline-none"
             aria-label="Close fullscreen view"
@@ -100,7 +101,7 @@ export function SpeciesImageLightbox({ commonName, images, children }: SpeciesIm
                 <ChevronLeft className="size-5" aria-hidden="true" />
               </Button>
 
-              <p aria-live="polite" className="text-sm font-medium text-white">
+              <p aria-live="polite" aria-atomic="true" className="text-sm font-medium text-white">
                 {current?.label} — {activeIndex + 1} of {images.length}
               </p>
 
