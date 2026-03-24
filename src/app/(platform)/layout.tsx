@@ -1,7 +1,14 @@
-import Link from "next/link";
+"use client";
+import { Link } from "@/components/ui/link";
 import { Button } from "@/components/ui/button";
+import { useSession, signOut } from "next-auth/react";
 
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
+  const { data: session } = useSession();
+
+  const handleSignOut = async () => {
+    await signOut({ redirectTo: "/login" });
+  };
   return (
     <div className="flex min-h-screen flex-col">
       <header className="bg-background/95 supports-backdrop-filter:bg-background/60 sticky top-0 z-50 border-b backdrop-blur">
@@ -12,11 +19,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
           >
             <span className="text-lg font-bold tracking-tight">Flutr</span>
           </Link>
-          <nav aria-label="Platform navigation">
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/login">Institution Login</Link>
-            </Button>
-          </nav>
+          <nav aria-label="Platform navigation"></nav>
         </div>
       </header>
       <main id="main-content" className="flex flex-1 flex-col">
@@ -27,9 +30,15 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
           <p className="text-muted-foreground text-sm">
             &copy; {new Date().getFullYear()} Flutr. All rights reserved.
           </p>
-          <Button asChild variant="outline" size="sm" className="text-muted-foreground">
-            <Link href="/login">Institution Login</Link>
-          </Button>
+          {session ? (
+            <Button variant="outline" size="sm" onClick={handleSignOut}>
+              Sign Out
+            </Button>
+          ) : (
+            <Button asChild variant="outline" size="sm" className="text-muted-foreground">
+              <Link href="/login">Institution Login</Link>
+            </Button>
+          )}
         </div>
       </footer>
     </div>

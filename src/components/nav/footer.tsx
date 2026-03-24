@@ -1,5 +1,6 @@
 "use client";
 
+import { useSession, signOut } from "next-auth/react";
 import { Link } from "@/components/ui/link";
 import { useInstitutionData } from "@/components/providers/institution-provider";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,11 @@ function Copyright() {
 
 export function Footer() {
   const institution = useInstitutionData();
+  const { data: session } = useSession();
+
+  const handleSignOut = async () => {
+    await signOut({ redirectTo: "/login" });
+  };
 
   return (
     <footer className="mb-16 border-t py-5 md:mb-0">
@@ -22,9 +28,15 @@ export function Footer() {
         {institution && <InstitutionFooter institution={institution} />}
         <div className="mt-8 flex items-center justify-between border-t pt-6">
           <Copyright />
-          <Button asChild variant="outline" size="sm" className="text-muted-foreground">
-            <Link href="/login">Institution Login</Link>
-          </Button>
+          {session ? (
+            <Button variant="outline" size="sm" onClick={handleSignOut}>
+              Sign Out
+            </Button>
+          ) : (
+            <Button asChild variant="outline" size="sm" className="text-muted-foreground">
+              <Link href="/login">Institution Login</Link>
+            </Button>
+          )}
         </div>
       </div>
     </footer>
