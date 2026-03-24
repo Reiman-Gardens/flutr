@@ -75,7 +75,7 @@ export function SpeciesImageLightbox({ commonName, images, children }: SpeciesIm
 
           {/* Image */}
           {current && (
-            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg sm:aspect-[3/2]">
+            <div className="relative aspect-4/3 w-full overflow-hidden rounded-lg sm:aspect-3/2">
               <Image
                 src={current.src}
                 alt={`${commonName} — ${current.label}`}
