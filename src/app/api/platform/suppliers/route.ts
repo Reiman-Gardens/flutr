@@ -1,29 +1,34 @@
 import { NextRequest } from "next/server";
 
-import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
-import { canCrossTenant, requireUser } from "@/lib/authz";
-import { forbidden, internalError, ok, unauthorized } from "@/lib/api-response";
+import { conflict, forbidden, internalError, ok, unauthorized } from "@/lib/api-response";
 import { requireValidBody } from "@/lib/validation/request";
-import { createSupplierBodySchema } from "@/lib/validation/suppliers";
+import { requireValidQuery } from "@/lib/validation/query";
+import { createSupplierBodySchema, listSuppliersQuerySchema } from "@/lib/validation/suppliers";
+import { handleTenantError } from "@/lib/tenant";
+
+import { getPlatformSuppliers, createPlatformSupplier } from "@/lib/services/platform-suppliers";
 
 export async function GET(request: NextRequest) {
   try {
-    void request;
-    const session = await auth();
-    let user;
-    try {
-      user = requireUser(session);
-    } catch {
-      return unauthorized();
-    }
+    const queryResult = requireValidQuery(
+      listSuppliersQuerySchema,
+      Object.fromEntries(request.nextUrl.searchParams),
+    );
+    if ("error" in queryResult) return queryResult.error;
 
-    if (!canCrossTenant(user)) {
-      return forbidden();
-    }
+    const suppliers = await getPlatformSuppliers(queryResult.data.institutionId);
 
-    return ok({ suppliers: [] });
+    return ok({ suppliers });
   } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === "UNAUTHORIZED") return unauthorized();
+      if (error.message === "FORBIDDEN") return forbidden();
+    }
+
+    const tenantError = handleTenantError(error);
+    if (tenantError) return tenantError;
+
     logger.error("Unexpected GET /platform/suppliers error:", error);
     return internalError();
   }
@@ -31,24 +36,23 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-    let user;
-    try {
-      user = requireUser(session);
-    } catch {
-      return unauthorized();
-    }
-
-    if (!canCrossTenant(user)) {
-      return forbidden();
-    }
-
     const bodyResult = await requireValidBody(request, createSupplierBodySchema);
     if ("error" in bodyResult) return bodyResult.error;
-    const validBody = bodyResult.data;
 
-    return ok({ supplier: null, body: validBody }, 201);
+    const supplier = await createPlatformSupplier(bodyResult.data);
+
+    return ok({ supplier }, 201);
   } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === "UNAUTHORIZED") return unauthorized();
+      if (error.message === "FORBIDDEN") return forbidden();
+      if (error.message === "CONFLICT")
+        return conflict("Supplier code already exists for this institution");
+    }
+
+    const tenantError = handleTenantError(error);
+    if (tenantError) return tenantError;
+
     logger.error("Unexpected POST /platform/suppliers error:", error);
     return internalError();
   }

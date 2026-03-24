@@ -9,14 +9,18 @@ export const USER_ROLES = [
   "SUPERUSER",
 ] as const satisfies ReadonlyArray<UserRole>;
 
+/**
+ * Params: User ID
+ */
 export const userIdParamsSchema = z.object({ id: z.coerce.number().int().positive() }).strict();
 
-export const listUsersQuerySchema = z
-  .object({
-    institutionId: z.coerce.number().int().positive().optional(),
-  })
-  .strict();
+export type UserIdParams = z.infer<typeof userIdParamsSchema>;
 
+/**
+ * Create user
+ *
+ * Tenant context is supplied via the x-tenant-slug header — not the request body.
+ */
 export const createUserBodySchema = z
   .object({
     name: sanitizedNonEmpty(200),
@@ -27,10 +31,16 @@ export const createUserBodySchema = z
       .transform((v) => sanitizeText(v)),
     password: z.string().min(8).max(200),
     role: z.enum(USER_ROLES).optional(),
-    institutionId: z.coerce.number().int().positive().optional(),
   })
   .strict();
 
+export type CreateUserBody = z.infer<typeof createUserBodySchema>;
+
+/**
+ * Update user
+ *
+ * Tenant context is supplied via the x-tenant-slug header — not the request body.
+ */
 export const updateUserBodySchema = z
   .object({
     name: sanitizedNonEmpty(200).optional(),
@@ -40,7 +50,22 @@ export const updateUserBodySchema = z
       .email()
       .transform((v) => sanitizeText(v))
       .optional(),
+    password: z.string().min(8).max(200).optional(),
     role: z.enum(USER_ROLES).optional(),
-    institutionId: z.coerce.number().int().positive().optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((data, ctx) => {
+    if (
+      data.name === undefined &&
+      data.email === undefined &&
+      data.password === undefined &&
+      data.role === undefined
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "At least one field must be provided",
+      });
+    }
+  });
+
+export type UpdateUserBody = z.infer<typeof updateUserBodySchema>;

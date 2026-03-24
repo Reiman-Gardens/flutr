@@ -1,29 +1,30 @@
 import { NextRequest } from "next/server";
 
-import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
-import { requireUser, canCreateInstitution } from "@/lib/authz";
-import { forbidden, internalError, ok, unauthorized } from "@/lib/api-response";
+import { conflict, forbidden, internalError, ok, unauthorized } from "@/lib/api-response";
 import { requireValidBody } from "@/lib/validation/request";
 import { platformCreateInstitutionSchema } from "@/lib/validation/institution";
+import { handleTenantError } from "@/lib/tenant";
 
-export async function GET(request: NextRequest) {
+import {
+  getPlatformInstitutions,
+  createPlatformInstitution,
+} from "@/lib/services/platform-institutions";
+
+export async function GET(_request: NextRequest) {
+  void _request;
   try {
-    void request;
-    const session = await auth();
-    let user;
-    try {
-      user = requireUser(session);
-    } catch {
-      return unauthorized();
-    }
-
-    if (!canCreateInstitution(user)) {
-      return forbidden();
-    }
-
-    return ok({ institutions: [] });
+    const institutions = await getPlatformInstitutions();
+    return ok({ institutions });
   } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === "UNAUTHORIZED") return unauthorized();
+      if (error.message === "FORBIDDEN") return forbidden();
+    }
+
+    const tenantError = handleTenantError(error);
+    if (tenantError) return tenantError;
+
     logger.error("Unexpected GET /platform/institutions error:", error);
     return internalError();
   }
@@ -31,24 +32,22 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-    let user;
-    try {
-      user = requireUser(session);
-    } catch {
-      return unauthorized();
-    }
-
-    if (!canCreateInstitution(user)) {
-      return forbidden();
-    }
-
     const bodyResult = await requireValidBody(request, platformCreateInstitutionSchema);
     if ("error" in bodyResult) return bodyResult.error;
-    const validBody = bodyResult.data;
 
-    return ok({ institution: null, body: validBody }, 201);
+    const institution = await createPlatformInstitution(bodyResult.data);
+
+    return ok({ institution }, 201);
   } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === "UNAUTHORIZED") return unauthorized();
+      if (error.message === "FORBIDDEN") return forbidden();
+      if (error.message === "CONFLICT") return conflict("Slug already in use");
+    }
+
+    const tenantError = handleTenantError(error);
+    if (tenantError) return tenantError;
+
     logger.error("Unexpected POST /platform/institutions error:", error);
     return internalError();
   }

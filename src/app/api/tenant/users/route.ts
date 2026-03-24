@@ -1,67 +1,83 @@
 import { NextRequest } from "next/server";
 
-import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
-import { canManageUsers, requireUser } from "@/lib/authz";
-import { forbidden, internalError, ok, unauthorized } from "@/lib/api-response";
-import { createUserBodySchema, listUsersQuerySchema } from "@/lib/validation/users";
+import {
+  conflict,
+  forbidden,
+  internalError,
+  ok,
+  unauthorized,
+  invalidRequest,
+} from "@/lib/api-response";
 import { requireValidBody } from "@/lib/validation/request";
-import { requireValidQuery } from "@/lib/validation/query";
+import { createUserBodySchema } from "@/lib/validation/users";
+import { handleTenantError } from "@/lib/tenant";
 
+import { getTenantUsers, createTenantUser } from "@/lib/services/tenant-users";
+
+/**
+ * GET /api/tenant/users
+ */
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
+    const slug = request.headers.get("x-tenant-slug");
 
-    let user;
-    try {
-      user = requireUser(session);
-    } catch {
-      return unauthorized();
+    if (!slug) {
+      return invalidRequest("Missing tenant slug");
     }
 
-    if (!canManageUsers(user)) {
-      return forbidden();
-    }
+    const users = await getTenantUsers({ slug });
 
-    const queryResult = requireValidQuery(
-      listUsersQuerySchema,
-      Object.fromEntries(request.nextUrl.searchParams),
-    );
-
-    if ("error" in queryResult) return queryResult.error;
-
-    const query = queryResult.data;
-
-    return ok({ users: [], query });
+    return ok({ users });
   } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === "UNAUTHORIZED") return unauthorized();
+      if (error.message === "FORBIDDEN") return forbidden();
+    }
+
+    const tenantError = handleTenantError(error);
+    if (tenantError) return tenantError;
+
     logger.error("Unexpected GET /tenant/users error:", error);
     return internalError();
   }
 }
 
+/**
+ * POST /api/tenant/users
+ */
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
+    const slug = request.headers.get("x-tenant-slug");
 
-    let user;
-    try {
-      user = requireUser(session);
-    } catch {
-      return unauthorized();
-    }
-
-    if (!canManageUsers(user)) {
-      return forbidden();
+    if (!slug) {
+      return invalidRequest("Missing tenant slug");
     }
 
     const bodyResult = await requireValidBody(request, createUserBodySchema);
 
     if ("error" in bodyResult) return bodyResult.error;
 
-    const validBody = bodyResult.data;
+    const created = await createTenantUser({
+      ...bodyResult.data,
+      slug,
+    });
 
-    return ok({ user: null, body: validBody }, 201);
-  } catch (error) {
+    return ok({ user: created });
+  } catch (error: unknown) {
+    const dbError = error as { code?: string };
+    if (dbError?.code === "23505") {
+      return conflict("Email already exists");
+    }
+
+    if (error instanceof Error) {
+      if (error.message === "UNAUTHORIZED") return unauthorized();
+      if (error.message === "FORBIDDEN") return forbidden();
+    }
+
+    const tenantError = handleTenantError(error);
+    if (tenantError) return tenantError;
+
     logger.error("Unexpected POST /tenant/users error:", error);
     return internalError();
   }

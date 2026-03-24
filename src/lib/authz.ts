@@ -35,6 +35,12 @@ export interface AuthenticatedUser {
   institutionId: number | null;
 }
 
+type TargetUser = {
+  id: number;
+  role: UserRole | string;
+  institutionId: number;
+};
+
 /**
  * Sentinel error messages used by API routes to map to HTTP status codes.
  */
@@ -78,7 +84,7 @@ export function requireUser(session: Session | null): AuthenticatedUser {
 
   return {
     id: normalizedId,
-    role,
+    role: role as UserRole,
     institutionId: normalizedInstitutionId,
   };
 }
@@ -115,6 +121,16 @@ export function canManageSuppliers(user: AuthenticatedUser): boolean {
   return hasAtLeast(user, "ADMIN");
 }
 
+// Species
+
+export function canReadSpecies(user: AuthenticatedUser): boolean {
+  return hasAtLeast(user, "EMPLOYEE");
+}
+
+export function canManageSpeciesOverrides(user: AuthenticatedUser): boolean {
+  return hasAtLeast(user, "ADMIN");
+}
+
 // Institution profile
 
 export function canManageInstitutionProfile(user: AuthenticatedUser): boolean {
@@ -141,38 +157,58 @@ export function canManageUsers(user: AuthenticatedUser): boolean {
   return hasAtLeast(user, "ADMIN");
 }
 
-export function canModifyUser(actor: AuthenticatedUser, target: AuthenticatedUser): boolean {
-  return roleRank[actor.role] >= roleRank[target.role];
+export function canModifyUser(actor: AuthenticatedUser, target: TargetUser): boolean {
+  // Cross-tenant protection (VERY IMPORTANT)
+  if (actor.role !== "SUPERUSER" && actor.institutionId !== target.institutionId) {
+    return false;
+  }
+
+  return roleRank[actor.role] >= roleRank[target.role as UserRole];
 }
 
 export function canAssignRole(
   actor: AuthenticatedUser,
   newRole: UserRole,
-  target?: AuthenticatedUser,
+  target?: TargetUser,
 ): boolean {
   if (!hasAtLeast(actor, "ADMIN")) {
     return false;
   }
 
+  // Cannot assign a role higher than yourself
   if (roleRank[actor.role] < roleRank[newRole]) {
     return false;
   }
 
-  if (target && roleRank[actor.role] < roleRank[target.role]) {
-    return false;
+  if (target) {
+    // Cross-tenant protection
+    if (actor.role !== "SUPERUSER" && actor.institutionId !== target.institutionId) {
+      return false;
+    }
+
+    // Cannot modify someone above you
+    if (roleRank[actor.role] < roleRank[target.role as UserRole]) {
+      return false;
+    }
   }
 
   return true;
 }
 
-export function canDeleteUser(actor: AuthenticatedUser, target: AuthenticatedUser): boolean {
+export function canDeleteUser(actor: AuthenticatedUser, target: TargetUser): boolean {
   if (!hasAtLeast(actor, "ADMIN")) {
     return false;
   }
 
-  if (actor.id === target.id) {
+  // Cannot delete yourself
+  if (actor.id === String(target.id)) {
     return false;
   }
 
-  return roleRank[actor.role] > roleRank[target.role];
+  // Cross-tenant protection
+  if (actor.role !== "SUPERUSER" && actor.institutionId !== target.institutionId) {
+    return false;
+  }
+
+  return roleRank[actor.role] > roleRank[target.role as UserRole];
 }

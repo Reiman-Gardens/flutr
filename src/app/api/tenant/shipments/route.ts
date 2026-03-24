@@ -1,25 +1,27 @@
 import { NextRequest } from "next/server";
 
-import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
-import { requireUser, canReadShipment, canWriteShipment } from "@/lib/authz";
-import { forbidden, internalError, ok, unauthorized } from "@/lib/api-response";
+import {
+  forbidden,
+  internalError,
+  invalidRequest,
+  notFound,
+  ok,
+  unauthorized,
+} from "@/lib/api-response";
 import { requireValidBody } from "@/lib/validation/request";
-import { listShipmentsQuerySchema, createShipmentBodySchema } from "@/lib/validation/shipments";
 import { requireValidQuery } from "@/lib/validation/query";
+import { listShipmentsQuerySchema, createShipmentBodySchema } from "@/lib/validation/shipments";
+import { handleTenantError } from "@/lib/tenant";
+
+import { getTenantShipments, createTenantShipment } from "@/lib/services/tenant-shipments";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    let user;
-    try {
-      user = requireUser(session);
-    } catch {
-      return unauthorized();
-    }
+    const slug = request.headers.get("x-tenant-slug");
 
-    if (!canReadShipment(user)) {
-      return forbidden();
+    if (!slug) {
+      return invalidRequest("Missing tenant slug");
     }
 
     const queryResult = requireValidQuery(
@@ -28,10 +30,21 @@ export async function GET(request: NextRequest) {
     );
 
     if ("error" in queryResult) return queryResult.error;
-    const queryData = queryResult.data;
 
-    return ok({ shipments: [], query: queryData });
+    const { page, limit } = queryResult.data;
+    const result = await getTenantShipments({ slug, page, limit });
+
+    return ok(result);
   } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === "UNAUTHORIZED") return unauthorized();
+      if (error.message === "FORBIDDEN") return forbidden();
+      if (error.message === "NOT_FOUND") return notFound("Institution not found");
+    }
+
+    const tenantError = handleTenantError(error);
+    if (tenantError) return tenantError;
+
     logger.error("Unexpected GET /tenant/shipments error:", error);
     return internalError();
   }
@@ -39,24 +52,31 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-    let user;
-    try {
-      user = requireUser(session);
-    } catch {
-      return unauthorized();
-    }
+    const slug = request.headers.get("x-tenant-slug");
 
-    if (!canWriteShipment(user)) {
-      return forbidden();
+    if (!slug) {
+      return invalidRequest("Missing tenant slug");
     }
 
     const bodyResult = await requireValidBody(request, createShipmentBodySchema);
     if ("error" in bodyResult) return bodyResult.error;
-    const validBody = bodyResult.data;
 
-    return ok({ shipment: null, body: validBody }, 201);
+    const shipmentId = await createTenantShipment({
+      slug,
+      ...bodyResult.data,
+    });
+
+    return ok({ id: shipmentId }, 201);
   } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === "UNAUTHORIZED") return unauthorized();
+      if (error.message === "FORBIDDEN") return forbidden();
+      if (error.message === "NOT_FOUND") return notFound("Institution not found");
+    }
+
+    const tenantError = handleTenantError(error);
+    if (tenantError) return tenantError;
+
     logger.error("Unexpected POST /tenant/shipments error:", error);
     return internalError();
   }

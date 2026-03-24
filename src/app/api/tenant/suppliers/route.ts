@@ -1,62 +1,37 @@
 import { NextRequest } from "next/server";
 
-import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
-import { canManageSuppliers, canReadSuppliers, requireUser } from "@/lib/authz";
-import { forbidden, internalError, ok, unauthorized } from "@/lib/api-response";
-import { requireValidBody } from "@/lib/validation/request";
-import { createSupplierBodySchema, listSuppliersQuerySchema } from "@/lib/validation/suppliers";
-import { requireValidQuery } from "@/lib/validation/query";
+import {
+  forbidden,
+  internalError,
+  invalidRequest,
+  notFound,
+  ok,
+  unauthorized,
+} from "@/lib/api-response";
+import { handleTenantError } from "@/lib/tenant";
+
+import { getTenantSuppliers } from "@/lib/services/tenant-suppliers";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    let user;
-    try {
-      user = requireUser(session);
-    } catch {
-      return unauthorized();
-    }
+    const slug = request.headers.get("x-tenant-slug");
+    if (!slug) return invalidRequest("Missing tenant slug");
 
-    if (!canReadSuppliers(user)) {
-      return forbidden();
-    }
+    const suppliers = await getTenantSuppliers({ slug });
 
-    const result = requireValidQuery(
-      listSuppliersQuerySchema,
-      Object.fromEntries(request.nextUrl.searchParams),
-    );
-    if ("error" in result) return result.error;
-    const query = result.data;
-
-    return ok({ suppliers: [], query });
+    return ok({ suppliers });
   } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === "UNAUTHORIZED") return unauthorized();
+      if (error.message === "FORBIDDEN") return forbidden();
+      if (error.message === "NOT_FOUND") return notFound("Institution not found");
+    }
+
+    const tenantError = handleTenantError(error);
+    if (tenantError) return tenantError;
+
     logger.error("Unexpected GET /tenant/suppliers error:", error);
-    return internalError();
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const session = await auth();
-    let user;
-    try {
-      user = requireUser(session);
-    } catch {
-      return unauthorized();
-    }
-
-    if (!canManageSuppliers(user)) {
-      return forbidden();
-    }
-
-    const bodyResult = await requireValidBody(request, createSupplierBodySchema);
-    if ("error" in bodyResult) return bodyResult.error;
-    const validBody = bodyResult.data;
-
-    return ok({ supplier: null, body: validBody }, 201);
-  } catch (error) {
-    logger.error("Unexpected POST /tenant/suppliers error:", error);
     return internalError();
   }
 }

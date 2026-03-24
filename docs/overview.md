@@ -95,10 +95,81 @@ Institution ─┬─ Users
 - `/api/tenant/*` — Authenticated, tenant-scoped API surface.
 - `/api/platform/*` — SUPERUSER-only API surface.
 
-### Compatibility
+### Backend Architecture
 
-- `/api/users` — Legacy compatibility placeholder route.
-- `/api/institution` — Legacy compatibility placeholder route.
+Authenticated API routes follow a three-layer pattern:
+
+```
+Route → Service → Query
+```
+
+- **Routes** (`src/app/api/tenant/*`) — validation and HTTP responses only; no auth or business logic
+- **Services** (`src/lib/services/`) — auth, permission checks, and tenant resolution
+- **Queries** (`src/lib/queries/`) — raw database access; no auth logic
+
+Example flow for `GET /api/tenant/users`:
+
+```
+Route  →  getTenantUsers({ slug })  →  listUsersForTenant(tenantId, user)
+```
+
+Services throw `new Error("UNAUTHORIZED")` or `new Error("FORBIDDEN")` which routes map to 401/403 responses. Tenant errors (`resolveTenantBySlug`, `tenantCondition`) propagate and are handled by `handleTenantError`.
+
+### Tenant Scoping
+
+- **ADMIN / EMPLOYEE**: automatically scoped to their own institution via `x-tenant-slug` header; cross-tenant access is rejected
+- **SUPERUSER**: can target any institution by providing its slug via `x-tenant-slug`; `resolveTenantBySlug` enforces that non-SUPERUSERs can only access their own institution's slug
+
+### User Tenant Enforcement
+
+All user-level operations are tenant-scoped at the query layer.
+
+Routes MUST NOT:
+
+- fetch users globally
+- apply tenant filtering after fetch
+
+Instead:
+
+- queries enforce `institution_id` via `tenantCondition`
+
+Security guarantee:
+
+- users outside the tenant are indistinguishable from non-existent users (404)
+
+### Tenant Users API Contract
+
+All tenant routes require the `x-tenant-slug` header. Missing the header returns `400 INVALID_REQUEST`.
+
+#### `GET /api/tenant/users`
+
+```json
+{ "users": [...] }
+```
+
+#### `GET /api/tenant/users/:id`
+
+```json
+{ "user": {...} }
+```
+
+#### `POST /api/tenant/users`
+
+```json
+{ "user": {...} }
+```
+
+#### `PATCH /api/tenant/users/:id`
+
+```json
+{ "user": {...} }
+```
+
+#### `DELETE /api/tenant/users/:id`
+
+```json
+{ "deleted": true }
+```
 
 ## Infrastructure
 
