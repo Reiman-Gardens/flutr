@@ -4,30 +4,26 @@ import type { NextRequest } from "next/server";
 import type { Role, Permission } from "@/lib/permissions";
 import { hasPermission } from "@/lib/permissions";
 
-// Middleware matcher: protects both authenticated employee and admin routes.
-// Public/unauthenticated routes (login, signup) bypass middleware.
+// Middleware matcher: protects institution-scoped admin routes.
+// Route groups like (admin) do not appear in the URL; actual paths are
+// /:institution/dashboard, /:institution/shipments, etc.
+// Public routes (login, unauthorized, api, _next) bypass middleware entirely.
 export const config = {
-  matcher: ["/:institution/(admin|employee)/:path*"],
+  matcher: ["/:institution/(dashboard|inventory|shipments|analytics)/:path*"],
 };
 
-// Admin subpath required permissions. Employees blocked from admin routes entirely.
-const ADMIN_PATH_PERMISSION_MAP: Record<string, Permission[]> = {
-  shipments: ["VIEW_SHIPMENTS"],
-  releases: ["CREATE_RELEASE"],
-  suppliers: ["MANAGE_SUPPLIERS"],
-  employees: ["CREATE_EMPLOYEE"],
-  users: ["MANAGE_USERS"],
-  butterflies: ["CHANGE_BUTTERFLY"],
-  dashboard: ["VIEW_DASHBOARD"],
-  inventory: ["VIEW_INVENTORY", "EDIT_INVENTORY"],
+// Required permission to enter each top-level admin section.
+const SECTION_PERMISSION_MAP: Record<string, Permission> = {
+  dashboard: "VIEW_DASHBOARD",
+  shipments: "VIEW_SHIPMENTS",
+  inventory: "VIEW_INVENTORY",
+  analytics: "VIEW_REPORTS",
 };
 
-// Employee (authenticated, non-admin) subpath required permissions.
-// Employees access their shipments, releases, and inventory here.
-const EMPLOYEE_PATH_PERMISSION_MAP: Record<string, Permission[]> = {
-  shipments: ["VIEW_SHIPMENTS"], // employees also allowed to create shipments via other APIs
-  releases: ["CREATE_RELEASE"],
-  dashboard: ["VIEW_DASHBOARD"],
+// Required permission for specific sub-paths within a section.
+// Key format: "section/subsection"
+const SUBSECTION_PERMISSION_MAP: Record<string, Permission> = {
+  "shipments/add": "CREATE_SHIPMENT",
 };
 
 export default async function middleware(req: NextRequest) {
@@ -42,62 +38,55 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Parse path parts: [institution, area, section, ...]
+  // Parse path parts: [institution, section, subsection?, ...]
   const parts = req.nextUrl.pathname.split("/").filter(Boolean);
   const institutionParam = parts[0];
-  const area = parts[1]; // 'admin' or 'employee'
-  const section = parts[2] || "dashboard";
+  const section = parts[1] || "";
+  const subsection = parts[2] || "";
 
   const role = String(token.role || "").toUpperCase();
-  const tokenInstitution = token.institutionId ? String(token.institutionId) : "";
 
   // Superuser has unrestricted access regardless of path or institution.
   if (role === "SUPERUSER") {
     return NextResponse.next();
   }
 
-  // Enforce institution scoping for everyone else: must stay in their own tenant.
-  if (tokenInstitution && tokenInstitution !== institutionParam) {
+  // Non-superusers must be scoped to a tenant.
+  if (!token.institutionSlug) {
     url.pathname = "/unauthorized";
     return NextResponse.redirect(url);
   }
 
-  // ADMIN
-  if (area === "admin") {
-    // Only ADMIN and SUPERUSER can access admin routes.
-    if (!["ADMIN", "SUPERUSER"].includes(role)) {
-      url.pathname = "/unauthorized";
-      return NextResponse.redirect(url);
-    }
+  // Enforce institution scoping: users may only access their own tenant.
+  if (token.institutionSlug !== institutionParam) {
+    url.pathname = "/unauthorized";
+    return NextResponse.redirect(url);
+  }
 
-    // Check specific admin permission for this section.
-    const candidates = ADMIN_PATH_PERMISSION_MAP[section];
-    if (candidates && candidates.length > 0) {
-      const allowed = candidates.some((p) => hasPermission(role as Role, p));
-      if (!allowed) {
+  // All authenticated roles (ADMIN, EMPLOYEE) may access admin routes, subject to
+  // per-section and per-subsection permission checks.
+  if (!["ADMIN", "EMPLOYEE", "SUPERUSER"].includes(role)) {
+    url.pathname = "/unauthorized";
+    return NextResponse.redirect(url);
+  }
+
+  // Check subsection-level permission first (e.g. shipments/add -> CREATE_SHIPMENT).
+  if (subsection) {
+    const subsectionKey = `${section}/${subsection}`;
+    if (subsectionKey in SUBSECTION_PERMISSION_MAP) {
+      const required = SUBSECTION_PERMISSION_MAP[subsectionKey];
+      if (!hasPermission(role as Role, required)) {
         url.pathname = "/unauthorized";
         return NextResponse.redirect(url);
       }
     }
   }
 
-  // EMPLOYEE
-  if (area === "employee") {
-    // EMPLOYEE, ADMIN, and SUPERUSER can access employee routes.
-    if (!["EMPLOYEE", "ADMIN", "SUPERUSER"].includes(role)) {
-      url.pathname = "/unauthorized";
-      return NextResponse.redirect(url);
-    }
-
-    // Check specific employee permission for this section.
-    const candidates = EMPLOYEE_PATH_PERMISSION_MAP[section];
-    if (candidates && candidates.length > 0) {
-      const allowed = candidates.some((p) => hasPermission(role as Role, p));
-      if (!allowed) {
-        url.pathname = "/unauthorized";
-        return NextResponse.redirect(url);
-      }
-    }
+  // Check section-level permission (e.g. inventory -> VIEW_INVENTORY).
+  const sectionPermission = SECTION_PERMISSION_MAP[section];
+  if (sectionPermission && !hasPermission(role as Role, sectionPermission)) {
+    url.pathname = "/unauthorized";
+    return NextResponse.redirect(url);
   }
 
   return NextResponse.next();

@@ -2,7 +2,7 @@ import type { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcrypt";
 import { db } from "@/lib/db";
-import { users } from "@/lib/schema";
+import { users, institutions } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { normalizeRole } from "@/lib/authz";
 
@@ -10,10 +10,10 @@ import { normalizeRole } from "@/lib/authz";
 // Important behavior:
 // - `authorize` verifies the provided email/password against the DB using bcrypt.compare
 // - On success we return a minimal `user` object. The `jwt` callback persists important
-//   fields (role, institutionId) into the token so they are available in middlewares
-//   and server-side code without extra DB lookups.
+//   fields (role, institutionId, institutionSlug) into the token so they are available in
+//   middlewares and server-side code without extra DB lookups.
 // - The `session` callback copies those token fields onto `session.user` so client
-//   code can easily access `role` and `institutionId` (read-only from session).
+//   code can easily access `role`, `institutionId`, and `institutionSlug` (read-only).
 
 export default {
   providers: [
@@ -28,43 +28,59 @@ export default {
         const password = credentials.password as string;
         if (!email || !password) return null;
 
-        // Look up user by email (Drizzle ORM)
-        const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+        // Look up user by email with institution slug in a single join query.
+        const [row] = await db
+          .select({
+            id: users.id,
+            name: users.name,
+            email: users.email,
+            password_hash: users.password_hash,
+            role: users.role,
+            institution_id: users.institution_id,
+            institution_slug: institutions.slug,
+          })
+          .from(users)
+          .leftJoin(institutions, eq(users.institution_id, institutions.id))
+          .where(eq(users.email, email))
+          .limit(1);
 
-        if (!user) return null;
+        if (!row) return null;
 
         // Verify bcrypt password hash
-        const valid = await bcrypt.compare(password, user.password_hash);
+        const valid = await bcrypt.compare(password, row.password_hash);
         if (!valid) return null;
 
-        // Return the public session user object. We include `role` and `institutionId`
-        // so they can be propagated into the JWT in the `jwt` callback.
+        // Return the public session user object. We include `role`, `institutionId`,
+        // and `institutionSlug` so they can be propagated into the JWT in the `jwt` callback.
         return {
-          id: String(user.id),
-          name: user.name,
-          email: user.email,
-          role: normalizeRole(user.role),
-          institutionId: user.institution_id,
+          id: String(row.id),
+          name: row.name,
+          email: row.email,
+          role: normalizeRole(row.role),
+          institutionId: row.institution_id,
+          institutionSlug: row.institution_slug ?? undefined,
         };
       },
     }),
   ],
   callbacks: {
-    // Persist role + institutionId into the JWT token when the user signs in.
+    // Persist role + institutionId + institutionSlug into the JWT token when the user signs in.
     // This keeps authorization decisions fast and avoids repeated DB reads.
     jwt({ token, user }) {
       if (user) {
         token.role = user.role;
         token.institutionId = user.institutionId;
+        if (user.institutionSlug) token.institutionSlug = user.institutionSlug;
       }
       return token;
     },
 
-    // Make sure session.user contains id, role and institutionId for client use.
+    // Make sure session.user contains id, role, institutionId, and institutionSlug for client use.
     session({ session, token }) {
       session.user.id = token.sub!;
       session.user.role = token.role;
       session.user.institutionId = token.institutionId;
+      if (token.institutionSlug) session.user.institutionSlug = token.institutionSlug;
       return session;
     },
   },

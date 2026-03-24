@@ -56,15 +56,15 @@ export default function LoginPage() {
 
       toast.success("Logged in successfully");
 
-      // Get the session to retrieve institutionId
+      // Get the session to retrieve institution information
       const sessionResponse = await fetch("/api/auth/session");
       const session = await sessionResponse.json();
 
-      if (session?.user?.institutionId) {
-        // Redirect to institution admin dashboard
-        router.push(`/${session.user.institutionId}/(admin)/dashboard`);
+      if (session?.user?.institutionSlug) {
+        // Redirect to institution dashboard using slug (public tenant segment)
+        router.push(`/${session.user.institutionSlug}/dashboard`);
       } else {
-        // Fallback if institution ID is missing
+        // Fallback if institution slug is missing (e.g. SUPERUSER with no institution)
         router.push("/");
       }
     } catch (error) {

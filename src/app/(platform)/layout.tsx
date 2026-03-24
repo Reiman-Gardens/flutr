@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+import { Link } from "@/components/ui/link";
 import { Button } from "@/components/ui/button";
 import { useSession, signOut } from "next-auth/react";
 
@@ -19,11 +19,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
           >
             <span className="text-lg font-bold tracking-tight">Flutr</span>
           </Link>
-          <nav aria-label="Platform navigation">
-            {/* <Button variant="outline" size="sm" asChild>
-              <Link href="/login">Institution Login</Link>
-            </Button> */}
-          </nav>
+          <nav aria-label="Platform navigation"></nav>
         </div>
       </header>
       <main id="main-content" className="flex flex-1 flex-col">
