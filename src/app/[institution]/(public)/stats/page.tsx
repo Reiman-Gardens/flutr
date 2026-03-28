@@ -54,7 +54,7 @@ export default async function StatsPage({ params }: StatsPageProps) {
         Desktop: two-column masonry (left: stats + treemap, right: species + distro)
       */}
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2">
-        <div className="order-1 lg:order-none lg:row-span-1">
+        <div className="order-1 lg:order-0 lg:row-span-1">
           <StatsOverviewCards
             totalButterflies={stats.totalButterflies}
             totalSpecies={stats.totalSpecies}
@@ -64,7 +64,7 @@ export default async function StatsPage({ params }: StatsPageProps) {
         </div>
 
         {stats.speciesBreakdown.length > 0 && (
-          <div className="order-2 lg:order-none lg:row-span-2">
+          <div className="order-2 lg:order-0 lg:row-span-2">
             <div className="space-y-4">
               {stats.speciesBreakdown.length >= 3 && (
                 <StatsHighlightCards
@@ -79,11 +79,11 @@ export default async function StatsPage({ params }: StatsPageProps) {
           </div>
         )}
 
-        <div className="order-3 lg:order-none">
+        <div className="order-3 lg:order-0">
           <SpeciesBreakdownChart data={stats.speciesBreakdown} slug={slug} />
         </div>
 
-        <div className="order-4 lg:order-none lg:col-span-2">
+        <div className="order-4 lg:order-0 lg:col-span-2">
           <RegionDistributionPanel data={stats.regionDistribution} />
         </div>
       </div>
