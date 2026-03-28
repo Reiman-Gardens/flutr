@@ -102,7 +102,7 @@ export function InstitutionFooter({ institution }: { institution: PublicInstitut
             Donate
           </Link>
           <Link
-            href={`${basePath}/volunteer`}
+            href={`${basePath}/contact#volunteer`}
             className="text-muted-foreground hover:text-foreground w-fit text-sm transition-colors"
           >
             Volunteer
@@ -120,12 +120,6 @@ export function InstitutionFooter({ institution }: { institution: PublicInstitut
       <div className="space-y-3">
         <h3 className="text-lg font-semibold">About Flutr</h3>
         <nav aria-label="About Flutr links" className="flex flex-col gap-2">
-          <Link
-            href="/about"
-            className="text-muted-foreground hover:text-foreground w-fit text-sm transition-colors"
-          >
-            About
-          </Link>
           <Link
             href="/contact"
             className="text-muted-foreground hover:text-foreground w-fit text-sm transition-colors"
