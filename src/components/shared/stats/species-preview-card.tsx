@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Image from "next/image";
 import { Bug, ChevronRight, X } from "lucide-react";
 
@@ -16,16 +17,28 @@ interface SpeciesPreviewCardProps {
 
 export function SpeciesPreviewCard({ species, slug, onClose }: SpeciesPreviewCardProps) {
   const region = species.range.length > 0 ? species.range[0] : null;
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    closeButtonRef.current?.focus();
+  }, []);
 
   return (
     <div
       role="dialog"
+      aria-modal="true"
       aria-label={`${species.name} preview`}
       className="animate-in fade-in slide-in-from-bottom-4 fixed inset-x-0 bottom-16 z-50 p-4 sm:absolute sm:inset-x-auto sm:bottom-4 sm:left-1/2 sm:w-full sm:max-w-sm sm:-translate-x-1/2 sm:p-0 md:bottom-0"
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          onClose();
+        }
+      }}
     >
       <Card className="gap-0 overflow-hidden py-0 shadow-xl">
         {/* Close button */}
         <Button
+          ref={closeButtonRef}
           variant="ghost"
           size="icon"
           className="absolute top-2 right-2 z-10 size-7 rounded-full bg-black/40 text-white hover:bg-black/60"
@@ -81,6 +94,7 @@ export function SpeciesPreviewCard({ species, slug, onClose }: SpeciesPreviewCar
             <Link
               href={`/${slug}/${encodeURIComponent(species.scientific_name)}`}
               className="text-primary hover:text-primary/80 flex shrink-0 items-center gap-0.5 text-xs font-medium"
+              aria-label={`More info about ${species.name}`}
             >
               More Info
               <ChevronRight className="size-3.5" aria-hidden="true" />

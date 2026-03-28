@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 import { getPublicInstitution } from "@/lib/queries/institution";
 import { getStatsData, transformStatsData } from "@/lib/queries/stats";
@@ -23,6 +24,8 @@ export default async function SpeciesTreemapPage({ params }: SpeciesTreemapPageP
 
   const rows = await getStatsData(inst.id);
   const stats = transformStatsData(rows);
+
+  if (stats.speciesBreakdown.length === 0) notFound();
 
   return <FullscreenTreemap data={stats.speciesBreakdown} slug={slug} />;
 }

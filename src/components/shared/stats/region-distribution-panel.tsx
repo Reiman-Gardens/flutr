@@ -12,8 +12,10 @@ export function RegionDistributionPanel({ data }: RegionDistributionPanelProps) 
   }
 
   return (
-    <section>
-      <h2 className="mb-3 text-lg font-bold">Geographic Origins</h2>
+    <section aria-labelledby="geo-heading">
+      <h2 id="geo-heading" className="mb-3 text-lg font-bold">
+        Geographic Origins
+      </h2>
 
       <Card>
         <CardContent className="space-y-4 pt-4">
@@ -28,10 +30,14 @@ export function RegionDistributionPanel({ data }: RegionDistributionPanelProps) 
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div
+            className="flex flex-wrap items-center gap-2"
+            role="list"
+            aria-label="Geographic regions"
+          >
             <MapPin className="text-muted-foreground size-4" aria-hidden="true" />
             {data.map(({ name, count }) => (
-              <Badge key={name} variant="secondary">
+              <Badge key={name} variant="secondary" role="listitem">
                 {name}
                 <span className="text-muted-foreground ml-1.5 font-normal">{count} species</span>
               </Badge>

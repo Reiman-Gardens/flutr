@@ -7,9 +7,9 @@ import type { SpeciesBreakdownItem } from "@/lib/queries/stats";
 
 interface StatsHighlightCardsProps {
   slug: string;
-  mostCommon: SpeciesBreakdownItem;
-  mostRare: SpeciesBreakdownItem;
-  daily: SpeciesBreakdownItem;
+  mostCommon: SpeciesBreakdownItem | null;
+  mostRare: SpeciesBreakdownItem | null;
+  daily: SpeciesBreakdownItem | null;
 }
 
 interface HighlightRowProps {
@@ -64,6 +64,8 @@ export function StatsHighlightCards({
   mostRare,
   daily,
 }: StatsHighlightCardsProps) {
+  if (!mostCommon || !mostRare || !daily) return null;
+
   return (
     <section aria-labelledby="highlights-heading">
       <h2 id="highlights-heading" className="mb-3 text-lg font-bold">

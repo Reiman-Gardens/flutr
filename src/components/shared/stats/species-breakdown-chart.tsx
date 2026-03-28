@@ -28,7 +28,7 @@ export function TreemapCell({ x, y, width, height, index, name, quantity }: Tree
   const fill = getChartColor(index);
   const showLabel = width > 50 && height > 30;
   const showQuantity = width > 40 && height > 45;
-  const clipId = `clip-${index}`;
+  const clipId = `sm-clip-${index}`;
   const fontSize = Math.max(10, Math.min(14, width / 9));
   const maxChars = Math.max(3, Math.floor(width / 8));
   const canMultiline = height > 55;
@@ -107,14 +107,20 @@ function TreemapTooltip({
 
 export function SpeciesBreakdownChart({ data, slug }: SpeciesBreakdownChartProps) {
   return (
-    <section>
-      <h2 className="mb-3 text-lg font-bold">Treemap</h2>
+    <section aria-labelledby="treemap-heading">
+      <h2 id="treemap-heading" className="mb-3 text-lg font-bold">
+        Treemap
+      </h2>
       <Card className="min-w-0">
         <CardContent className="space-y-3 pt-4">
           <Link
             href={`/${slug}/stats/species`}
+            aria-label="View interactive species treemap"
             className="group relative block h-[320px] w-full cursor-pointer overflow-hidden rounded-lg sm:h-[400px]"
           >
+            <span className="sr-only">
+              Treemap showing species distribution by quantity in flight
+            </span>
             <ResponsiveContainer width="100%" height="100%">
               <Treemap
                 data={data}

@@ -69,7 +69,8 @@ describe("transformStatsData", () => {
     );
     const result = transformStatsData(rows);
 
-    // 6 named families + "Other"
+    // MAX_FAMILIES_SHOWN = 6 (unexported constant in stats.ts)
+    // 6 named + "Other" bucket
     expect(result.familyDistribution.length).toBe(7);
     expect(result.familyDistribution[6].name).toBe("Other");
     // "Other" = F7 (40) + F8 (30) = 70

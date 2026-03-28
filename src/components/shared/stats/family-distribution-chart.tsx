@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/chart";
 import { Card, CardContent } from "@/components/ui/card";
 import { CHART_COLORS } from "@/components/shared/stats/chart-colors";
+import { splitName } from "@/lib/utils";
 
 interface FamilyDistributionChartProps {
   data: { name: string; value: number }[];
@@ -27,28 +28,8 @@ function buildConfig(data: { name: string }[]): ChartConfig {
   return config;
 }
 
-/** Split a name into up to 2 lines, breaking at a reasonable point. */
-function wrapText(text: string, maxCharsPerLine: number): string[] {
-  if (text.length <= maxCharsPerLine) return [text];
-
-  // Try to break at a space
-  const mid = text.lastIndexOf(" ", maxCharsPerLine);
-  if (mid > 0) {
-    return [text.slice(0, mid), text.slice(mid + 1)];
-  }
-
-  // No space — hard break with ellipsis if still too long
-  if (text.length > maxCharsPerLine * 2) {
-    return [
-      text.slice(0, maxCharsPerLine),
-      text.slice(maxCharsPerLine, maxCharsPerLine * 2 - 1) + "…",
-    ];
-  }
-  return [text.slice(0, maxCharsPerLine), text.slice(maxCharsPerLine)];
-}
-
 function MultiLineTick({ x, y, payload }: { x: number; y: number; payload: { value: string } }) {
-  const lines = wrapText(payload.value, 12);
+  const lines = splitName(payload.value, 12);
   const lineHeight = 14;
   const offsetY = -((lines.length - 1) * lineHeight) / 2;
 
@@ -76,8 +57,10 @@ export function FamilyDistributionChart({ data }: FamilyDistributionChartProps) 
   const chartHeight = Math.max(200, data.length * 48 + 40);
 
   return (
-    <section>
-      <h2 className="mb-3 text-lg font-bold">Family Distribution</h2>
+    <section aria-labelledby="family-heading">
+      <h2 id="family-heading" className="mb-3 text-lg font-bold">
+        Family Distribution
+      </h2>
       <Card className="min-w-0">
         <CardContent className="overflow-hidden pt-4">
           <ChartContainer
@@ -95,7 +78,7 @@ export function FamilyDistributionChart({ data }: FamilyDistributionChartProps) 
                 width={90}
                 tickLine={false}
                 axisLine={false}
-                tick={MultiLineTick as never}
+                tick={MultiLineTick as never} // Recharts tick typing is incompatible with custom components
               />
               <ChartTooltip content={<ChartTooltipContent />} />
               <Bar dataKey="value" radius={[0, 4, 4, 0]} isAnimationActive={false}>

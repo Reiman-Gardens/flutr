@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Treemap } from "recharts";
 import { TransformWrapper, TransformComponent, useControls } from "react-zoom-pan-pinch";
 import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
@@ -30,6 +31,7 @@ interface ClickableCellProps {
 }
 
 const DRAG_THRESHOLD = 5;
+const INITIAL_SCALE = 0.5;
 
 function ClickableCell({
   x,
@@ -172,8 +174,19 @@ function ZoomControls() {
 }
 
 export function FullscreenTreemap({ data, slug }: FullscreenTreemapProps) {
+  const router = useRouter();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [scale, setScale] = useState(0.5);
+  const [scale, setScale] = useState(INITIAL_SCALE);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        router.back();
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [router]);
 
   const selectedSpecies = selectedIndex !== null ? data[selectedIndex] : null;
 
@@ -192,11 +205,16 @@ export function FullscreenTreemap({ data, slug }: FullscreenTreemapProps) {
   }, [data.length]);
 
   return (
-    <div className="bg-background fixed inset-0 top-0 z-40 flex flex-col pb-16 md:top-14 md:pb-0">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Interactive species treemap"
+      className="bg-background fixed inset-0 top-0 z-40 flex flex-col pb-16 md:top-14 md:pb-0"
+    >
       {/* Treemap with zoom/pan */}
       <div className="relative flex-1 overflow-hidden">
         <TransformWrapper
-          initialScale={0.5}
+          initialScale={INITIAL_SCALE}
           minScale={0.2}
           maxScale={3}
           centerOnInit

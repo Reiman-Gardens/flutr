@@ -98,14 +98,15 @@ const MAX_FAMILIES_SHOWN = 6;
  * Transforms raw stats rows into chart-ready aggregations.
  */
 export function transformStatsData(rows: StatsSpeciesRow[]): StatsPageData {
-  const totalButterflies = rows.reduce((sum, r) => sum + r.quantity, 0);
+  const totalButterflies = rows.reduce((sum, r) => sum + Number(r.quantity), 0);
   const totalSpecies = rows.length;
   const uniqueFamilies = new Set(rows.map((r) => r.family)).size;
 
   const averageLifespan =
     totalButterflies > 0
       ? Math.round(
-          rows.reduce((sum, r) => sum + r.quantity * r.lifespan_days, 0) / totalButterflies,
+          rows.reduce((sum, r) => sum + Number(r.quantity) * Number(r.lifespan_days), 0) /
+            totalButterflies,
         )
       : 0;
 
@@ -114,7 +115,7 @@ export function transformStatsData(rows: StatsSpeciesRow[]): StatsPageData {
     .sort((a, b) => b.quantity - a.quantity)
     .map((r) => ({
       name: r.common_name,
-      quantity: r.quantity,
+      quantity: Number(r.quantity),
       scientific_name: r.scientific_name,
       family: r.family,
       range: r.range,
@@ -124,7 +125,7 @@ export function transformStatsData(rows: StatsSpeciesRow[]): StatsPageData {
   // Family distribution: group small families into "Other"
   const familyMap = new Map<string, number>();
   for (const r of rows) {
-    familyMap.set(r.family, (familyMap.get(r.family) ?? 0) + r.quantity);
+    familyMap.set(r.family, (familyMap.get(r.family) ?? 0) + Number(r.quantity));
   }
   const familySorted = [...familyMap.entries()].sort((a, b) => b[1] - a[1]);
   const familyDistribution: { name: string; value: number }[] = [];
