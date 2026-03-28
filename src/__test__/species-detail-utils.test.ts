@@ -1,4 +1,4 @@
-import { dayIndex } from "@/app/[institution]/(public)/page";
+import { dayIndex } from "@/lib/utils";
 
 /**
  * formatLifespan is not exported, so we replicate its logic here for testing.

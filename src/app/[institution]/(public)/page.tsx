@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getPublicInstitution } from "@/lib/queries/institution";
 import { getInstitutionHomeData } from "@/lib/queries/home";
+import { dayIndex } from "@/lib/utils";
 import { HeroSection } from "@/components/public/home/hero-section";
 import { FeaturedButterfly } from "@/components/public/home/featured-butterfly";
 import { ExploreLinks } from "@/components/public/home/explore-links";
@@ -56,10 +57,4 @@ export default async function InstitutionPage({ params }: InstitutionPageProps) 
       </div>
     </div>
   );
-}
-
-/** Returns a stable index for today (UTC), cycling through `length` items. */
-export function dayIndex(length: number): number {
-  const daysSinceEpoch = Math.floor(Date.now() / 86_400_000);
-  return daysSinceEpoch % length;
 }
