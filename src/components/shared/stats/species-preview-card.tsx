@@ -28,7 +28,7 @@ export function SpeciesPreviewCard({ species, slug, onClose }: SpeciesPreviewCar
       role="dialog"
       aria-modal="true"
       aria-label={`${species.name} preview`}
-      className="animate-in fade-in slide-in-from-bottom-4 fixed inset-x-0 bottom-16 z-50 p-4 sm:absolute sm:inset-x-auto sm:bottom-4 sm:left-1/2 sm:w-full sm:max-w-sm sm:-translate-x-1/2 sm:p-0 md:bottom-0"
+      className="animate-in fade-in slide-in-from-bottom-4 fixed inset-x-0 bottom-16 z-50 p-4 sm:absolute sm:inset-x-auto sm:bottom-4 sm:left-1/2 sm:w-full sm:max-w-sm sm:-translate-x-1/2 sm:p-0 md:bottom-4"
       onKeyDown={(e) => {
         if (e.key === "Escape") {
           onClose();

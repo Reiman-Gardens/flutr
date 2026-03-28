@@ -94,7 +94,12 @@ function ClickableCell({
     >
       <defs>
         <clipPath id={clipId}>
-          <rect x={x + 4} y={y + 4} width={width - 8} height={height - 8} />
+          <rect
+            x={x + 4}
+            y={y + 4}
+            width={Math.max(0, width - 8)}
+            height={Math.max(0, height - 8)}
+          />
         </clipPath>
       </defs>
       <rect
@@ -217,6 +222,7 @@ export function FullscreenTreemap({ data, slug }: FullscreenTreemapProps) {
           initialScale={INITIAL_SCALE}
           minScale={0.2}
           maxScale={3}
+          doubleClick={{ disabled: true }}
           centerOnInit
           onTransformed={(_ref, state) => {
             setScale(state.scale);

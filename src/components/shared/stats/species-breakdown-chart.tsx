@@ -41,11 +41,15 @@ export function TreemapCell({ x, y, width, height, index, name, quantity }: Tree
   const totalTextHeight = lines.length * lineHeight + (showQuantity ? lineHeight : 0);
   const textStartY = y + height / 2 - totalTextHeight / 2 + fontSize / 2;
 
+  const clipPadding = 4;
+  const innerWidth = Math.max(0, width - clipPadding * 2);
+  const innerHeight = Math.max(0, height - clipPadding * 2);
+
   return (
     <g>
       <defs>
         <clipPath id={clipId}>
-          <rect x={x + 4} y={y + 4} width={width - 8} height={height - 8} />
+          <rect x={x + clipPadding} y={y + clipPadding} width={innerWidth} height={innerHeight} />
         </clipPath>
       </defs>
       <rect
