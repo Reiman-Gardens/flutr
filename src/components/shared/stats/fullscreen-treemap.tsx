@@ -186,12 +186,16 @@ export function FullscreenTreemap({ data, slug }: FullscreenTreemapProps) {
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
+        if (selectedIndex !== null) {
+          setSelectedIndex(null);
+          return;
+        }
         router.back();
       }
     }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [router]);
+  }, [router, selectedIndex]);
 
   const selectedSpecies = selectedIndex !== null ? data[selectedIndex] : null;
 

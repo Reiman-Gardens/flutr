@@ -30,18 +30,20 @@ export function RegionDistributionPanel({ data }: RegionDistributionPanelProps) 
             </p>
           </div>
 
-          <div
-            className="flex flex-wrap items-center gap-2"
-            role="list"
-            aria-label="Geographic regions"
-          >
+          <div className="flex flex-wrap items-center gap-2">
             <MapPin className="text-muted-foreground size-4" aria-hidden="true" />
-            {data.map(({ name, count }) => (
-              <Badge key={name} variant="secondary" role="listitem">
-                {name}
-                <span className="text-muted-foreground ml-1.5 font-normal">{count} species</span>
-              </Badge>
-            ))}
+            <ul className="flex flex-wrap gap-2" role="list" aria-label="Geographic regions">
+              {data.map(({ name, count }) => (
+                <li key={name}>
+                  <Badge variant="secondary">
+                    {name}
+                    <span className="text-muted-foreground ml-1.5 font-normal">
+                      {count} species
+                    </span>
+                  </Badge>
+                </li>
+              ))}
+            </ul>
           </div>
         </CardContent>
       </Card>

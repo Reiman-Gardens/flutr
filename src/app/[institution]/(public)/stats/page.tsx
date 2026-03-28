@@ -10,6 +10,8 @@ import { SpeciesBreakdownChart } from "@/components/shared/stats/species-breakdo
 import { FamilyDistributionChart } from "@/components/shared/stats/family-distribution-chart";
 import { RegionDistributionPanel } from "@/components/shared/stats/region-distribution-panel";
 
+export const dynamic = "force-dynamic";
+
 interface StatsPageProps {
   params: Promise<{ institution: string }>;
 }

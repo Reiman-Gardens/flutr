@@ -23,5 +23,5 @@ export function splitName(name: string, maxChars: number): string[] {
       second.length > maxChars ? second.slice(0, maxChars - 1) + "…" : second,
     ];
   }
-  return [name.slice(0, maxChars) + "…"];
+  return [name.slice(0, maxChars - 1) + "…"];
 }

@@ -5,6 +5,8 @@ import { getPublicInstitution } from "@/lib/queries/institution";
 import { getStatsData, transformStatsData } from "@/lib/queries/stats";
 import { FullscreenTreemap } from "@/components/shared/stats/fullscreen-treemap";
 
+export const dynamic = "force-dynamic";
+
 interface SpeciesTreemapPageProps {
   params: Promise<{ institution: string }>;
 }
