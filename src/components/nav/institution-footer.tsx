@@ -1,21 +1,14 @@
 import Link from "next/link";
-import { Mail, Phone, Twitter, Facebook, Instagram, Youtube } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { Globe, Mail, Phone } from "lucide-react";
 import { useInstitution } from "@/hooks/use-institution";
 import { PUBLIC_LINKS } from "@/components/nav/nav-links";
-import type { PublicInstitution, SocialLinks } from "@/types/institution";
-
-const socialIcons: { key: keyof SocialLinks; icon: LucideIcon; label: string }[] = [
-  { key: "x", icon: Twitter, label: "X (Twitter)" },
-  { key: "facebook", icon: Facebook, label: "Facebook" },
-  { key: "instagram", icon: Instagram, label: "Instagram" },
-  { key: "youtube", icon: Youtube, label: "YouTube" },
-];
+import { SOCIAL_ICONS } from "@/lib/social-icons";
+import type { PublicInstitution } from "@/types/institution";
 
 export function InstitutionFooter({ institution }: { institution: PublicInstitution }) {
   const { basePath } = useInstitution();
 
-  const activeSocials = socialIcons.filter((s) => {
+  const activeSocials = SOCIAL_ICONS.filter((s) => {
     const url = institution.social_links?.[s.key];
     return url && /^https?:\/\//i.test(url);
   });
@@ -50,6 +43,18 @@ export function InstitutionFooter({ institution }: { institution: PublicInstitut
             >
               <Phone className="size-4" aria-hidden="true" />
               {institution.phone_number}
+            </a>
+          )}
+          {institution.website_url && (
+            <a
+              href={institution.website_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-foreground flex items-center gap-2 transition-colors"
+            >
+              <Globe className="size-4" aria-hidden="true" />
+              {institution.website_url.replace(/^https?:\/\/(www\.)?/, "")}
+              <span className="sr-only">(opens in new tab)</span>
             </a>
           )}
         </div>
@@ -96,7 +101,7 @@ export function InstitutionFooter({ institution }: { institution: PublicInstitut
         <h3 className="text-lg font-semibold">Get Involved</h3>
         <nav aria-label="Get involved links" className="flex flex-col gap-2">
           <Link
-            href={`${basePath}/donate`}
+            href={`${basePath}/contact#donate`}
             className="text-muted-foreground hover:text-foreground w-fit text-sm transition-colors"
           >
             Donate
