@@ -1,9 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import { Treemap, ResponsiveContainer, Tooltip } from "recharts";
-import { Maximize2 } from "lucide-react";
+import { Info, Maximize2 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Link } from "@/components/ui/link";
 import { splitName } from "@/lib/utils";
 import { getChartColor } from "@/components/shared/stats/chart-colors";
@@ -59,7 +67,7 @@ export function TreemapCell({ x, y, width, height, index, name, quantity }: Tree
         height={height}
         rx={6}
         fill={fill}
-        stroke="var(--card)"
+        stroke="var(--background)"
         strokeWidth={2}
       />
       <g clipPath={`url(#${clipId})`}>
@@ -110,11 +118,36 @@ function TreemapTooltip({
 }
 
 export function SpeciesBreakdownChart({ data, slug }: SpeciesBreakdownChartProps) {
+  const [infoOpen, setInfoOpen] = useState(false);
+
   return (
     <section aria-labelledby="treemap-heading">
-      <h2 id="treemap-heading" className="mb-3 text-lg font-bold">
-        Treemap
-      </h2>
+      <div className="mb-3 flex items-center gap-2">
+        <h2 id="treemap-heading" className="text-lg font-bold">
+          Treemap
+        </h2>
+        <button
+          type="button"
+          onClick={() => setInfoOpen(true)}
+          className="text-muted-foreground hover:text-foreground focus-visible:ring-ring rounded-full p-0.5 transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+          aria-label="What is a treemap?"
+        >
+          <Info className="size-4" />
+        </button>
+      </div>
+
+      <Dialog open={infoOpen} onOpenChange={setInfoOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>What is a treemap?</DialogTitle>
+            <DialogDescription>
+              A treemap shows all butterfly species currently in flight. Each rectangle represents a
+              species — the bigger the rectangle, the more butterflies of that species are flying
+              today. Tap any species to explore it in the interactive view.
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
       <Card className="min-w-0">
         <CardContent className="space-y-3 pt-4">
           <Link
