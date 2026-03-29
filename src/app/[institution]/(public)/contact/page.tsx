@@ -31,8 +31,8 @@ export default async function ContactPage({ params }: ContactPageProps) {
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       {/* Page header */}
       <div className="mb-8">
-        <h1 className="text-foreground text-3xl font-bold tracking-tight">Contact Us</h1>
-        <p className="text-muted-foreground mt-2 text-lg">
+        <h1 className="text-3xl font-bold tracking-tight">Contact Us</h1>
+        <p className="text-muted-foreground mt-2 text-sm">
           We&apos;d love to hear from you. Reach out with questions, plan a visit, or learn how to
           get involved.
         </p>
@@ -42,7 +42,7 @@ export default async function ContactPage({ params }: ContactPageProps) {
         {/* Contact information card */}
         <section
           aria-labelledby="contact-heading"
-          className="bg-card rounded-2xl border p-6 shadow-sm"
+          className="bg-card order-1 rounded-2xl border p-6 shadow-sm"
         >
           <h2 id="contact-heading" className="text-foreground mb-4 text-xl font-semibold">
             Get in Touch
@@ -141,7 +141,7 @@ export default async function ContactPage({ params }: ContactPageProps) {
         <section
           id="donate"
           aria-labelledby="donate-heading"
-          className="bg-card rounded-2xl border p-6 shadow-sm"
+          className="bg-card order-3 rounded-2xl border p-6 shadow-sm lg:order-2"
         >
           <div className="mb-4 flex items-center gap-2">
             <Heart className="text-muted-foreground size-5" aria-hidden="true" />
@@ -187,7 +187,7 @@ export default async function ContactPage({ params }: ContactPageProps) {
         <section
           id="volunteer"
           aria-labelledby="volunteer-heading"
-          className="bg-card rounded-2xl border p-6 shadow-sm lg:col-span-2"
+          className="bg-card order-2 rounded-2xl border p-6 shadow-sm lg:order-3 lg:col-span-2"
         >
           <div className="mb-4 flex items-center gap-2">
             <HandHelping className="text-muted-foreground size-5" aria-hidden="true" />
