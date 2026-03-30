@@ -19,6 +19,7 @@ export default {
   providers: [
     Credentials({
       // We accept `email` + `password` form fields
+      // We accept `email` + `password` form fields
       credentials: {
         email: {},
         password: {},
@@ -84,6 +85,7 @@ export default {
       return session;
     },
   },
+  // Redirect users to our custom login page
   // Redirect users to our custom login page
   pages: {
     signIn: "/login",
