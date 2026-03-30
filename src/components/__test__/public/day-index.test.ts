@@ -1,4 +1,4 @@
-import { dayIndex } from "@/app/[institution]/(public)/page";
+import { dayIndex } from "@/lib/utils";
 
 describe("dayIndex", () => {
   it("returns a value between 0 and length - 1", () => {

@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -69,7 +70,7 @@ export default function LoginPage() {
       }
     } catch (error) {
       toast.error("An error occurred. Please try again.");
-      console.error("Login error:", error);
+      logger.error("Login error:", error);
     } finally {
       setIsLoading(false);
     }

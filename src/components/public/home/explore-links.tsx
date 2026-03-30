@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LayoutGrid, BarChart3, Info, Heart, ChevronRight } from "lucide-react";
+import { LayoutGrid, BarChart3, Mail, Heart, ChevronRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 interface ExploreLinkItem {
@@ -16,12 +16,6 @@ interface ExploreLinksProps {
 export function ExploreLinks({ basePath }: ExploreLinksProps) {
   const links: ExploreLinkItem[] = [
     {
-      href: `${basePath}/about`,
-      icon: Info,
-      title: "About the Exhibit",
-      description: "Our conservation mission",
-    },
-    {
       href: `${basePath}/stats`,
       icon: BarChart3,
       title: "Flight Statistics",
@@ -34,10 +28,16 @@ export function ExploreLinks({ basePath }: ExploreLinksProps) {
       description: "Browse our local residents",
     },
     {
-      href: `${basePath}/volunteer`,
+      href: `${basePath}/contact#volunteer`,
       icon: Heart,
       title: "Volunteer",
       description: "Help support our butterfly house",
+    },
+    {
+      href: `${basePath}/contact`,
+      icon: Mail,
+      title: "Contact Us",
+      description: "Get in touch with us",
     },
   ];
 
