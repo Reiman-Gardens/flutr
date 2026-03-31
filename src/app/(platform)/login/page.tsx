@@ -99,8 +99,12 @@ export default function LoginPage() {
       // Get the session to retrieve institution information
       const sessionResponse = await fetch("/api/auth/session");
       const session = await sessionResponse.json();
+      const role = session?.user?.role;
 
-      if (session?.user?.institutionSlug) {
+      if (role === "SUPERUSER") {
+        // Redirect superusers to the platform dashboard
+        router.push("/platform");
+      } else if (session?.user?.institutionSlug) {
         // Redirect to institution dashboard using slug (public tenant segment)
         router.push(`/${session.user.institutionSlug}/dashboard`);
       } else {
