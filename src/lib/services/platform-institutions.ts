@@ -37,7 +37,11 @@ export async function getPlatformInstitutionById(id: number) {
 export async function updatePlatformInstitution(id: number, data: PlatformUpdateInstitutionInput) {
   const user = requireUser(await auth());
   if (!canCrossTenant(user)) throw new Error("FORBIDDEN");
-  await ensureTenantExists(id);
+  try {
+    await ensureTenantExists(id);
+  } catch {
+    throw new Error("NOT_FOUND");
+  }
   if (typeof data.slug === "string") {
     const slugExists = await institutionSlugExists(data.slug, id);
     if (slugExists) throw new Error("CONFLICT");
@@ -50,6 +54,10 @@ export async function updatePlatformInstitution(id: number, data: PlatformUpdate
 export async function deletePlatformInstitution(id: number) {
   const user = requireUser(await auth());
   if (!canCrossTenant(user)) throw new Error("FORBIDDEN");
-  await ensureTenantExists(id);
+  try {
+    await ensureTenantExists(id);
+  } catch {
+    throw new Error("NOT_FOUND");
+  }
   await deleteInstitution(id);
 }

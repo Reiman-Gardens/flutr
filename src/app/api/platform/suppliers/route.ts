@@ -5,7 +5,6 @@ import { conflict, forbidden, internalError, ok, unauthorized } from "@/lib/api-
 import { requireValidBody } from "@/lib/validation/request";
 import { requireValidQuery } from "@/lib/validation/query";
 import { createSupplierBodySchema, listSuppliersQuerySchema } from "@/lib/validation/suppliers";
-import { handleTenantError } from "@/lib/tenant";
 
 import { getPlatformSuppliers, createPlatformSupplier } from "@/lib/services/platform-suppliers";
 
@@ -25,9 +24,6 @@ export async function GET(request: NextRequest) {
       if (error.message === "UNAUTHORIZED") return unauthorized();
       if (error.message === "FORBIDDEN") return forbidden();
     }
-
-    const tenantError = handleTenantError(error);
-    if (tenantError) return tenantError;
 
     logger.error("Unexpected GET /platform/suppliers error:", error);
     return internalError();
@@ -49,9 +45,6 @@ export async function POST(request: NextRequest) {
       if (error.message === "CONFLICT")
         return conflict("Supplier code already exists for this institution");
     }
-
-    const tenantError = handleTenantError(error);
-    if (tenantError) return tenantError;
 
     logger.error("Unexpected POST /platform/suppliers error:", error);
     return internalError();

@@ -15,7 +15,6 @@ import {
   platformUpdateInstitutionSchema,
 } from "@/lib/validation/institution";
 import { requireValidBody } from "@/lib/validation/request";
-import { handleTenantError } from "@/lib/tenant";
 
 import {
   getPlatformInstitutionById,
@@ -47,9 +46,6 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       if (error.message === "FORBIDDEN") return forbidden();
     }
 
-    const tenantError = handleTenantError(error);
-    if (tenantError) return tenantError;
-
     logger.error("Unexpected GET /platform/institutions/[id] error:", error);
     return internalError();
   }
@@ -77,9 +73,6 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       if (error.message === "CONFLICT") return conflict("Slug already in use");
     }
 
-    const tenantError = handleTenantError(error);
-    if (tenantError) return tenantError;
-
     logger.error("Unexpected PATCH /platform/institutions/[id] error:", error);
     return internalError();
   }
@@ -100,10 +93,8 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
     if (error instanceof Error) {
       if (error.message === "UNAUTHORIZED") return unauthorized();
       if (error.message === "FORBIDDEN") return forbidden();
+      if (error.message === "NOT_FOUND") return notFound("Institution not found");
     }
-
-    const tenantError = handleTenantError(error);
-    if (tenantError) return tenantError;
 
     logger.error("Unexpected DELETE /platform/institutions/[id] error:", error);
     return internalError();

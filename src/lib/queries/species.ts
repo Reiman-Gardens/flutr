@@ -167,3 +167,17 @@ export async function updateSpecies(speciesId: number, input: UpdateSpeciesBody)
 
   return row ?? null;
 }
+
+/**
+ * PLATFORM QUERY
+ *
+ * Delete species by ID. Returns the deleted row, or undefined if not found.
+ */
+export async function deleteSpecies(speciesId: number) {
+  const [row] = await db
+    .delete(butterfly_species)
+    .where(eq(butterfly_species.id, speciesId))
+    .returning();
+
+  return row ?? undefined;
+}

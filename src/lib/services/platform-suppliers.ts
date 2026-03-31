@@ -23,7 +23,12 @@ export async function getPlatformSuppliers(institutionId?: number) {
 export async function createPlatformSupplier(data: CreateSupplierBody) {
   const user = requireUser(await auth());
   if (!canCrossTenant(user)) throw new Error("FORBIDDEN");
-  const tenantId = resolveTenantId(user, data.institutionId);
+  let tenantId: number;
+  try {
+    tenantId = resolveTenantId(user, data.institutionId);
+  } catch {
+    throw new Error("FORBIDDEN");
+  }
   await ensureTenantExists(tenantId);
   const codeExists = await supplierCodeExistsForTenant(tenantId, data.code);
   if (codeExists) throw new Error("CONFLICT");

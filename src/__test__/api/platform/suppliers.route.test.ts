@@ -188,9 +188,7 @@ describe("Platform Suppliers API", () => {
     });
 
     it("returns 403 when SUPERUSER omits institutionId", async () => {
-      mockCreatePlatformSupplier.mockRejectedValueOnce(
-        new Error("Tenant required for write operation"),
-      );
+      mockCreatePlatformSupplier.mockRejectedValueOnce(new Error("FORBIDDEN"));
 
       const payload = { name: "Test", code: "TST", country: "US" };
       const response = (await postSupplier(makePostRequest(payload)))!;

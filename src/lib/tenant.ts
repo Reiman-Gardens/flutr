@@ -115,11 +115,11 @@ export async function resolveTenantBySlug(user: AuthenticatedUser, slug: string)
     .limit(1);
 
   if (!institution) {
-    throw new Error("NOT_FOUND");
+    throw new Error(TENANT_ERRORS.INSTITUTION_NOT_FOUND);
   }
 
   if (user.role !== "SUPERUSER" && user.institutionId !== institution.id) {
-    throw new Error("FORBIDDEN");
+    throw new Error(TENANT_ERRORS.FORBIDDEN_CROSS_TENANT_ACCESS);
   }
 
   return institution.id;

@@ -340,7 +340,7 @@ describe("Platform Institutions API", () => {
     });
 
     it("returns 404 when institution not found", async () => {
-      mockDeletePlatformInstitution.mockRejectedValueOnce(new Error("Institution not found"));
+      mockDeletePlatformInstitution.mockRejectedValueOnce(new Error("NOT_FOUND"));
 
       const response = (await deleteInstitutionById(
         makeDeleteRequest("999"),

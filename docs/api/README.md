@@ -123,7 +123,7 @@ All tenant routes use `x-tenant-slug` for tenant context:
 - `GET/POST /api/platform/institutions` — list & create institutions
 - `GET/PATCH/DELETE /api/platform/institutions/[id]` — institution detail, update, delete
 - `GET/POST /api/platform/species` — list and create global species
-- `PATCH /api/platform/species/[id]` — update a global species record
+- `GET/PATCH/DELETE /api/platform/species/[id]` — species detail, update, delete
 - `GET/POST /api/platform/suppliers` — list & create suppliers (cross-tenant)
 - `GET/PATCH/DELETE /api/platform/suppliers/[id]` — supplier detail, update, delete
 

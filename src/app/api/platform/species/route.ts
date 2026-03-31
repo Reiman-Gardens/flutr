@@ -1,37 +1,22 @@
 import { NextRequest } from "next/server";
 
-import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
-import { canManageGlobalButterflies, requireUser } from "@/lib/authz";
 import { conflict, forbidden, internalError, ok, unauthorized } from "@/lib/api-response";
-import { handleTenantError } from "@/lib/tenant";
-import { createSpecies, listSpeciesGlobal } from "@/lib/queries/species";
 import { requireValidBody } from "@/lib/validation/request";
 import { createSpeciesBodySchema } from "@/lib/validation/species";
 
-export async function GET(request: NextRequest) {
+import { getPlatformSpecies, createPlatformSpecies } from "@/lib/services/platform-species";
+
+export async function GET(_request: NextRequest) {
+  void _request;
   try {
-    void request;
-
-    const session = await auth();
-
-    let user;
-    try {
-      user = requireUser(session);
-    } catch {
-      return unauthorized();
-    }
-
-    if (!canManageGlobalButterflies(user)) {
-      return forbidden();
-    }
-
-    const species = await listSpeciesGlobal();
-
+    const species = await getPlatformSpecies();
     return ok({ species });
   } catch (error) {
-    const tenantError = handleTenantError(error);
-    if (tenantError) return tenantError;
+    if (error instanceof Error) {
+      if (error.message === "UNAUTHORIZED") return unauthorized();
+      if (error.message === "FORBIDDEN") return forbidden();
+    }
 
     logger.error("Unexpected GET /platform/species error:", error);
     return internalError();
@@ -40,43 +25,20 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-
-    let user;
-    try {
-      user = requireUser(session);
-    } catch {
-      return unauthorized();
-    }
-
-    if (!canManageGlobalButterflies(user)) {
-      return forbidden();
-    }
-
     const bodyResult = await requireValidBody(request, createSpeciesBodySchema);
     if ("error" in bodyResult) return bodyResult.error;
 
-    const species = await createSpecies(bodyResult.data);
+    const species = await createPlatformSpecies(bodyResult.data);
 
     return ok({ species }, 201);
   } catch (error) {
-    if (isUniqueViolation(error)) {
-      return conflict("Species scientific name already exists");
+    if (error instanceof Error) {
+      if (error.message === "UNAUTHORIZED") return unauthorized();
+      if (error.message === "FORBIDDEN") return forbidden();
+      if (error.message === "CONFLICT") return conflict("Species scientific name already exists");
     }
-
-    const tenantError = handleTenantError(error);
-    if (tenantError) return tenantError;
 
     logger.error("Unexpected POST /platform/species error:", error);
     return internalError();
   }
-}
-
-function isUniqueViolation(error: unknown): boolean {
-  return (
-    error !== null &&
-    typeof error === "object" &&
-    "code" in error &&
-    (error as { code: unknown }).code === "23505"
-  );
 }

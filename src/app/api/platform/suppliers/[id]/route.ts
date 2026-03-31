@@ -12,7 +12,6 @@ import {
 } from "@/lib/api-response";
 import { requireValidBody } from "@/lib/validation/request";
 import { supplierIdParamsSchema, updateSupplierBodySchema } from "@/lib/validation/suppliers";
-import { handleTenantError } from "@/lib/tenant";
 
 import {
   getPlatformSupplierById,
@@ -45,9 +44,6 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       if (error.message === "FORBIDDEN") return forbidden();
     }
 
-    const tenantError = handleTenantError(error);
-    if (tenantError) return tenantError;
-
     logger.error("Unexpected GET /platform/suppliers/[id] error:", error);
     return internalError();
   }
@@ -77,9 +73,6 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       if (error.message === SUPPLIER_ERRORS.REFERENCED_BY_SHIPMENTS) return conflict(error.message);
     }
 
-    const tenantError = handleTenantError(error);
-    if (tenantError) return tenantError;
-
     logger.error("Unexpected PATCH /platform/suppliers/[id] error:", error);
     return internalError();
   }
@@ -103,9 +96,6 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
       if (error.message === "NOT_FOUND") return notFound("Supplier not found");
       if (error.message === SUPPLIER_ERRORS.REFERENCED_BY_SHIPMENTS) return conflict(error.message);
     }
-
-    const tenantError = handleTenantError(error);
-    if (tenantError) return tenantError;
 
     logger.error("Unexpected DELETE /platform/suppliers/[id] error:", error);
     return internalError();
