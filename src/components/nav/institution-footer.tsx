@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/ui/link";
 import { Globe, Mail, Phone } from "lucide-react";
 import { useInstitution } from "@/hooks/use-institution";
 import { PUBLIC_LINKS } from "@/components/nav/nav-links";

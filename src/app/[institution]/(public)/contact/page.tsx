@@ -161,7 +161,7 @@ export default async function ContactPage({ params }: ContactPageProps) {
                 {" "}
                 at{" "}
                 <a
-                  href={`mailto:${inst.email_address}?subject=Donation Inquiry`}
+                  href={`mailto:${inst.email_address}?subject=${encodeURIComponent("Donation Inquiry")}`}
                   className="text-foreground font-medium underline-offset-4 hover:underline"
                 >
                   {inst.email_address}
@@ -216,7 +216,7 @@ export default async function ContactPage({ params }: ContactPageProps) {
                     {" "}
                     at{" "}
                     <a
-                      href={`mailto:${inst.email_address}?subject=Volunteer Inquiry`}
+                      href={`mailto:${inst.email_address}?subject=${encodeURIComponent("Volunteer Inquiry")}`}
                       className="text-foreground font-medium underline-offset-4 hover:underline"
                     >
                       {inst.email_address}
