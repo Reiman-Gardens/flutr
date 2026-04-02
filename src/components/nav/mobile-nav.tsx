@@ -30,7 +30,7 @@ export function MobileNav({ links, menuLinks, className }: MobileNavProps) {
   const { basePath } = useInstitution();
   const pathname = usePathname();
 
-  const hasMenu = menuLinks.length > 0;
+  const hasMenuLinks = menuLinks.length > 0;
 
   return (
     <nav
@@ -60,32 +60,36 @@ export function MobileNav({ links, menuLinks, className }: MobileNavProps) {
           );
         })}
 
-        {hasMenu && (
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              className="text-muted-foreground hover:text-primary focus-visible:ring-ring/50 flex items-center justify-center rounded-md px-3 py-3 transition-colors focus-visible:ring-2 focus-visible:outline-none"
-              aria-label="More options"
-            >
-              <EllipsisVertical className="size-6" aria-hidden="true" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" side="top" sideOffset={12} collisionPadding={8}>
-              {menuLinks.map((link) => {
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className="text-muted-foreground hover:text-primary focus-visible:ring-ring/50 flex items-center justify-center rounded-md px-3 py-3 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            aria-label="More options"
+          >
+            <EllipsisVertical className="size-6" aria-hidden="true" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" side="top" sideOffset={12} collisionPadding={8}>
+            {hasMenuLinks &&
+              menuLinks.map((link) => {
                 const href = `${basePath}${link.href}`;
+                const isActive = pathname.startsWith(href);
                 const Icon = link.icon;
 
                 return (
                   <DropdownMenuItem key={link.label} asChild>
-                    <Link href={href} className="flex items-center gap-2">
+                    <Link
+                      href={href}
+                      className="flex items-center gap-2"
+                      aria-current={isActive ? "page" : undefined}
+                    >
                       <Icon className="size-4" aria-hidden="true" />
                       <span>{link.label}</span>
                     </Link>
                   </DropdownMenuItem>
                 );
               })}
-              <MobileThemeToggle />
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+            <MobileThemeToggle />
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </nav>
   );

@@ -7,6 +7,7 @@ import {
   PUBLIC_MOBILE_LINKS,
   PUBLIC_MOBILE_MENU_LINKS,
   AUTH_LINKS,
+  type NavLink,
 } from "./nav-links";
 
 interface NavbarProps {
@@ -16,7 +17,7 @@ interface NavbarProps {
 export function Navbar({ isAuthenticated }: NavbarProps) {
   const links = isAuthenticated ? AUTH_LINKS : PUBLIC_LINKS;
   const mobileLinks = isAuthenticated ? AUTH_LINKS : PUBLIC_MOBILE_LINKS;
-  const mobileMenuLinks = isAuthenticated ? [] : PUBLIC_MOBILE_MENU_LINKS;
+  const mobileMenuLinks = isAuthenticated ? ([] as NavLink[]) : PUBLIC_MOBILE_MENU_LINKS;
 
   return (
     <>
