@@ -10,13 +10,23 @@ const emptySubscribe = () => () => {};
 const getTrue = () => true;
 const getFalse = () => false;
 
+/** Returns the opposite theme. Exported for testing. */
+export function getNextTheme(current: string | undefined): "light" | "dark" {
+  return current === "dark" ? "light" : "dark";
+}
+
+/** Returns an accessible label describing the toggle action. */
+export function getThemeLabel(mounted: boolean, isDark: boolean): string {
+  return mounted ? `Switch to ${isDark ? "light" : "dark"} mode` : "Toggle theme";
+}
+
 export function MobileThemeToggle() {
   const mounted = useSyncExternalStore(emptySubscribe, getTrue, getFalse);
   const { resolvedTheme, setTheme } = useTheme();
 
   const isDark = mounted && resolvedTheme === "dark";
-  const toggle = () => setTheme(isDark ? "light" : "dark");
-  const label = mounted ? `Switch to ${isDark ? "light" : "dark"} mode` : "Toggle theme";
+  const toggle = () => setTheme(getNextTheme(resolvedTheme));
+  const label = getThemeLabel(mounted, isDark);
 
   return (
     <DropdownMenuItem onClick={toggle} aria-label={label} className="flex items-center gap-2">
@@ -46,8 +56,8 @@ export function ThemeToggle() {
     <Button
       variant="ghost"
       size="icon"
-      onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-      aria-label={`Switch to ${resolvedTheme === "dark" ? "light" : "dark"} mode`}
+      onClick={() => setTheme(getNextTheme(resolvedTheme))}
+      aria-label={getThemeLabel(true, resolvedTheme === "dark")}
     >
       <Sun className="size-5 scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
       <Moon className="absolute size-5 scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />

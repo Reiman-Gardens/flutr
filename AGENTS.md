@@ -8,7 +8,7 @@ A WCAG-compliant, multi-tenant web application for butterfly houses to track shi
 - **Language**: TypeScript
 - **Package Manager**: pnpm
 - **Styling**: Tailwind CSS 4
-- **UI**: Shadcn/UI (Radix-based), Lucide icons, Sonner toasts
+- **UI**: Shadcn/UI (Radix-based), Lucide icons, Sonner toasts, next-themes
 - **Forms**: React Hook Form + Zod validation
 - **Charts**: Recharts
 - **Auth**: NextAuth 5 (credentials provider, JWT sessions)
@@ -42,9 +42,9 @@ src/
 │   ├── admin/              # Admin-specific components
 │   ├── auth/               # Auth-specific components
 │   ├── nav/                # Navigation components (top-nav, mobile-nav, footer)
-│   ├── providers/          # Context providers (session, institution data)
+│   ├── providers/          # Context providers (session, institution data, theme)
 │   ├── public/             # Public-facing components (gallery, home, species detail)
-│   ├── shared/             # Shared components used across public/admin
+│   ├── shared/             # Shared components used across public/admin (theme toggle)
 │   └── ui/                 # 55 Shadcn/UI primitives
 ├── hooks/                  # Custom React hooks
 │   ├── use-institution.ts  # Institution slug/basePath from URL params
