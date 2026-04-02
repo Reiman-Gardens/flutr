@@ -1,4 +1,4 @@
-import { getNextTheme, getThemeLabel } from "@/components/shared/theme-toggle";
+import { getNextTheme, getThemeLabel } from "@/lib/theme-utils";
 
 describe("getNextTheme", () => {
   it('returns "light" when current theme is "dark"', () => {

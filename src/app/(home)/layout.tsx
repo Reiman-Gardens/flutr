@@ -20,7 +20,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
         className={cn(
           "sticky top-0 z-50 border-b",
           isLoginPage
-            ? "bg-white supports-backdrop-filter:bg-white"
+            ? "bg-background supports-backdrop-filter:bg-background"
             : "bg-background/95 supports-backdrop-filter:bg-background/60 backdrop-blur",
         )}
       >
