@@ -1,5 +1,5 @@
 import bcrypt from "bcrypt";
-import { and, asc, eq, ne } from "drizzle-orm";
+import { and, asc, count, eq, ne } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { users } from "@/lib/schema";
@@ -29,6 +29,21 @@ export async function listUsersForTenant(institutionId: number, user: Authentica
     .from(users)
     .where(condition)
     .orderBy(asc(users.name));
+}
+
+/**
+ *
+ * TENANT QUERY
+ *
+ * Count users for Institution.
+ */
+export async function countUsersForTenant(institutionId: number) {
+  const [row] = await db
+    .select({ count: count() })
+    .from(users)
+    .where(eq(users.institution_id, institutionId));
+
+  return row?.count ?? 0;
 }
 
 /**
@@ -104,11 +119,14 @@ export async function emailExistsForTenant(
  * TENANT QUERY
  *
  * Create a user for the given tenant.
+ * Accepts an optional transaction for use within onboard operations.
  */
-export async function createUser(institutionId: number, input: CreateUserBody) {
+export async function createUser(institutionId: number, input: CreateUserBody, tx?: typeof db) {
+  const database = tx ?? db;
+
   const passwordHash = await bcrypt.hash(input.password, 10);
 
-  const [row] = await db
+  const [row] = await database
     .insert(users)
     .values({
       institution_id: institutionId,

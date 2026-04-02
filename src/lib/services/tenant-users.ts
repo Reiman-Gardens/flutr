@@ -15,7 +15,9 @@ import {
   updateUserForTenant,
   deleteUserForTenant,
   getUserByIdForTenant,
+  countUsersForTenant,
 } from "@/lib/queries/users";
+import { updateInstitutionById } from "../queries/institution";
 
 // ---------- TYPES ----------
 type TenantContext = {
@@ -90,7 +92,19 @@ export async function createTenantUser(data: CreateUserInput) {
   }
 
   const { slug, ...userData } = data;
-  return createUser(tenantId, userData);
+  // return createUser(tenantId, userData);
+  const newUser = await createUser(tenantId, userData);
+
+  // activate institution if this is the first user
+  const userCount = await countUsersForTenant(tenantId);
+
+  if (userCount === 1) {
+    await updateInstitutionById(tenantId, {
+      stats_active: true,
+    });
+  }
+
+  return newUser;
 }
 
 // ---------- UPDATE ----------

@@ -21,6 +21,13 @@ A WCAG-compliant, multi-tenant web application for butterfly houses to track shi
 ```
 src/
 ├── app/                    # Next.js pages and API routes
+│   ├── (admin)/            # Superuser platform admin panel
+│   │   └── platform/       # Platform admin routes (/platform/*)
+│   │       ├── layout.tsx  # Admin shell (sidebar + header + footer)
+│   │       ├── page.tsx    # Dashboard (nav cards)
+│   │       ├── institutions/ # Institutions management
+│   │       ├── species/    # Butterfly species management
+│   │       └── suppliers/  # Suppliers management
 │   ├── (platform)/         # Platform-level routes (landing, login)
 │   │   ├── page.tsx        # Root public landing page
 │   │   └── login/          # Login page
@@ -39,6 +46,12 @@ src/
 │       ├── tenant/         # Tenant-scoped authenticated API routes
 │       ├── platform/       # Platform/SUPERUSER API routes
 ├── components/             # React components by feature
+│   ├── platform/           # Superuser platform admin components
+│   │   ├── layout/         # PlatformSidebar, PlatformHeader, PlatformFooter, nav items
+│   │   ├── dashboard/      # PlatformNavCard
+│   │   ├── institutions/   # InstitutionsTable and related
+│   │   ├── species/        # SpeciesTable, SpeciesGalleryCard, toolbar, row, utils
+│   │   └── suppliers/      # SuppliersTable, toolbar, row, utils
 │   ├── admin/              # Admin-specific components
 │   ├── auth/               # Auth-specific components
 │   ├── nav/                # Navigation components (top-nav, mobile-nav, footer)

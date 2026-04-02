@@ -72,10 +72,12 @@ export async function updateTenantInstitution(
  * PLATFORM QUERY
  *
  * Create a new institution (platform-level access).
- *
+ * Accepts an optional transaction for use within onboard operations.
  */
-export async function createInstitution(data: PlatformCreateInstitutionInput) {
-  const [row] = await db
+export async function createInstitution(data: PlatformCreateInstitutionInput, tx?: typeof db) {
+  const database = tx ?? db;
+
+  const [row] = await database
     .insert(institutions)
     .values({
       ...data,

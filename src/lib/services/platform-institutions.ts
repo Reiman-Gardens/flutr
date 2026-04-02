@@ -25,7 +25,10 @@ export async function createPlatformInstitution(data: PlatformCreateInstitutionI
   if (!canCrossTenant(user)) throw new Error("FORBIDDEN");
   const exists = await institutionSlugExists(data.slug);
   if (exists) throw new Error("CONFLICT");
-  return createInstitution(data);
+  return createInstitution({
+    ...data,
+    stats_active: false,
+  });
 }
 
 export async function getPlatformInstitutionById(id: number) {

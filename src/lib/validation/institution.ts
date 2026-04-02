@@ -60,6 +60,11 @@ export const platformCreateInstitutionSchema = z
     // SUPERUSER defines slug on creation
     slug: sanitizedNonEmpty(100),
 
+    // Optional fields not in baseInstitutionFields
+    time_zone: z.string().max(100).optional(),
+    theme_colors: z.array(z.string()).optional(),
+    social_links: z.record(z.string(), z.string()).optional(),
+
     // Platform flags
     iabes_member: z.boolean().optional(),
     stats_active: z.boolean().optional(),
