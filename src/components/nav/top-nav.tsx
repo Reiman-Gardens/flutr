@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useInstitution } from "@/hooks/use-institution";
 import { useInstitutionData } from "@/components/providers/institution-provider";
 import type { NavLink } from "./nav-links";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 
 interface TopNavProps {
   links: NavLink[];
@@ -68,6 +69,10 @@ export function TopNav({ links, isAuthenticated, className }: TopNavProps) {
             );
           })}
         </nav>
+
+        <div className="z-10 ml-auto">
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );
