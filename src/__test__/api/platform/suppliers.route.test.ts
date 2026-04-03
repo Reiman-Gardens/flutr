@@ -181,6 +181,14 @@ describe("Platform Suppliers API", () => {
       expect((await response.json()).error.code).toBe("CONFLICT");
     });
 
+    it("returns 404 when institutionId does not exist", async () => {
+      mockCreatePlatformSupplier.mockRejectedValueOnce(new Error("Institution not found"));
+
+      const response = (await postSupplier(makePostRequest(validCreatePayload())))!;
+      expect(response.status).toBe(404);
+      expect((await response.json()).error.code).toBe("NOT_FOUND");
+    });
+
     it("returns 400 for missing required fields", async () => {
       const response = (await postSupplier(makePostRequest({ name: "Only name" })))!;
       expect(response.status).toBe(400);

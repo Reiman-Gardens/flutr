@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { requireUser, canCrossTenant } from "@/lib/authz";
-import { ensureTenantExists } from "@/lib/tenant";
+import { ensureTenantExists, TENANT_ERRORS } from "@/lib/tenant";
 import {
   getAllInstitutions,
   institutionSlugExists,
@@ -42,8 +42,12 @@ export async function updatePlatformInstitution(id: number, data: PlatformUpdate
   if (!canCrossTenant(user)) throw new Error("FORBIDDEN");
   try {
     await ensureTenantExists(id);
-  } catch {
-    throw new Error("NOT_FOUND");
+  } catch (error) {
+    if (error instanceof Error && error.message === TENANT_ERRORS.INSTITUTION_NOT_FOUND) {
+      throw new Error("NOT_FOUND");
+    }
+
+    throw error;
   }
   if (typeof data.slug === "string") {
     const slugExists = await institutionSlugExists(data.slug, id);
@@ -59,8 +63,12 @@ export async function deletePlatformInstitution(id: number) {
   if (!canCrossTenant(user)) throw new Error("FORBIDDEN");
   try {
     await ensureTenantExists(id);
-  } catch {
-    throw new Error("NOT_FOUND");
+  } catch (error) {
+    if (error instanceof Error && error.message === TENANT_ERRORS.INSTITUTION_NOT_FOUND) {
+      throw new Error("NOT_FOUND");
+    }
+
+    throw error;
   }
   await deleteInstitution(id);
 }

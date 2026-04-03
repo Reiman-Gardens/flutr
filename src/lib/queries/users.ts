@@ -43,7 +43,8 @@ export async function countUsersForTenant(institutionId: number) {
     .from(users)
     .where(eq(users.institution_id, institutionId));
 
-  return row?.count ?? 0;
+  const normalizedCount = Number(row?.count ?? 0);
+  return Number.isNaN(normalizedCount) ? 0 : normalizedCount;
 }
 
 /**

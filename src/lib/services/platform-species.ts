@@ -10,12 +10,20 @@ import {
 import type { CreateSpeciesBody, UpdateSpeciesBody } from "@/lib/validation/species";
 
 function isUniqueViolation(error: unknown): boolean {
-  return (
-    error !== null &&
-    typeof error === "object" &&
-    "code" in error &&
-    (error as { code: unknown }).code === "23505"
-  );
+  if (error === null || typeof error !== "object") {
+    return false;
+  }
+
+  const code = "code" in error ? (error as { code?: unknown }).code : undefined;
+  const causeCode =
+    "cause" in error &&
+    error.cause !== null &&
+    typeof error.cause === "object" &&
+    "code" in error.cause
+      ? (error.cause as { code?: unknown }).code
+      : undefined;
+
+  return code === "23505" || causeCode === "23505";
 }
 
 export async function getPlatformSpecies() {

@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
 
 import { logger } from "@/lib/logger";
-import { conflict, forbidden, internalError, ok, unauthorized } from "@/lib/api-response";
+import { conflict, forbidden, internalError, notFound, ok, unauthorized } from "@/lib/api-response";
+import { TENANT_ERRORS } from "@/lib/tenant";
 import { requireValidBody } from "@/lib/validation/request";
 import { requireValidQuery } from "@/lib/validation/query";
 import { createSupplierBodySchema, listSuppliersQuerySchema } from "@/lib/validation/suppliers";
@@ -42,6 +43,8 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error) {
       if (error.message === "UNAUTHORIZED") return unauthorized();
       if (error.message === "FORBIDDEN") return forbidden();
+      if (error.message === TENANT_ERRORS.INSTITUTION_NOT_FOUND)
+        return notFound("Institution not found");
       if (error.message === "CONFLICT")
         return conflict("Supplier code already exists for this institution");
     }
