@@ -33,6 +33,7 @@ Flutr uses a shared database with institution-level data isolation:
 - `(tenant)` routes are protected by NextAuth middleware
 - `(public)` routes are accessible without authentication
 - `/admin/*` platform pages are protected by server-side checks in `src/app/(platform)/admin/layout.tsx` (not middleware matcher)
+- Shared app navigation paths are centralized in `src/lib/routes.ts` (`ROUTES`) to avoid hardcoded URL drift.
 
 ### Authentication Flow
 
