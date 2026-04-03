@@ -4,7 +4,6 @@ import { logger } from "@/lib/logger";
 import { conflict, forbidden, internalError, ok, unauthorized } from "@/lib/api-response";
 import { requireValidBody } from "@/lib/validation/request";
 import { platformCreateInstitutionSchema } from "@/lib/validation/institution";
-import { handleTenantError } from "@/lib/tenant";
 
 import {
   getPlatformInstitutions,
@@ -21,9 +20,6 @@ export async function GET(_request: NextRequest) {
       if (error.message === "UNAUTHORIZED") return unauthorized();
       if (error.message === "FORBIDDEN") return forbidden();
     }
-
-    const tenantError = handleTenantError(error);
-    if (tenantError) return tenantError;
 
     logger.error("Unexpected GET /platform/institutions error:", error);
     return internalError();
@@ -44,9 +40,6 @@ export async function POST(request: NextRequest) {
       if (error.message === "FORBIDDEN") return forbidden();
       if (error.message === "CONFLICT") return conflict("Slug already in use");
     }
-
-    const tenantError = handleTenantError(error);
-    if (tenantError) return tenantError;
 
     logger.error("Unexpected POST /platform/institutions error:", error);
     return internalError();

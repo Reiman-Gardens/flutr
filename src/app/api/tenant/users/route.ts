@@ -65,8 +65,8 @@ export async function POST(request: NextRequest) {
 
     return ok({ user: created });
   } catch (error: unknown) {
-    const dbError = error as { code?: string };
-    if (dbError?.code === "23505") {
+    const dbError = error as { code?: string; cause?: { code?: string } };
+    if (dbError?.code === "23505" || dbError?.cause?.code === "23505") {
       return conflict("Email already exists");
     }
 

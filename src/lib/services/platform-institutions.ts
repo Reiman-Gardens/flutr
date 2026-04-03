@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { requireUser, canCrossTenant } from "@/lib/authz";
-import { ensureTenantExists } from "@/lib/tenant";
+import { ensureTenantExists, TENANT_ERRORS } from "@/lib/tenant";
 import {
   getAllInstitutions,
   institutionSlugExists,
@@ -25,7 +25,10 @@ export async function createPlatformInstitution(data: PlatformCreateInstitutionI
   if (!canCrossTenant(user)) throw new Error("FORBIDDEN");
   const exists = await institutionSlugExists(data.slug);
   if (exists) throw new Error("CONFLICT");
-  return createInstitution(data);
+  return createInstitution({
+    ...data,
+    stats_active: false,
+  });
 }
 
 export async function getPlatformInstitutionById(id: number) {
@@ -37,7 +40,15 @@ export async function getPlatformInstitutionById(id: number) {
 export async function updatePlatformInstitution(id: number, data: PlatformUpdateInstitutionInput) {
   const user = requireUser(await auth());
   if (!canCrossTenant(user)) throw new Error("FORBIDDEN");
-  await ensureTenantExists(id);
+  try {
+    await ensureTenantExists(id);
+  } catch (error) {
+    if (error instanceof Error && error.message === TENANT_ERRORS.INSTITUTION_NOT_FOUND) {
+      throw new Error("NOT_FOUND");
+    }
+
+    throw error;
+  }
   if (typeof data.slug === "string") {
     const slugExists = await institutionSlugExists(data.slug, id);
     if (slugExists) throw new Error("CONFLICT");
@@ -50,6 +61,14 @@ export async function updatePlatformInstitution(id: number, data: PlatformUpdate
 export async function deletePlatformInstitution(id: number) {
   const user = requireUser(await auth());
   if (!canCrossTenant(user)) throw new Error("FORBIDDEN");
-  await ensureTenantExists(id);
+  try {
+    await ensureTenantExists(id);
+  } catch (error) {
+    if (error instanceof Error && error.message === TENANT_ERRORS.INSTITUTION_NOT_FOUND) {
+      throw new Error("NOT_FOUND");
+    }
+
+    throw error;
+  }
   await deleteInstitution(id);
 }

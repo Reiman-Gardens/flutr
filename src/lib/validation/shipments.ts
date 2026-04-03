@@ -127,9 +127,9 @@ export const updateShipmentBodySchema = z
     supplier_code: z.string().min(1).max(30).optional(),
     shipment_date: z.coerce.date().optional(),
     arrival_date: z.coerce.date().optional(),
-    update_items: z.array(shipmentItemUpdateSchema).optional(),
-    add_items: z.array(shipmentItemAddSchema).optional(),
-    delete_items: z.array(z.number().int().positive()).optional(),
+    update_items: z.array(shipmentItemUpdateSchema).min(1).optional(),
+    add_items: z.array(shipmentItemAddSchema).min(1).optional(),
+    delete_items: z.array(z.number().int().positive()).min(1).optional(),
   })
   .strict()
   .superRefine((data, ctx) => {
@@ -169,8 +169,10 @@ export type UpdateShipmentBody = z.infer<typeof updateShipmentBodySchema>;
  * Used primarily for historical import testing.
  */
 
-export const deleteShipmentTenantSchema = z.object({
-  // Tenant context is supplied via x-tenant-slug header.
-});
+export const deleteShipmentTenantSchema = z
+  .object({
+    // Tenant context is supplied via x-tenant-slug header.
+  })
+  .strict();
 
 export type DeleteShipmentTenantBody = z.infer<typeof deleteShipmentTenantSchema>;

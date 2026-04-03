@@ -21,15 +21,27 @@ return internalError(); // 500
 
 Error paths use bracket notation for array indices (e.g. `items[0].field`).
 
-## Required Checks
+## Route vs Service responsibilities
 
-Every protected API route must follow this order:
+### Route layer
 
-1. **Authenticate**: `const session = await auth(); const user = requireUser(session);`
+Routes handle HTTP concerns only — they must not call `auth()`, perform role checks, or call queries directly.
+
+Every route handler must:
+
+1. **Read tenant header** (tenant routes only): read `x-tenant-slug`; return `400` if missing
+2. **Validate input**: Zod schemas with `.strict()` for params, body, and query
+3. **Call the service**: pass validated input (including slug) to the service function
+4. **Map errors to HTTP**: catch sentinel strings (`"UNAUTHORIZED"` → 401, `"FORBIDDEN"` → 403, `"NOT_FOUND"` → 404, `"CONFLICT"` → 409); for tenant routes also call `handleTenantError`
+
+### Service layer
+
+Services own all auth, authorization, and tenant resolution:
+
+1. **Authenticate**: `const user = requireUser(await auth());`
 2. **Authorize**: Use `canX(user)` helpers from `@/lib/authz` — never raw role checks
-3. **Validate input**: Zod schemas with `.strict()` for body, params, and query
-4. **Sanitize**: Required text fields use `sanitizedNonEmpty(maxLen)`, optional fields use `.transform(sanitizeText)`
-5. **Tenant resolution**: read `x-tenant-slug` header, call `resolveTenantBySlug(user, slug)` in the service layer; return `400` if header is missing
+3. **Resolve tenant** (tenant routes): `const tenantId = await resolveTenantBySlug(user, slug);`
+4. **Strip slug** before passing data to the query layer
 
 ## Validation Rules
 

@@ -181,6 +181,14 @@ describe("Platform Suppliers API", () => {
       expect((await response.json()).error.code).toBe("CONFLICT");
     });
 
+    it("returns 404 when institutionId does not exist", async () => {
+      mockCreatePlatformSupplier.mockRejectedValueOnce(new Error("Institution not found"));
+
+      const response = (await postSupplier(makePostRequest(validCreatePayload())))!;
+      expect(response.status).toBe(404);
+      expect((await response.json()).error.code).toBe("NOT_FOUND");
+    });
+
     it("returns 400 for missing required fields", async () => {
       const response = (await postSupplier(makePostRequest({ name: "Only name" })))!;
       expect(response.status).toBe(400);
@@ -188,9 +196,7 @@ describe("Platform Suppliers API", () => {
     });
 
     it("returns 403 when SUPERUSER omits institutionId", async () => {
-      mockCreatePlatformSupplier.mockRejectedValueOnce(
-        new Error("Tenant required for write operation"),
-      );
+      mockCreatePlatformSupplier.mockRejectedValueOnce(new Error("FORBIDDEN"));
 
       const payload = { name: "Test", code: "TST", country: "US" };
       const response = (await postSupplier(makePostRequest(payload)))!;

@@ -25,6 +25,7 @@
 *.pem
 .idea
 .claude/settings.local.json
+/sessions
 
 # seed data
 scripts/data/*.json

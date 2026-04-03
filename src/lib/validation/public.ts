@@ -1,13 +1,13 @@
 import { z } from "zod";
 
 import { sanitizedNonEmpty } from "@/lib/validation/sanitize";
+import { institutionSlugSchema } from "@/lib/validation/slug";
 
-const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const scientificNameRegex = /^[A-Za-z0-9_.-]+$/;
 
 export const institutionSlugParamsSchema = z
   .object({
-    slug: z.string().min(1).regex(slugRegex),
+    slug: institutionSlugSchema,
   })
   .strict();
 
