@@ -65,7 +65,7 @@ export function InstitutionCard({
               <div
                 className={cn(
                   "flex size-10 shrink-0 items-center justify-center rounded-full",
-                  logo_url ? "bg-white" : "bg-muted",
+                  logo_url ? "bg-background" : "bg-muted",
                 )}
               >
                 {logo_url ? (

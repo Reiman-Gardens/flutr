@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useSession, signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
@@ -19,7 +20,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
         className={cn(
           "sticky top-0 z-50 border-b",
           isLoginPage
-            ? "bg-white supports-backdrop-filter:bg-white"
+            ? "bg-background supports-backdrop-filter:bg-background"
             : "bg-background/95 supports-backdrop-filter:bg-background/60 backdrop-blur",
         )}
       >
@@ -30,7 +31,9 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
           >
             <span className="text-lg font-bold tracking-tight">Flutr</span>
           </Link>
-          <nav aria-label="Platform navigation"></nav>
+          <nav aria-label="Platform navigation">
+            <ThemeToggle />
+          </nav>
         </div>
       </header>
       <main id="main-content" className="flex flex-1 flex-col">

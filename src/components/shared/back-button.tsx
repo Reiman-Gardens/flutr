@@ -21,7 +21,7 @@ export function BackButton({ fallbackHref = "/" }: BackButtonProps) {
   };
 
   return (
-    <Button variant="outline" onClick={handleClick}>
+    <Button variant="secondary" onClick={handleClick} className="shadow-md">
       <ArrowLeft className="size-4" aria-hidden="true" />
       Go back
     </Button>
