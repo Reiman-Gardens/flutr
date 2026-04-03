@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ROUTES } from "@/lib/routes";
 
 import { Institution } from "./institutions.utils";
 
@@ -40,7 +41,7 @@ export default function InstitutionsCards({ institutions }: { institutions: Inst
   return (
     <div className="flex flex-col gap-4 md:hidden">
       {institutions.map((institution) => {
-        const platformHref = `/platform/institutions/${institution.id}?tab=profile`;
+        const platformHref = `${ROUTES.admin.institutionById(institution.id)}?tab=profile`;
         const location = [institution.city, institution.state_province, institution.country]
           .filter(Boolean)
           .join(", ");

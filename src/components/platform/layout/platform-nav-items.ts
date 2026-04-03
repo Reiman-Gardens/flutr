@@ -1,12 +1,5 @@
-import {
-  Building2,
-  LayoutDashboard,
-  Leaf,
-  LogOut,
-  LucideIcon,
-  Package,
-  Settings,
-} from "lucide-react";
+import { Building2, LayoutDashboard, Leaf, LogOut, LucideIcon, Package } from "lucide-react";
+import { ROUTES } from "@/lib/routes";
 
 export interface NavItem {
   id: string;
@@ -16,11 +9,10 @@ export interface NavItem {
 }
 
 export const PLATFORM_ROUTES = {
-  dashboard: "/platform",
-  institutions: "/platform/institutions",
-  species: "/platform/species",
-  suppliers: "/platform/suppliers",
-  settings: "/platform/settings",
+  dashboard: ROUTES.admin.dashboard,
+  institutions: ROUTES.admin.institutions,
+  species: ROUTES.admin.species,
+  suppliers: ROUTES.admin.suppliers,
 } as const;
 
 /** Primary navigation items rendered in the sidebar. */
@@ -52,14 +44,7 @@ export const PLATFORM_NAV_ITEMS: readonly NavItem[] = [
 ];
 
 /** Bottom utility items rendered below the spacer. */
-export const PLATFORM_BOTTOM_ITEMS: readonly NavItem[] = [
-  {
-    id: "settings",
-    label: "Settings",
-    href: PLATFORM_ROUTES.settings,
-    icon: Settings,
-  },
-];
+export const PLATFORM_BOTTOM_ITEMS: readonly NavItem[] = [];
 
 /** Logout action — rendered as a button, not a link. */
 export const LOGOUT_ITEM = {

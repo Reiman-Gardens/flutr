@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "@/components/ui/link";
+import { ROUTES } from "@/lib/routes";
 
 export default function InstitutionsHeader() {
   return (
@@ -13,7 +14,7 @@ export default function InstitutionsHeader() {
 
       <div className="flex items-center gap-2">
         <Button asChild>
-          <Link href="/platform/institutions/add">Add Institution</Link>
+          <Link href={ROUTES.admin.institutionAdd}>Add Institution</Link>
         </Button>
       </div>
     </div>

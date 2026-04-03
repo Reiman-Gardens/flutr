@@ -19,25 +19,30 @@ Flutr uses a shared database with institution-level data isolation:
 
 ```
 /login                              # Public login page
-/[institution]/(admin)/dashboard    # Protected — admin dashboard
-/[institution]/(admin)/inventory    # Protected — butterfly inventory
-/[institution]/(admin)/shipments    # Protected — shipment list
-/[institution]/(admin)/shipments/add # Protected — add shipment
+/admin/dashboard                    # Protected — platform dashboard (SUPERUSER)
+/admin/institutions                 # Protected — platform institutions (SUPERUSER)
+/[institution]/(tenant)/dashboard   # Protected — institution dashboard
+/[institution]/(tenant)/inventory   # Protected — butterfly inventory
+/[institution]/(tenant)/shipments   # Protected — shipment list
+/[institution]/(tenant)/shipments/add # Protected — add shipment
 /[institution]/(public)/            # Public — institution landing page
 /[institution]/(public)/stats       # Public — institution statistics
 /[institution]/(public)/[butterfly] # Public — species detail page
 ```
 
-- `(admin)` routes are protected by NextAuth middleware
+- `(tenant)` routes are protected by NextAuth middleware
 - `(public)` routes are accessible without authentication
+- `/admin/*` platform pages are protected by server-side checks in `src/app/(platform)/admin/layout.tsx` (not middleware matcher)
+- Shared app navigation paths are centralized in `src/lib/routes.ts` (`ROUTES`) to avoid hardcoded URL drift.
 
 ### Authentication Flow
 
 1. User submits email/password to `/login`
 2. NextAuth credentials provider verifies via bcrypt
 3. JWT token is issued with `role` and `institutionId` claims
-4. Middleware intercepts `(admin)` routes and checks session validity
-5. Server components/API routes use `auth()` to access session data
+4. Middleware intercepts `(tenant)` routes and checks session validity
+5. Platform pages under `/admin/*` enforce authz in the platform admin layout (`auth()` + `requireUser()` + `canCrossTenant()`)
+6. Server components/API routes use `auth()` to access session data
 
 ### Database Layer
 

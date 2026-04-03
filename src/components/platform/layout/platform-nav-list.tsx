@@ -14,9 +14,6 @@ import {
 } from "./platform-nav-items";
 
 function isActive(href: string, pathname: string): boolean {
-  if (href === "/platform") {
-    return pathname === "/platform";
-  }
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 

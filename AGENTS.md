@@ -21,18 +21,18 @@ A WCAG-compliant, multi-tenant web application for butterfly houses to track shi
 ```
 src/
 ├── app/                    # Next.js pages and API routes
-│   ├── (admin)/            # Superuser platform admin panel
-│   │   └── platform/       # Platform admin routes (/platform/*)
+│   ├── (platform)/         # Superuser platform admin panel
+│   │   └── admin/          # Platform admin routes (/admin/*)
 │   │       ├── layout.tsx  # Admin shell (sidebar + header + footer)
-│   │       ├── page.tsx    # Dashboard (nav cards)
+│   │       ├── dashboard/  # Dashboard (nav cards)
 │   │       ├── institutions/ # Institutions management
 │   │       ├── species/    # Butterfly species management
 │   │       └── suppliers/  # Suppliers management
-│   ├── (platform)/         # Platform-level routes (landing, login)
+│   ├── (home)/             # Public root routes (landing, login)
 │   │   ├── page.tsx        # Root public landing page
 │   │   └── login/          # Login page
 │   ├── [institution]/      # Multi-tenant institution routes
-│   │   ├── (admin)/        # Protected admin routes
+│   │   ├── (tenant)/       # Protected tenant admin routes
 │   │   │   ├── dashboard/  # Admin dashboard
 │   │   │   ├── inventory/  # Butterfly inventory management
 │   │   │   └── shipments/  # Shipment tracking (list + add)
@@ -103,11 +103,11 @@ pnpm db:studio      # Open Drizzle Studio GUI
 - Path alias: `@/` maps to `/src/`
 - Multi-tenant routing: `[institution]` dynamic segment isolates data per institution
 - Institution validation: `[institution]/layout.tsx` calls `getPublicInstitution(slug)` and triggers `notFound()` if the institution doesn't exist. Child pages can use `(await getPublicInstitution(slug))!` (non-null assertion) since the layout guarantees validity and React `cache()` deduplicates the call. The root `src/app/not-found.tsx` catches the 404.
-- Route groups: `(admin)` for protected routes, `(public)` for public-facing pages
+- Route groups: `(tenant)` for protected institution routes, `(public)` for public-facing institution routes, `(home)` for root public pages, `(platform)` for superuser platform pages
 - Client components marked with `"use client"`
 - API layer: Routes (validation + HTTP) → Services (auth, permissions, tenant logic) → Queries (DB only). Routes never call queries directly for authenticated resources.
 - Auth: NextAuth 5 with credentials provider, JWT tokens carry `role` and `institutionId`
-- Middleware: Protects `/:institution/(admin)/*` routes via NextAuth
+- Middleware: Protects `/:institution/(tenant)/*` routes via NextAuth. Platform UI routes (`/admin/*`) are guarded in `src/app/(platform)/admin/layout.tsx` using `auth()`, `requireUser()`, and `canCrossTenant()`.
 - Database: Drizzle ORM with typed schema, PostgreSQL via Docker Compose
 - UI components: Shadcn/UI installed via CLI, located in `src/components/ui/`
 - Forms: React Hook Form with Zod schema validation
@@ -154,6 +154,7 @@ Detailed documentation lives in `docs/`:
 | Authorization helpers | `requireUser`, `canX(...)` from `@/lib/authz`                                     | Used inside services, not routes directly                                                                                                                                                      |
 | Tenant helpers        | `resolveTenantBySlug`, `tenantCondition`, `handleTenantError` from `@/lib/tenant` | `resolveTenantBySlug` resolves `x-tenant-slug` header in service layer; `tenantCondition` enforces isolation at query layer; `handleTenantError` maps tenant errors to 403/404 in catch blocks |
 | Validation helpers    | `requireValidBody` / `requireValidQuery` from `@/lib/validation/*`                | Standardized request validation flow                                                                                                                                                           |
+| Route constants       | `ROUTES` from `@/lib/routes`                                                      | Centralized app route paths and builders (for example `/admin/*` and `/:institution/*`). Prefer this over hardcoded links/redirect strings.                                                    |
 | Sanitize              | `sanitizeText` from `@/lib/validation/sanitize`                                   | Strip HTML from user input                                                                                                                                                                     |
 | Sanitized non-empty   | `sanitizedNonEmpty(maxLen)` from `@/lib/validation/sanitize`                      | Sanitize + trim before enforcing non-empty (required texts)                                                                                                                                    |
 | DB client             | `db` from `@/lib/db`                                                              | Drizzle ORM client with full schema                                                                                                                                                            |

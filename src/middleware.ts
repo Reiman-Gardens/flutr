@@ -5,7 +5,7 @@ import type { Role, Permission } from "@/lib/permissions";
 import { hasPermission } from "@/lib/permissions";
 
 // Middleware matcher: protects institution-scoped admin routes.
-// Route groups like (admin) do not appear in the URL; actual paths are
+// Route groups like (tenant) do not appear in the URL; actual paths are
 // /:institution/dashboard, /:institution/shipments, etc.
 // Public routes (login, unauthorized, api, _next) bypass middleware entirely.
 export const config = {

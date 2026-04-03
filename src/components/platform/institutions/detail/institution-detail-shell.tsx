@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
+import { ROUTES } from "@/lib/routes";
 
 import {
   AlertDialog,
@@ -96,7 +97,7 @@ export default function InstitutionDetailShell({ institution, users, initialTab 
 
     if (res.ok) {
       toast.success("Institution deleted.");
-      router.push("/platform/institutions");
+      router.push(ROUTES.admin.institutions);
       return;
     }
 
@@ -112,7 +113,7 @@ export default function InstitutionDetailShell({ institution, users, initialTab 
         <div className="min-w-0 flex-1">
           <div className="flex flex-col gap-1">
             <Button variant="ghost" size="sm" className="-ml-2 w-fit" asChild>
-              <Link href="/platform/institutions">
+              <Link href={ROUTES.admin.institutions}>
                 <ArrowLeft className="mr-1 size-4" aria-hidden="true" />
                 Institutions
               </Link>
@@ -124,7 +125,7 @@ export default function InstitutionDetailShell({ institution, users, initialTab 
         </div>
         <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
           <Button variant="outline" asChild className="w-full sm:w-auto">
-            <Link href={`/${currentInstitution.slug}/dashboard`}>View as Admin</Link>
+            <Link href={ROUTES.tenant.dashboard(currentInstitution.slug)}>View as Admin</Link>
           </Button>
 
           <AlertDialog>

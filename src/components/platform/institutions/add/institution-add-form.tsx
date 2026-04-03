@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { ROUTES } from "@/lib/routes";
 import { institutionSlugSchema } from "@/lib/validation/slug";
 
 const TIMEZONE_OPTIONS = [
@@ -130,7 +131,7 @@ export default function InstitutionAddForm() {
 
     if (res.ok) {
       const data = await res.json();
-      router.push(`/platform/institutions/${data.institution.id}?tab=profile`);
+      router.push(`${ROUTES.admin.institutionById(data.institution.id)}?tab=profile`);
       return;
     }
 
