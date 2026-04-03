@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { sanitizeText, sanitizedNonEmpty } from "@/lib/validation/sanitize";
+import { institutionSlugSchema } from "@/lib/validation/slug";
 
 /**
  * This file defines Zod schemas for validating institution-related data across the platform.
@@ -58,7 +59,7 @@ export const platformCreateInstitutionSchema = z
     ...baseInstitutionFields,
 
     // SUPERUSER defines slug on creation
-    slug: sanitizedNonEmpty(100),
+    slug: institutionSlugSchema,
 
     // Optional fields not in baseInstitutionFields
     time_zone: z.string().max(100).optional(),

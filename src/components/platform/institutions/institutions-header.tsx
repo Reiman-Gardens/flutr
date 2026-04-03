@@ -12,9 +12,6 @@ export default function InstitutionsHeader() {
       </div>
 
       <div className="flex items-center gap-2">
-        <Button variant="outline" disabled>
-          Export
-        </Button>
         <Button asChild>
           <Link href="/platform/institutions/add">Add Institution</Link>
         </Button>

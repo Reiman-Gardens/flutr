@@ -27,7 +27,7 @@ function getInitials(name: string) {
 }
 
 export default function InstitutionsTableRow({ institution }: { institution: Institution }) {
-  const platformHref = `/platform/institutions/${institution.id}`;
+  const platformHref = `/platform/institutions/${institution.id}?tab=profile`;
 
   const location = [institution.city, institution.state_province, institution.country]
     .filter(Boolean)
@@ -43,18 +43,22 @@ export default function InstitutionsTableRow({ institution }: { institution: Ins
             <AvatarFallback>{getInitials(institution.name)}</AvatarFallback>
           </Avatar>
 
-          <div className="flex flex-col">
-            <span className="font-medium">{institution.name}</span>
-            <span className="text-muted-foreground text-xs">{location || "—"}</span>
+          <div className="flex min-w-0 flex-col">
+            <span className="font-medium break-words whitespace-normal">{institution.name}</span>
+            <span className="text-muted-foreground text-xs break-words whitespace-normal">
+              {location || "—"}
+            </span>
           </div>
         </div>
       </TableCell>
 
       {/* Contact */}
-      <TableCell>{institution.email_address ?? "—"}</TableCell>
+      <TableCell className="max-w-[16rem]">
+        <span className="break-all whitespace-normal">{institution.email_address ?? "—"}</span>
+      </TableCell>
 
       {/* Theme */}
-      <TableCell>
+      <TableCell className="hidden xl:table-cell">
         <div className="flex items-center gap-2">
           <div className="bg-muted-foreground/40 h-3 w-3 rounded-full" />
           <span className="text-muted-foreground text-xs">Default</span>
@@ -67,7 +71,7 @@ export default function InstitutionsTableRow({ institution }: { institution: Ins
       </TableCell>
 
       {/* Actions */}
-      <TableCell>
+      <TableCell className="w-[1%] whitespace-nowrap">
         <Button size="sm" variant="outline" asChild>
           <Link href={platformHref}>Manage</Link>
         </Button>

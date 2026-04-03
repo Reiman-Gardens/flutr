@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { institutionSlugSchema } from "@/lib/validation/slug";
 
 const TIMEZONE_OPTIONS = [
   // North America
@@ -53,7 +54,7 @@ const TIMEZONE_OPTIONS = [
 const addFormSchema = z.object({
   // Identity
   name: z.string().min(1, "Name is required"),
-  slug: z.string().min(1, "Slug is required"),
+  slug: institutionSlugSchema,
   description: z.string().optional(),
 
   // Address
@@ -81,6 +82,8 @@ export default function InstitutionAddForm() {
 
   const form = useForm<AddFormValues>({
     resolver: zodResolver(addFormSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: {
       name: "",
       slug: "",
@@ -127,7 +130,7 @@ export default function InstitutionAddForm() {
 
     if (res.ok) {
       const data = await res.json();
-      router.push(`/platform/institutions/${data.institution.id}`);
+      router.push(`/platform/institutions/${data.institution.id}?tab=profile`);
       return;
     }
 

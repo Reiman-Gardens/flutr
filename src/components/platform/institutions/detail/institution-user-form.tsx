@@ -47,6 +47,17 @@ const userFormSchema = z.object({
 
 type UserFormValues = z.infer<typeof userFormSchema>;
 
+type UserErrorResponse = {
+  error?:
+    | {
+        code?: string;
+        message?: string;
+      }
+    | string
+    | unknown;
+  message?: unknown;
+};
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -73,6 +84,31 @@ export default function InstitutionUserForm({
       password: "",
     },
   });
+
+  function getErrorMessage(data: UserErrorResponse) {
+    if (typeof data.message === "string") return data.message;
+    if (
+      typeof data.error === "object" &&
+      data.error !== null &&
+      "message" in data.error &&
+      typeof data.error.message === "string"
+    ) {
+      return data.error.message;
+    }
+    if (typeof data.error === "string") return data.error;
+    return "";
+  }
+
+  function isDuplicateEmailError(status: number, data: UserErrorResponse) {
+    if (status === 409) return true;
+
+    const message = getErrorMessage(data);
+    return message.toLowerCase().includes("email already exists");
+  }
+
+  async function readErrorResponse(res: Response): Promise<UserErrorResponse> {
+    return (await res.json().catch(() => ({}))) as UserErrorResponse;
+  }
 
   // Reset form whenever the dialog opens or the target user changes
   useEffect(() => {
@@ -123,10 +159,14 @@ export default function InstitutionUserForm({
           role: data.user.role,
         });
         onOpenChange(false);
-      } else if (res.status === 409) {
-        form.setError("email", { message: "Email already in use." });
       } else {
-        toast.error("Failed to update user.");
+        const data = await readErrorResponse(res);
+        if (isDuplicateEmailError(res.status, data)) {
+          form.setError("email", { message: "Email already in use." });
+          return;
+        }
+
+        toast.error(getErrorMessage(data) || "Failed to update user.");
       }
     } else {
       const res = await fetch("/api/tenant/users", {
@@ -150,10 +190,14 @@ export default function InstitutionUserForm({
           role: data.user.role,
         });
         onOpenChange(false);
-      } else if (res.status === 409) {
-        form.setError("email", { message: "Email already in use." });
       } else {
-        toast.error("Failed to add user.");
+        const data = await readErrorResponse(res);
+        if (isDuplicateEmailError(res.status, data)) {
+          form.setError("email", { message: "Email already in use." });
+          return;
+        }
+
+        toast.error(getErrorMessage(data) || "Failed to add user.");
       }
     }
   }
@@ -193,7 +237,17 @@ export default function InstitutionUserForm({
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="jane@example.com" {...field} />
+                    <Input
+                      type="email"
+                      placeholder="jane@example.com"
+                      {...field}
+                      onChange={(event) => {
+                        field.onChange(event);
+                        if (form.formState.errors.email) {
+                          form.clearErrors("email");
+                        }
+                      }}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -12,10 +12,23 @@ import type {
 
 interface Props {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }
 
-export default async function PlatformInstitutionPage({ params }: Props) {
+function resolveInitialTab(tab: string | undefined) {
+  switch (tab) {
+    case "theme":
+    case "users":
+    case "data":
+      return tab;
+    default:
+      return "profile";
+  }
+}
+
+export default async function PlatformInstitutionPage({ params, searchParams }: Props) {
   const { id: rawId } = await params;
+  const { tab } = await searchParams;
   const id = parseInt(rawId, 10);
 
   if (isNaN(id) || id <= 0) notFound();
@@ -60,5 +73,11 @@ export default async function PlatformInstitutionPage({ params }: Props) {
     role: u.role,
   }));
 
-  return <InstitutionDetailShell institution={institution} users={users} />;
+  return (
+    <InstitutionDetailShell
+      institution={institution}
+      users={users}
+      initialTab={resolveInitialTab(tab)}
+    />
+  );
 }

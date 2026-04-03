@@ -14,14 +14,14 @@ import { Institution } from "./institutions.utils";
 
 export default function InstitutionsTable({ institutions }: { institutions: Institution[] }) {
   return (
-    <Card>
+    <Card className="hidden md:block">
       <CardContent className="space-y-4">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Institution</TableHead>
               <TableHead>Primary Contact</TableHead>
-              <TableHead>Theme</TableHead>
+              <TableHead className="hidden xl:table-cell">Theme</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>

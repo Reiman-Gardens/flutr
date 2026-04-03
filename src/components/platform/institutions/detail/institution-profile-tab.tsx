@@ -21,13 +21,14 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { institutionSlugSchema } from "@/lib/validation/slug";
 
 import type { InstitutionDetail } from "./institution-detail-shell";
 
 const profileFormSchema = z.object({
   // Identity
   name: z.string().min(1, "Name is required"),
-  slug: z.string().min(1, "Slug is required"),
+  slug: institutionSlugSchema,
   description: z.string().optional(),
 
   // Address
@@ -73,6 +74,8 @@ type ProfileUpdateResponse = {
 export default function InstitutionProfileTab({ institution, onSaved }: Props) {
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: {
       name: institution.name,
       slug: institution.slug,

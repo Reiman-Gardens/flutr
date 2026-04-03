@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import {
@@ -54,19 +54,38 @@ export interface InstitutionUser {
   role: string;
 }
 
+type InstitutionDetailTab = "profile" | "theme" | "users" | "data";
+
 interface Props {
   institution: InstitutionDetail;
   users: InstitutionUser[];
+  initialTab: InstitutionDetailTab;
 }
 
-export default function InstitutionDetailShell({ institution, users }: Props) {
+export default function InstitutionDetailShell({ institution, users, initialTab }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [currentInstitution, setCurrentInstitution] = useState(institution);
   const [isDeletingInstitution, setIsDeletingInstitution] = useState(false);
+  const [activeTab, setActiveTab] = useState<InstitutionDetailTab>(initialTab);
 
   useEffect(() => {
     setCurrentInstitution(institution);
   }, [institution]);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
+  function handleTabChange(value: string) {
+    const nextTab = value as InstitutionDetailTab;
+    setActiveTab(nextTab);
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", nextTab);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }
 
   async function handleDeleteInstitution() {
     setIsDeletingInstitution(true);
@@ -89,24 +108,30 @@ export default function InstitutionDetailShell({ institution, users }: Props) {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-10">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <Button variant="ghost" size="sm" className="-ml-2 w-fit" asChild>
-            <Link href="/platform/institutions">
-              <ArrowLeft className="mr-1 size-4" aria-hidden="true" />
-              Institutions
-            </Link>
-          </Button>
-          <h1 className="text-2xl font-bold">{currentInstitution.name}</h1>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-col gap-1">
+            <Button variant="ghost" size="sm" className="-ml-2 w-fit" asChild>
+              <Link href="/platform/institutions">
+                <ArrowLeft className="mr-1 size-4" aria-hidden="true" />
+                Institutions
+              </Link>
+            </Button>
+            <h1 className="text-2xl font-bold break-words whitespace-normal">
+              {currentInstitution.name}
+            </h1>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" asChild>
+        <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
+          <Button variant="outline" asChild className="w-full sm:w-auto">
             <Link href={`/${currentInstitution.slug}/dashboard`}>View as Admin</Link>
           </Button>
 
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive">Delete Institution</Button>
+              <Button variant="destructive" className="w-full sm:w-auto">
+                Delete Institution
+              </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
@@ -132,8 +157,11 @@ export default function InstitutionDetailShell({ institution, users }: Props) {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="profile">
-        <TabsList aria-label="Institution settings">
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
+        <TabsList
+          aria-label="Institution settings"
+          className="grid w-full grid-cols-4 sm:inline-flex sm:w-fit"
+        >
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="theme">Theme</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>

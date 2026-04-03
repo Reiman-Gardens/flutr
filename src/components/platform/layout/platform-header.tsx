@@ -1,8 +1,21 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import { Menu } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+
+import PlatformNavList from "./platform-nav-list";
 
 type AuthUser = {
   id: string;
@@ -37,15 +50,36 @@ export default function PlatformHeader({
   user: AuthUser;
   sessionUser?: SessionUser;
 }) {
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
   return (
     <header role="banner" className="bg-background flex h-14 shrink-0 items-center border-b px-6">
       <div className="flex min-w-0 flex-1 items-center justify-between gap-6">
-        <Link
-          href="/platform"
-          className="text-foreground focus-visible:ring-ring rounded-sm text-lg font-bold tracking-tight focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-        >
-          Flutr
-        </Link>
+        <div className="flex items-center gap-3">
+          <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="md:hidden" aria-label="Open menu">
+                <Menu className="size-5" aria-hidden="true" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72 p-0" showCloseButton>
+              <SheetHeader className="border-b px-4 py-3">
+                <SheetTitle>Platform navigation</SheetTitle>
+                <SheetDescription>
+                  Navigate between platform admin sections and account actions.
+                </SheetDescription>
+              </SheetHeader>
+              <PlatformNavList onNavigate={() => setMobileNavOpen(false)} />
+            </SheetContent>
+          </Sheet>
+
+          <Link
+            href="/platform"
+            className="text-foreground focus-visible:ring-ring rounded-sm text-lg font-bold tracking-tight focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+          >
+            Flutr
+          </Link>
+        </div>
 
         <div className="text-right">
           <div className="flex items-center gap-3">

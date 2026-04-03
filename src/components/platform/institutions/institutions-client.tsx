@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 
+import InstitutionsCards from "./institutions-cards";
 import InstitutionsHeader from "./institutions-header";
 import InstitutionsToolbar from "./institutions-toolbar";
 import InstitutionsTable from "./institutions-table";
@@ -48,10 +49,11 @@ export default function InstitutionsClient({ institutions }: { institutions: Ins
         onStatusChange={handleStatusChange}
       />
 
+      <InstitutionsCards institutions={paginated} />
       <InstitutionsTable institutions={paginated} />
 
       {filtered.length > 0 && (
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-muted-foreground text-sm">
             Showing {start + 1}–{showingEnd} of {filtered.length}{" "}
             {filtered.length === 1 ? "institution" : "institutions"}

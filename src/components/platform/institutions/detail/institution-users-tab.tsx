@@ -27,6 +27,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 import type { InstitutionDetail, InstitutionUser } from "./institution-detail-shell";
+import InstitutionUsersCards from "./institution-users-cards";
 import InstitutionUserForm from "./institution-user-form";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -84,19 +85,75 @@ export default function InstitutionUsersTab({ institution, initialUsers }: Props
 
   const onlyOneUser = users.length === 1;
 
+  function renderDeleteAction(user: InstitutionUser, fullWidth = false) {
+    if (onlyOneUser) {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className={fullWidth ? "block w-full" : undefined}>
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled
+                className={fullWidth ? "w-full" : undefined}
+              >
+                Delete
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>At least one user is required</TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    return (
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button size="sm" variant="destructive" className={fullWidth ? "w-full" : undefined}>
+            Delete
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete user?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Remove {user.name} from {institution.name}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingUser}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={isDeletingUser}
+              onClick={() => handleDelete(user)}
+            >
+              {isDeletingUser ? "Deleting…" : "Delete user"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    );
+  }
+
   return (
     <TooltipProvider>
       <div className="mt-6 flex flex-col gap-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-muted-foreground text-sm">
             {users.length} {users.length === 1 ? "user" : "users"}
           </p>
-          <Button size="sm" onClick={openAdd}>
+          <Button size="sm" onClick={openAdd} className="w-full sm:w-auto">
             Add User
           </Button>
         </div>
 
-        <div className="rounded-md border">
+        <InstitutionUsersCards
+          users={users}
+          onEdit={openEdit}
+          renderDeleteAction={(user) => renderDeleteAction(user, true)}
+        />
+
+        <div className="hidden rounded-md border md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -117,7 +174,9 @@ export default function InstitutionUsersTab({ institution, initialUsers }: Props
                 users.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
+                    <TableCell className="max-w-[18rem]">
+                      <span className="break-all whitespace-normal">{user.email}</span>
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline">{ROLE_LABELS[user.role] ?? user.role}</Badge>
                     </TableCell>
@@ -127,46 +186,7 @@ export default function InstitutionUsersTab({ institution, initialUsers }: Props
                           Edit
                         </Button>
 
-                        {onlyOneUser ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span>
-                                <Button size="sm" variant="destructive" disabled>
-                                  Delete
-                                </Button>
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent>At least one user is required</TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="destructive">
-                                Delete
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent size="sm">
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete user?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Remove {user.name} from {institution.name}.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel disabled={isDeletingUser}>
-                                  Cancel
-                                </AlertDialogCancel>
-                                <AlertDialogAction
-                                  variant="destructive"
-                                  disabled={isDeletingUser}
-                                  onClick={() => handleDelete(user)}
-                                >
-                                  {isDeletingUser ? "Deleting…" : "Delete user"}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
+                        {renderDeleteAction(user)}
                       </div>
                     </TableCell>
                   </TableRow>
