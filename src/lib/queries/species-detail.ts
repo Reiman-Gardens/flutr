@@ -5,6 +5,11 @@ import { db } from "@/lib/db";
 import { butterfly_species, butterfly_species_institution } from "@/lib/schema";
 import { inFlightCountSubquery } from "@/lib/queries/subqueries";
 
+export interface FunFact {
+  title: string;
+  description: string;
+}
+
 export interface SpeciesDetail {
   id: number;
   scientific_name: string;
@@ -16,7 +21,7 @@ export interface SpeciesDetail {
   description: string | null;
   host_plant: string | null;
   habitat: string | null;
-  fun_facts: string | null;
+  fun_facts: FunFact[] | null;
   img_wings_open: string | null;
   img_wings_closed: string | null;
   extra_img_1: string | null;
@@ -79,7 +84,7 @@ export const getSpeciesDetail = cache(
       description: row.description,
       host_plant: row.host_plant,
       habitat: row.habitat,
-      fun_facts: row.fun_facts,
+      fun_facts: (row.fun_facts as FunFact[] | null) ?? null,
       img_wings_open: row.img_wings_open,
       img_wings_closed: row.img_wings_closed,
       extra_img_1: row.extra_img_1,

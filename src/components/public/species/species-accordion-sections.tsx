@@ -1,6 +1,6 @@
 "use client";
 
-import { Leaf, Sparkles } from "lucide-react";
+import { Leaf } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -10,11 +10,10 @@ import {
 
 interface SpeciesAccordionSectionsProps {
   hostPlant: string | null;
-  funFacts: string | null;
 }
 
-export function SpeciesAccordionSections({ hostPlant, funFacts }: SpeciesAccordionSectionsProps) {
-  if (!hostPlant && !funFacts) return null;
+export function SpeciesAccordionSections({ hostPlant }: SpeciesAccordionSectionsProps) {
+  if (!hostPlant) return null;
 
   return (
     <Accordion type="multiple" className="w-full">
@@ -28,26 +27,6 @@ export function SpeciesAccordionSections({ hostPlant, funFacts }: SpeciesAccordi
           </AccordionTrigger>
           <AccordionContent>
             <p className="text-muted-foreground text-sm leading-relaxed">{hostPlant}</p>
-          </AccordionContent>
-        </AccordionItem>
-      )}
-
-      {funFacts && (
-        <AccordionItem value="fun-facts">
-          <AccordionTrigger>
-            <span className="flex items-center gap-2">
-              <Sparkles className="size-4 text-amber-500" aria-hidden="true" />
-              Fun Facts
-            </span>
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="space-y-2">
-              {funFacts.split(/\n\n+/).map((paragraph, i) => (
-                <p key={i} className="text-muted-foreground text-sm leading-relaxed">
-                  {paragraph}
-                </p>
-              ))}
-            </div>
           </AccordionContent>
         </AccordionItem>
       )}

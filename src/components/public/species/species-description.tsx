@@ -6,7 +6,31 @@ interface SpeciesDescriptionProps {
 }
 
 export function SpeciesDescription({ description, habitat }: SpeciesDescriptionProps) {
-  if (!description && !habitat) return null;
+  // Safely parse description if it's a JSON string
+  let parsedDescription = description;
+  if (description && typeof description === "string" && description.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(description);
+      parsedDescription = typeof parsed === "string" ? parsed : description;
+    } catch {
+      // Keep original if parsing fails
+      parsedDescription = description;
+    }
+  }
+
+  // Safely parse habitat if it's a JSON string
+  let parsedHabitat = habitat;
+  if (habitat && typeof habitat === "string" && habitat.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(habitat);
+      parsedHabitat = typeof parsed === "string" ? parsed : habitat;
+    } catch {
+      // Keep original if parsing fails
+      parsedHabitat = habitat;
+    }
+  }
+
+  if (!parsedDescription && !parsedHabitat) return null;
 
   return (
     <section aria-labelledby="about-heading">
@@ -15,9 +39,11 @@ export function SpeciesDescription({ description, habitat }: SpeciesDescriptionP
         Habitat & Behavior
       </h2>
 
-      {habitat && <p className="text-muted-foreground mt-3 text-sm leading-relaxed">{habitat}</p>}
-      {description && (
-        <p className="text-muted-foreground mt-3 text-sm leading-relaxed">{description}</p>
+      {parsedHabitat && (
+        <p className="text-muted-foreground mt-3 text-sm leading-relaxed">{parsedHabitat}</p>
+      )}
+      {parsedDescription && (
+        <p className="text-muted-foreground mt-3 text-sm leading-relaxed">{parsedDescription}</p>
       )}
     </section>
   );

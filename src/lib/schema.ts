@@ -168,7 +168,7 @@ export const butterfly_species = pgTable("butterfly_species", {
 
   host_plant: text("host_plant"),
   habitat: text("habitat"),
-  fun_facts: text("fun_facts"),
+  fun_facts: jsonb("fun_facts").$type<{ title: string; description: string }[]>(),
 
   img_wings_open: text("img_wings_open"),
   img_wings_closed: text("img_wings_closed"),
