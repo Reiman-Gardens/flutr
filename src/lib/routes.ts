@@ -3,14 +3,12 @@ export const ROUTES = {
   login: "/login",
   unauthorized: "/unauthorized",
   admin: {
-    root: "/admin",
     dashboard: "/admin/dashboard",
     institutions: "/admin/institutions",
     institutionAdd: "/admin/institutions/add",
     institutionById: (id: string | number) => `/admin/institutions/${id}`,
     species: "/admin/species",
     suppliers: "/admin/suppliers",
-    settings: "/admin/settings",
   },
   tenant: {
     dashboard: (slug: string) => `/${slug}/dashboard`,
