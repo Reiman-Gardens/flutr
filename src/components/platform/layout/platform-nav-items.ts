@@ -7,6 +7,7 @@ import {
   Package,
   Settings,
 } from "lucide-react";
+import { ROUTES } from "@/lib/routes";
 
 export interface NavItem {
   id: string;
@@ -16,11 +17,11 @@ export interface NavItem {
 }
 
 export const PLATFORM_ROUTES = {
-  dashboard: "/platform",
-  institutions: "/platform/institutions",
-  species: "/platform/species",
-  suppliers: "/platform/suppliers",
-  settings: "/platform/settings",
+  dashboard: ROUTES.admin.dashboard,
+  institutions: ROUTES.admin.institutions,
+  species: ROUTES.admin.species,
+  suppliers: ROUTES.admin.suppliers,
+  settings: ROUTES.admin.settings,
 } as const;
 
 /** Primary navigation items rendered in the sidebar. */

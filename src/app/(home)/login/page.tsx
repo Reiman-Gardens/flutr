@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
+import { ROUTES } from "@/lib/routes";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -103,10 +104,10 @@ export default function LoginPage() {
 
       if (role === "SUPERUSER") {
         // Redirect superusers to the platform dashboard
-        router.push("/platform");
+        router.push(ROUTES.admin.dashboard);
       } else if (session?.user?.institutionSlug) {
         // Redirect to institution dashboard using slug (public tenant segment)
-        router.push(`/${session.user.institutionSlug}/dashboard`);
+        router.push(ROUTES.tenant.dashboard(session.user.institutionSlug));
       } else {
         // Fallback if institution slug is missing (e.g. SUPERUSER with no institution)
         router.push("/");

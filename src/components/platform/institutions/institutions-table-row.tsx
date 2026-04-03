@@ -3,6 +3,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ROUTES } from "@/lib/routes";
 
 import { Institution } from "./institutions.utils";
 
@@ -27,7 +28,7 @@ function getInitials(name: string) {
 }
 
 export default function InstitutionsTableRow({ institution }: { institution: Institution }) {
-  const platformHref = `/platform/institutions/${institution.id}?tab=profile`;
+  const platformHref = `${ROUTES.admin.institutionById(institution.id)}?tab=profile`;
 
   const location = [institution.city, institution.state_province, institution.country]
     .filter(Boolean)

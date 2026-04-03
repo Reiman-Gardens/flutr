@@ -14,6 +14,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { ROUTES } from "@/lib/routes";
 
 import PlatformNavList from "./platform-nav-list";
 
@@ -74,7 +75,7 @@ export default function PlatformHeader({
           </Sheet>
 
           <Link
-            href="/platform"
+            href={ROUTES.admin.dashboard}
             className="text-foreground focus-visible:ring-ring rounded-sm text-lg font-bold tracking-tight focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
           >
             Flutr

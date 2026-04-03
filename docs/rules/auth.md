@@ -19,7 +19,8 @@ JWT tokens and sessions include:
 
 ## Route Protection
 
-- Middleware at `src/middleware.ts` protects `/:institution/(admin)/*` routes
+- Middleware at `src/middleware.ts` protects `/:institution/(tenant)/*` routes
+- Platform UI routes under `/admin/*` are protected at the server-layout level in `src/app/(platform)/admin/layout.tsx` (`auth()` + `requireUser()` + `canCrossTenant()`), not by middleware matcher
 - Login page at `/login`
 - Use `auth()` in server components/API routes to get the session
 

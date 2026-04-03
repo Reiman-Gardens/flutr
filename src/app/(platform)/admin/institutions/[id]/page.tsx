@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { requireUser } from "@/lib/authz";
@@ -34,7 +34,13 @@ export default async function PlatformInstitutionPage({ params, searchParams }: 
   if (isNaN(id) || id <= 0) notFound();
 
   const session = await auth();
-  const platformUser = requireUser(session);
+  const platformUser = (() => {
+    try {
+      return requireUser(session);
+    } catch {
+      redirect("/login");
+    }
+  })();
 
   const [row, rawUsers] = await Promise.all([
     getInstitutionById(id),
