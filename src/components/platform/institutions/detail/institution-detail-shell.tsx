@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/routes";
 
 import {
@@ -55,15 +56,28 @@ export interface InstitutionUser {
   role: string;
 }
 
+export type InstitutionDetailMode = "platform" | "tenant";
+
 type InstitutionDetailTab = "profile" | "theme" | "users" | "data";
 
 interface Props {
   institution: InstitutionDetail;
   users: InstitutionUser[];
   initialTab: InstitutionDetailTab;
+  /** @default "platform" */
+  mode?: InstitutionDetailMode;
+  /** When true, all editing controls are hidden (read-only view for EMPLOYEE). */
+  readOnly?: boolean;
 }
 
-export default function InstitutionDetailShell({ institution, users, initialTab }: Props) {
+export default function InstitutionDetailShell({
+  institution,
+  users,
+  initialTab,
+  mode = "platform",
+  readOnly = false,
+}: Props) {
+  const isTenant = mode === "tenant";
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -112,78 +126,98 @@ export default function InstitutionDetailShell({ institution, users, initialTab 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex flex-col gap-1">
-            <Button variant="ghost" size="sm" className="-ml-2 w-fit" asChild>
-              <Link href={ROUTES.admin.institutions}>
-                <ArrowLeft className="mr-1 size-4" aria-hidden="true" />
-                Institutions
-              </Link>
-            </Button>
-            <h1 className="text-2xl font-bold break-words whitespace-normal">
+            {!isTenant && (
+              <Button variant="ghost" size="sm" className="-ml-2 w-fit" asChild>
+                <Link href={ROUTES.admin.institutions}>
+                  <ArrowLeft className="mr-1 size-4" aria-hidden="true" />
+                  Institutions
+                </Link>
+              </Button>
+            )}
+            <h1 className="text-2xl font-bold wrap-break-word whitespace-normal">
               {currentInstitution.name}
             </h1>
           </div>
         </div>
-        <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
-          <Button variant="outline" asChild className="w-full sm:w-auto">
-            <Link href={ROUTES.tenant.dashboard(currentInstitution.slug)}>View as Admin</Link>
-          </Button>
+        {!isTenant && (
+          <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
+            <Button variant="outline" asChild className="w-full sm:w-auto">
+              <Link href={ROUTES.tenant.dashboard(currentInstitution.slug)}>View as Admin</Link>
+            </Button>
 
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" className="w-full sm:w-auto">
-                Delete Institution
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete institution?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will permanently remove {currentInstitution.name} and all tenant-scoped data
-                  tied to it. This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel disabled={isDeletingInstitution}>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  variant="destructive"
-                  disabled={isDeletingInstitution}
-                  onClick={handleDeleteInstitution}
-                >
-                  {isDeletingInstitution ? "Deleting…" : "Delete institution"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="w-full sm:w-auto">
+                  Delete Institution
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete institution?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently remove {currentInstitution.name} and all tenant-scoped
+                    data tied to it. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isDeletingInstitution}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    variant="destructive"
+                    disabled={isDeletingInstitution}
+                    onClick={handleDeleteInstitution}
+                  >
+                    {isDeletingInstitution ? "Deleting…" : "Delete institution"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList
           aria-label="Institution settings"
-          className="grid w-full grid-cols-4 sm:inline-flex sm:w-fit"
+          className={cn(
+            "grid w-full sm:inline-flex sm:w-fit",
+            isTenant && readOnly ? "grid-cols-2" : "grid-cols-4",
+          )}
         >
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="theme">Theme</TabsTrigger>
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="data">Data</TabsTrigger>
+          {!(isTenant && readOnly) && <TabsTrigger value="users">Users</TabsTrigger>}
+          {!(isTenant && readOnly) && <TabsTrigger value="data">Data</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="profile">
-          <InstitutionProfileTab institution={currentInstitution} onSaved={setCurrentInstitution} />
+          <InstitutionProfileTab
+            institution={currentInstitution}
+            onSaved={setCurrentInstitution}
+            mode={mode}
+            readOnly={readOnly}
+          />
         </TabsContent>
 
         <TabsContent value="theme">
-          <InstitutionThemeTab institution={currentInstitution} />
+          <InstitutionThemeTab institution={currentInstitution} mode={mode} readOnly={readOnly} />
         </TabsContent>
 
-        <TabsContent value="users">
-          <InstitutionUsersTab institution={currentInstitution} initialUsers={users} />
-        </TabsContent>
+        {!(isTenant && readOnly) && (
+          <TabsContent value="users">
+            <InstitutionUsersTab
+              institution={currentInstitution}
+              initialUsers={users}
+              readOnly={readOnly}
+            />
+          </TabsContent>
+        )}
 
-        <TabsContent value="data">
-          <InstitutionDataTab />
-        </TabsContent>
+        {!(isTenant && readOnly) && (
+          <TabsContent value="data">
+            <InstitutionDataTab />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

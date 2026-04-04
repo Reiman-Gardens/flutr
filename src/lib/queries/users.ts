@@ -12,9 +12,16 @@ import type { CreateUserBody, UpdateUserBody } from "@/lib/validation/users";
  * TENANT QUERY
  *
  * List users for the current tenant scope.
+ * When excludeSuperusers is true, SUPERUSER accounts are filtered out
+ * (used by tenant org page so admins only see tenant-level users).
  */
-export async function listUsersForTenant(institutionId: number, user: AuthenticatedUser) {
-  const condition = tenantCondition(user, users.institution_id, institutionId);
+export async function listUsersForTenant(
+  institutionId: number,
+  user: AuthenticatedUser,
+  { excludeSuperusers = false }: { excludeSuperusers?: boolean } = {},
+) {
+  const tenantCond = tenantCondition(user, users.institution_id, institutionId);
+  const conditions = excludeSuperusers ? and(tenantCond, ne(users.role, "SUPERUSER")) : tenantCond;
 
   return db
     .select({
@@ -27,7 +34,7 @@ export async function listUsersForTenant(institutionId: number, user: Authentica
       updatedAt: users.updated_at,
     })
     .from(users)
-    .where(condition)
+    .where(conditions)
     .orderBy(asc(users.name));
 }
 

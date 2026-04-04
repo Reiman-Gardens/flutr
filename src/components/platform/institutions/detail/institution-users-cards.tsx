@@ -16,9 +16,15 @@ interface Props {
   users: InstitutionUser[];
   onEdit: (user: InstitutionUser) => void;
   renderDeleteAction: (user: InstitutionUser) => React.ReactNode;
+  readOnly?: boolean;
 }
 
-export default function InstitutionUsersCards({ users, onEdit, renderDeleteAction }: Props) {
+export default function InstitutionUsersCards({
+  users,
+  onEdit,
+  renderDeleteAction,
+  readOnly = false,
+}: Props) {
   if (users.length === 0) {
     return (
       <Card className="md:hidden">
@@ -36,19 +42,21 @@ export default function InstitutionUsersCards({ users, onEdit, renderDeleteActio
           <CardContent className="flex flex-col gap-4 pt-6">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-base font-medium break-words">{user.name}</p>
+                <p className="text-base font-medium wrap-break-word">{user.name}</p>
                 <p className="text-muted-foreground text-sm break-all">{user.email}</p>
               </div>
 
               <Badge variant="outline">{ROLE_LABELS[user.role] ?? user.role}</Badge>
             </div>
 
-            <div className="xs:flex-row flex flex-col gap-2">
-              <Button variant="outline" onClick={() => onEdit(user)} className="xs:flex-1">
-                Edit
-              </Button>
-              <div className="xs:flex-1">{renderDeleteAction(user)}</div>
-            </div>
+            {!readOnly && (
+              <div className="xs:flex-row flex flex-col gap-2">
+                <Button variant="outline" onClick={() => onEdit(user)} className="xs:flex-1">
+                  Edit
+                </Button>
+                <div className="xs:flex-1">{renderDeleteAction(user)}</div>
+              </div>
+            )}
           </CardContent>
         </Card>
       ))}
