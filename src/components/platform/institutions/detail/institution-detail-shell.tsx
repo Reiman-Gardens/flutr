@@ -134,7 +134,7 @@ export default function InstitutionDetailShell({
                 </Link>
               </Button>
             )}
-            <h1 className="text-2xl font-bold break-words whitespace-normal">
+            <h1 className="text-2xl font-bold wrap-break-word whitespace-normal">
               {currentInstitution.name}
             </h1>
           </div>

@@ -42,7 +42,7 @@ export default function InstitutionUsersCards({
           <CardContent className="flex flex-col gap-4 pt-6">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-base font-medium break-words">{user.name}</p>
+                <p className="text-base font-medium wrap-break-word">{user.name}</p>
                 <p className="text-muted-foreground text-sm break-all">{user.email}</p>
               </div>
 
