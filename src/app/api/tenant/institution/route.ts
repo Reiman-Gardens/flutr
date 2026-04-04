@@ -14,7 +14,7 @@ import { tenantUpdateInstitutionSchema } from "@/lib/validation/institution";
 import { handleTenantError } from "@/lib/tenant";
 
 import {
-  getTenantInstitutionService,
+  viewTenantInstitutionService,
   updateTenantInstitutionService,
 } from "@/lib/services/tenant-institution";
 
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
       return invalidRequest("Missing tenant slug");
     }
 
-    const institution = await getTenantInstitutionService(slug);
+    const institution = await viewTenantInstitutionService(slug);
 
     return ok({ institution });
   } catch (error) {

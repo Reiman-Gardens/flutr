@@ -1,17 +1,17 @@
 import { NextRequest } from "next/server";
 
 jest.mock("@/lib/services/tenant-institution", () => ({
-  getTenantInstitutionService: jest.fn(),
+  viewTenantInstitutionService: jest.fn(),
   updateTenantInstitutionService: jest.fn(),
 }));
 
 import {
-  getTenantInstitutionService,
+  viewTenantInstitutionService,
   updateTenantInstitutionService,
 } from "@/lib/services/tenant-institution";
 import { GET, PATCH } from "@/app/api/tenant/institution/route";
 
-const mockGetTenantInstitutionService = getTenantInstitutionService as jest.Mock;
+const mockViewTenantInstitutionService = viewTenantInstitutionService as jest.Mock;
 const mockUpdateTenantInstitutionService = updateTenantInstitutionService as jest.Mock;
 
 const SLUG = "butterfly-house";
@@ -60,7 +60,7 @@ describe("Tenant Institution API", () => {
     });
 
     it("returns 401 for unauthenticated requests", async () => {
-      mockGetTenantInstitutionService.mockRejectedValueOnce(new Error("UNAUTHORIZED"));
+      mockViewTenantInstitutionService.mockRejectedValueOnce(new Error("UNAUTHORIZED"));
 
       const response = (await GET(makeGetRequest(SLUG)))!;
       expect(response.status).toBe(401);
@@ -68,7 +68,7 @@ describe("Tenant Institution API", () => {
     });
 
     it("returns 403 for insufficient permission", async () => {
-      mockGetTenantInstitutionService.mockRejectedValueOnce(new Error("FORBIDDEN"));
+      mockViewTenantInstitutionService.mockRejectedValueOnce(new Error("FORBIDDEN"));
 
       const response = (await GET(makeGetRequest(SLUG)))!;
       expect(response.status).toBe(403);
@@ -76,7 +76,7 @@ describe("Tenant Institution API", () => {
     });
 
     it("returns 404 when institution not found", async () => {
-      mockGetTenantInstitutionService.mockRejectedValueOnce(new Error("NOT_FOUND"));
+      mockViewTenantInstitutionService.mockRejectedValueOnce(new Error("NOT_FOUND"));
 
       const response = (await GET(makeGetRequest(SLUG)))!;
       expect(response.status).toBe(404);
@@ -84,7 +84,7 @@ describe("Tenant Institution API", () => {
     });
 
     it("returns 200 with institution and calls service with slug", async () => {
-      mockGetTenantInstitutionService.mockResolvedValueOnce(sampleInstitution);
+      mockViewTenantInstitutionService.mockResolvedValueOnce(sampleInstitution);
 
       const response = (await GET(makeGetRequest(SLUG)))!;
       expect(response.status).toBe(200);
@@ -92,7 +92,7 @@ describe("Tenant Institution API", () => {
       const body = await response.json();
       expect(body.institution.id).toBe(1);
       expect(body.institution.name).toBe("Butterfly House");
-      expect(mockGetTenantInstitutionService).toHaveBeenCalledWith(SLUG);
+      expect(mockViewTenantInstitutionService).toHaveBeenCalledWith(SLUG);
     });
   });
 

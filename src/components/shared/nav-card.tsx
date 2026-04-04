@@ -3,19 +3,14 @@ import { LucideIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "@/components/ui/link";
 
-interface PlatformNavCardProps {
+interface NavCardProps {
   href: string;
   title: string;
   description: string;
   icon: LucideIcon;
 }
 
-export default function PlatformNavCard({
-  href,
-  title,
-  description,
-  icon: Icon,
-}: PlatformNavCardProps) {
+export default function NavCard({ href, title, description, icon: Icon }: NavCardProps) {
   return (
     <Link
       href={href}
