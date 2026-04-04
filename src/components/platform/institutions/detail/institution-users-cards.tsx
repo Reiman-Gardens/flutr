@@ -16,9 +16,15 @@ interface Props {
   users: InstitutionUser[];
   onEdit: (user: InstitutionUser) => void;
   renderDeleteAction: (user: InstitutionUser) => React.ReactNode;
+  readOnly?: boolean;
 }
 
-export default function InstitutionUsersCards({ users, onEdit, renderDeleteAction }: Props) {
+export default function InstitutionUsersCards({
+  users,
+  onEdit,
+  renderDeleteAction,
+  readOnly = false,
+}: Props) {
   if (users.length === 0) {
     return (
       <Card className="md:hidden">
@@ -43,12 +49,14 @@ export default function InstitutionUsersCards({ users, onEdit, renderDeleteActio
               <Badge variant="outline">{ROLE_LABELS[user.role] ?? user.role}</Badge>
             </div>
 
-            <div className="xs:flex-row flex flex-col gap-2">
-              <Button variant="outline" onClick={() => onEdit(user)} className="xs:flex-1">
-                Edit
-              </Button>
-              <div className="xs:flex-1">{renderDeleteAction(user)}</div>
-            </div>
+            {!readOnly && (
+              <div className="xs:flex-row flex flex-col gap-2">
+                <Button variant="outline" onClick={() => onEdit(user)} className="xs:flex-1">
+                  Edit
+                </Button>
+                <div className="xs:flex-1">{renderDeleteAction(user)}</div>
+              </div>
+            )}
           </CardContent>
         </Card>
       ))}

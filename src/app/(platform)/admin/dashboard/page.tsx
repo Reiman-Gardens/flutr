@@ -1,6 +1,6 @@
 import { Building2, Leaf, Package } from "lucide-react";
 
-import PlatformNavCard from "@/components/platform/dashboard/platform-nav-card";
+import NavCard from "@/components/shared/nav-card";
 import { PLATFORM_ROUTES } from "@/components/platform/layout/platform-nav-items";
 
 export default function PlatformPage() {
@@ -14,21 +14,21 @@ export default function PlatformPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <PlatformNavCard
+        <NavCard
           href={PLATFORM_ROUTES.institutions}
           title="Institutions"
           description="Manage butterfly houses and onboarding"
           icon={Building2}
         />
 
-        <PlatformNavCard
+        <NavCard
           href={PLATFORM_ROUTES.species}
           title="Butterflies"
           description="Manage the global butterfly species catalog"
           icon={Leaf}
         />
 
-        <PlatformNavCard
+        <NavCard
           href={PLATFORM_ROUTES.suppliers}
           title="Suppliers"
           description="Manage the global supplier list"

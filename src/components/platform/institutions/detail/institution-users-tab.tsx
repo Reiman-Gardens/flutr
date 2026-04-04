@@ -39,9 +39,14 @@ const ROLE_LABELS: Record<string, string> = {
 interface Props {
   institution: InstitutionDetail;
   initialUsers: InstitutionUser[];
+  readOnly?: boolean;
 }
 
-export default function InstitutionUsersTab({ institution, initialUsers }: Props) {
+export default function InstitutionUsersTab({
+  institution,
+  initialUsers,
+  readOnly = false,
+}: Props) {
   const [users, setUsers] = useState<InstitutionUser[]>(initialUsers);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<InstitutionUser | undefined>(undefined);
@@ -142,15 +147,18 @@ export default function InstitutionUsersTab({ institution, initialUsers }: Props
           <p className="text-muted-foreground text-sm">
             {users.length} {users.length === 1 ? "user" : "users"}
           </p>
-          <Button size="sm" onClick={openAdd} className="w-full sm:w-auto">
-            Add User
-          </Button>
+          {!readOnly && (
+            <Button size="sm" onClick={openAdd} className="w-full sm:w-auto">
+              Add User
+            </Button>
+          )}
         </div>
 
         <InstitutionUsersCards
           users={users}
           onEdit={openEdit}
           renderDeleteAction={(user) => renderDeleteAction(user, true)}
+          readOnly={readOnly}
         />
 
         <div className="hidden rounded-md border md:block">
@@ -160,13 +168,16 @@ export default function InstitutionUsersTab({ institution, initialUsers }: Props
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead className="w-[120px]">Actions</TableHead>
+                {!readOnly && <TableHead className="w-[120px]">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {users.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-muted-foreground py-8 text-center text-sm">
+                  <TableCell
+                    colSpan={readOnly ? 3 : 4}
+                    className="text-muted-foreground py-8 text-center text-sm"
+                  >
                     No users found.
                   </TableCell>
                 </TableRow>
@@ -180,15 +191,17 @@ export default function InstitutionUsersTab({ institution, initialUsers }: Props
                     <TableCell>
                       <Badge variant="outline">{ROLE_LABELS[user.role] ?? user.role}</Badge>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={() => openEdit(user)}>
-                          Edit
-                        </Button>
+                    {!readOnly && (
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => openEdit(user)}>
+                            Edit
+                          </Button>
 
-                        {renderDeleteAction(user)}
-                      </div>
-                    </TableCell>
+                          {renderDeleteAction(user)}
+                        </div>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               )}
