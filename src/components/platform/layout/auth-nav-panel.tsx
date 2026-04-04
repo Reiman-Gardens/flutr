@@ -36,7 +36,7 @@ const PLATFORM_LINKS: PanelLink[] = [
 
 function getTenantLinks(slug: string): PanelLink[] {
   return [
-    { label: "Tenant Dashboard", href: ROUTES.tenant.dashboard(slug), icon: LayoutDashboard },
+    { label: "Dashboard", href: ROUTES.tenant.dashboard(slug), icon: LayoutDashboard },
     { label: "Organization", href: ROUTES.tenant.organization(slug), icon: Building2 },
     { label: "Shipments", href: ROUTES.tenant.shipments(slug), icon: Package },
     { label: "Releases", href: ROUTES.tenant.releases(slug), icon: Rocket },
