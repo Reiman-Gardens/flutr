@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql, count } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql, count } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import {
@@ -159,6 +159,67 @@ export async function createShipment(institutionId: number, payload: CreateShipm
 
     return inserted.id;
   });
+}
+
+/**
+ * Check whether a shipment header already exists for the same tenant and key.
+ */
+export async function shipmentHeaderExists(
+  institutionId: number,
+  supplierCode: string,
+  shipmentDate: Date,
+  arrivalDate: Date,
+) {
+  const [row] = await db
+    .select({ id: shipments.id })
+    .from(shipments)
+    .where(
+      and(
+        eq(shipments.institution_id, institutionId),
+        eq(shipments.supplier_code, supplierCode),
+        eq(shipments.shipment_date, shipmentDate),
+        eq(shipments.arrival_date, arrivalDate),
+      ),
+    )
+    .limit(1);
+
+  return !!row;
+}
+
+/**
+ * Flat shipment rows for CSV export.
+ */
+export async function listShipmentExportRows(institutionId: number) {
+  return db
+    .select({
+      supplierCode: shipments.supplier_code,
+      shipmentDate: shipments.shipment_date,
+      arrivalDate: shipments.arrival_date,
+      scientificName: butterfly_species.scientific_name,
+      commonName: butterfly_species.common_name,
+      numberReceived: shipment_items.number_received,
+      emergedInTransit: shipment_items.emerged_in_transit,
+      damagedInTransit: shipment_items.damaged_in_transit,
+      diseasedInTransit: shipment_items.diseased_in_transit,
+      parasite: shipment_items.parasite,
+      nonEmergence: shipment_items.non_emergence,
+      poorEmergence: shipment_items.poor_emergence,
+    })
+    .from(shipment_items)
+    .innerJoin(
+      shipments,
+      and(
+        eq(shipments.id, shipment_items.shipment_id),
+        eq(shipments.institution_id, shipment_items.institution_id),
+      ),
+    )
+    .innerJoin(butterfly_species, eq(butterfly_species.id, shipment_items.butterfly_species_id))
+    .where(eq(shipment_items.institution_id, institutionId))
+    .orderBy(
+      asc(shipments.shipment_date),
+      asc(shipments.supplier_code),
+      asc(butterfly_species.scientific_name),
+    );
 }
 
 /**

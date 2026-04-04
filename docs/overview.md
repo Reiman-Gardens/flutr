@@ -99,6 +99,14 @@ Institution ─┬─ Users
 - `/api/public/*` — Public, no-auth API surface (see `docs/api/README.md` for index).
 - `/api/tenant/*` — Authenticated, tenant-scoped API surface.
 - `/api/platform/*` — SUPERUSER-only API surface.
+- Platform historical onboarding endpoints:
+- `POST /api/platform/institutions/[id]/shipments/import/preview` — Parse + validate historical shipment input (no writes).
+- `POST /api/platform/institutions/[id]/shipments/import/commit` — Commit validated historical shipments with supplier/species resolution rules.
+- `GET /api/platform/institutions/[id]/shipments/export?format=xlsx` — Export institution shipment history as XLSX.
+- Tenant historical shipment endpoints (requires `x-tenant-slug` header):
+- `POST /api/tenant/shipments/import/preview` — Tenant-scoped parse + validate historical input (no writes).
+- `POST /api/tenant/shipments/import/commit` — Tenant-scoped commit using preview hash.
+- `GET /api/tenant/shipments/export?format=xlsx` — Tenant-scoped XLSX export.
 
 ### Backend Architecture
 

@@ -43,6 +43,27 @@ Services own all auth, authorization, and tenant resolution:
 3. **Resolve tenant** (tenant routes): `const tenantId = await resolveTenantBySlug(user, slug);`
 4. **Strip slug** before passing data to the query layer
 
+## Historical Import/Export Pattern (Platform)
+
+For platform onboarding shipment imports, use a two-phase flow:
+
+1. `preview` endpoint validates/parses input and returns diagnostics (`row_errors`, `warnings`, unknown references) with **no writes**
+2. `commit` endpoint performs writes only after receiving validated preview payload + `preview_hash`
+
+Rules:
+
+- `preview` must be side-effect free
+- `commit` must enforce superuser access and validate preview integrity (`preview_hash`)
+- `export` endpoints should return deterministic flat records (CSV-first is acceptable)
+
+Tenant variants follow the same contract but must:
+
+- require `x-tenant-slug`
+- resolve tenant in the service layer via `resolveTenantBySlug`
+- enforce tenant-scoped permissions (`canReadShipment` / `canWriteShipment`)
+- restrict import/export endpoints to institution admins (`canManageInstitutionProfile`)
+- force `allow_species_autocreate=false` for tenant commit flows
+
 ## Validation Rules
 
 - Required text: `sanitizedNonEmpty(maxLen)` — sanitizes before enforcing non-empty
