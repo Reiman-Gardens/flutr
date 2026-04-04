@@ -32,10 +32,11 @@ src/
 │   │   ├── page.tsx        # Root public landing page
 │   │   └── login/          # Login page
 │   ├── [institution]/      # Multi-tenant institution routes
-│   │   ├── (tenant)/       # Protected tenant admin routes
+│   │   ├── (tenant)/       # Protected tenant admin routes (sidebar + header + footer shell)
 │   │   │   ├── dashboard/  # Admin dashboard
-│   │   │   ├── inventory/  # Butterfly inventory management
-│   │   │   └── shipments/  # Shipment tracking (list + add)
+│   │   │   ├── organization/ # Institution organization management
+│   │   │   ├── shipments/  # Shipment tracking (list + add)
+│   │   │   └── releases/   # Butterfly release events
 │   │   └── (public)/       # Public-facing routes
 │   │       ├── gallery/    # Butterfly species gallery
 │   │       ├── stats/      # Institution statistics
@@ -48,16 +49,15 @@ src/
 ├── components/             # React components by feature
 │   ├── platform/           # Superuser platform admin components
 │   │   ├── layout/         # PlatformSidebar, PlatformHeader, PlatformFooter, nav items
+│   │   │   └── tenant/     # TenantHeader, TenantSidebar, TenantFooter, TenantNavList, nav items
 │   │   ├── dashboard/      # PlatformNavCard
 │   │   ├── institutions/   # InstitutionsTable and related
 │   │   ├── species/        # SpeciesTable, SpeciesGalleryCard, toolbar, row, utils
 │   │   └── suppliers/      # SuppliersTable, toolbar, row, utils
-│   ├── admin/              # Admin-specific components
-│   ├── auth/               # Auth-specific components
-│   ├── nav/                # Navigation components (top-nav, mobile-nav, footer)
+│   ├── nav/                # Public navigation components (top-nav, mobile-nav, footer)
 │   ├── providers/          # Context providers (session, institution data, theme)
 │   ├── public/             # Public-facing components (gallery, home, species detail)
-│   ├── shared/             # Shared components used across public/admin (theme toggle)
+│   ├── shared/             # Shared components used across public/admin (theme toggle, back button)
 │   └── ui/                 # 55 Shadcn/UI primitives
 ├── hooks/                  # Custom React hooks
 │   ├── use-institution.ts  # Institution slug/basePath from URL params

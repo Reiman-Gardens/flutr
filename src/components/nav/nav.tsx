@@ -2,27 +2,17 @@
 
 import { TopNav } from "./top-nav";
 import { MobileNav } from "./mobile-nav";
-import {
-  PUBLIC_LINKS,
-  PUBLIC_MOBILE_LINKS,
-  PUBLIC_MOBILE_MENU_LINKS,
-  AUTH_LINKS,
-  type NavLink,
-} from "./nav-links";
+import { PUBLIC_LINKS, PUBLIC_MOBILE_LINKS, PUBLIC_MOBILE_MENU_LINKS } from "./nav-links";
 
-interface NavbarProps {
-  isAuthenticated: boolean;
-}
-
-export function Navbar({ isAuthenticated }: NavbarProps) {
-  const links = isAuthenticated ? AUTH_LINKS : PUBLIC_LINKS;
-  const mobileLinks = isAuthenticated ? AUTH_LINKS : PUBLIC_MOBILE_LINKS;
-  const mobileMenuLinks = isAuthenticated ? ([] as NavLink[]) : PUBLIC_MOBILE_MENU_LINKS;
-
+export function Navbar() {
   return (
     <>
-      <TopNav links={links} isAuthenticated={isAuthenticated} className="hidden md:block" />
-      <MobileNav links={mobileLinks} menuLinks={mobileMenuLinks} className="md:hidden" />
+      <TopNav links={PUBLIC_LINKS} className="hidden md:block" />
+      <MobileNav
+        links={PUBLIC_MOBILE_LINKS}
+        menuLinks={PUBLIC_MOBILE_MENU_LINKS}
+        className="md:hidden"
+      />
     </>
   );
 }

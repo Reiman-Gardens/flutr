@@ -1,29 +1,3 @@
-// jest.mock("@/auth", () => ({
-//   auth: jest.fn(),
-// }));
-// //Need to add employee to the mock to avoid "No session user" errors in middleware tests
-// describe("middleware", () => {
-//   describe("config.matcher", () => {
-//     it("is defined", async () => {
-//       const { config } = await import("@/middleware");
-//       expect(config.matcher).toBeDefined();
-//       expect(config.matcher).toHaveLength(1);
-//     });
-
-//     it("matches admin routes", async () => {
-//       const { config } = await import("@/middleware");
-//       const pattern = config.matcher[0];
-//       expect(pattern).toBe("/:institution/(admin)/:path*");
-//     });
-
-//     it("does not match public routes by pattern structure", async () => {
-//       const { config } = await import("@/middleware");
-//       const pattern = config.matcher[0];
-//       expect(pattern).not.toContain("(public)");
-//     });
-//   });
-// });
-
 // src/__test__/middleware.test.ts
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
@@ -68,7 +42,7 @@ describe("middleware", () => {
 
     it("matches actual admin route segments", () => {
       expect(config.matcher[0]).toBe(
-        "/:institution/(dashboard|inventory|shipments|analytics)/:path*",
+        "/:institution/(dashboard|organization|shipments|releases)/:path*",
       );
     });
   });
@@ -89,12 +63,12 @@ describe("middleware", () => {
     expect(response.headers.get("location")).toBeNull();
   });
 
-  it("blocks EMPLOYEE users from inventory (no VIEW_INVENTORY permission)", async () => {
+  it("allows EMPLOYEE users on organization route (view only)", async () => {
     mockGetToken.mockResolvedValue(makeToken("EMPLOYEE", "monarch-house"));
 
-    const response = await middleware(makeRequest("/monarch-house/inventory"));
+    const response = await middleware(makeRequest("/monarch-house/organization"));
 
-    expect(response.headers.get("location")).toContain("/unauthorized");
+    expect(response.headers.get("location")).toBeNull();
   });
 
   it("allows ADMIN users on shipments route in their own institution", async () => {
@@ -105,10 +79,10 @@ describe("middleware", () => {
     expect(response.headers.get("location")).toBeNull();
   });
 
-  it("allows ADMIN users on inventory route", async () => {
+  it("allows ADMIN users on organization route", async () => {
     mockGetToken.mockResolvedValue(makeToken("ADMIN", "monarch-house"));
 
-    const response = await middleware(makeRequest("/monarch-house/inventory"));
+    const response = await middleware(makeRequest("/monarch-house/organization"));
 
     expect(response.headers.get("location")).toBeNull();
   });
@@ -127,6 +101,22 @@ describe("middleware", () => {
     const response = await middleware(makeRequest("/monarch-house/dashboard"));
 
     expect(response.headers.get("location")).toContain("/unauthorized");
+  });
+
+  it("allows EMPLOYEE users on releases route (has VIEW_RELEASES)", async () => {
+    mockGetToken.mockResolvedValue(makeToken("EMPLOYEE", "monarch-house"));
+
+    const response = await middleware(makeRequest("/monarch-house/releases"));
+
+    expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("allows ADMIN users on releases route", async () => {
+    mockGetToken.mockResolvedValue(makeToken("ADMIN", "monarch-house"));
+
+    const response = await middleware(makeRequest("/monarch-house/releases"));
+
+    expect(response.headers.get("location")).toBeNull();
   });
 
   it("allows SUPERUSER across institutions", async () => {

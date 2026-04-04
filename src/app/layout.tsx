@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { SessionProvider } from "@/components/providers/session-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { AuthNavPanel } from "@/components/platform/layout/auth-nav-panel";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,6 +40,7 @@ export default function RootLayout({
         <ThemeProvider>
           <SessionProvider>
             {children}
+            <AuthNavPanel />
             <Toaster position="bottom-right" />
           </SessionProvider>
         </ThemeProvider>

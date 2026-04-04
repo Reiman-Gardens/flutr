@@ -12,9 +12,9 @@ export const ROUTES = {
   },
   tenant: {
     dashboard: (slug: string) => `/${slug}/dashboard`,
-    analytics: (slug: string) => `/${slug}/analytics`,
-    inventory: (slug: string) => `/${slug}/inventory`,
+    organization: (slug: string) => `/${slug}/organization`,
     shipments: (slug: string) => `/${slug}/shipments`,
     shipmentAdd: (slug: string) => `/${slug}/shipments/add`,
+    releases: (slug: string) => `/${slug}/releases`,
   },
 } as const;

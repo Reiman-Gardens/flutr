@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { Menu } from "lucide-react";
+import { Link } from "@/components/ui/link";
+import { ExternalLink, Menu } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -14,10 +14,11 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { ROUTES } from "@/lib/routes";
+import { useInstitution } from "@/hooks/use-institution";
+import { useInstitutionData } from "@/components/providers/institution-provider";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 
-import PlatformNavList from "./platform-nav-list";
+import TenantNavList from "./tenant-nav-list";
 
 type AuthUser = {
   id: string;
@@ -42,10 +43,11 @@ function getInitials(name: string | null | undefined): string {
 
 function getRoleLabel(role: string | undefined): string {
   if (role === "SUPERUSER") return "Global Admin";
-  return role ?? "";
+  if (role === "ADMIN") return "Admin";
+  return "Employee";
 }
 
-export default function PlatformHeader({
+export default function TenantHeader({
   user,
   sessionUser,
 }: {
@@ -53,6 +55,8 @@ export default function PlatformHeader({
   sessionUser?: SessionUser;
 }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const { basePath } = useInstitution();
+  const institution = useInstitutionData();
 
   return (
     <header role="banner" className="bg-background flex h-14 shrink-0 items-center border-b px-6">
@@ -66,24 +70,36 @@ export default function PlatformHeader({
             </SheetTrigger>
             <SheetContent side="left" className="w-72 p-0" showCloseButton>
               <SheetHeader className="border-b px-4 py-3">
-                <SheetTitle>Platform navigation</SheetTitle>
+                <SheetTitle>Navigation</SheetTitle>
                 <SheetDescription>
-                  Navigate between platform admin sections and account actions.
+                  Navigate between admin sections and account actions.
                 </SheetDescription>
               </SheetHeader>
-              <PlatformNavList onNavigate={() => setMobileNavOpen(false)} />
+              <TenantNavList onNavigate={() => setMobileNavOpen(false)} />
             </SheetContent>
           </Sheet>
 
           <Link
-            href={ROUTES.admin.dashboard}
+            href={`${basePath}/dashboard`}
             className="text-foreground focus-visible:ring-ring rounded-sm text-lg font-bold tracking-tight focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
           >
-            Flutr
+            {institution?.name ?? "Flutr"}
           </Link>
         </div>
 
         <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" asChild className="hidden sm:inline-flex">
+            <Link href={basePath}>
+              <ExternalLink className="mr-1.5 size-3.5" aria-hidden="true" />
+              View Public Site
+            </Link>
+          </Button>
+          <Button variant="outline" size="icon" asChild className="sm:hidden">
+            <Link href={basePath} aria-label="View public site">
+              <ExternalLink className="size-4" aria-hidden="true" />
+            </Link>
+          </Button>
+
           <ThemeToggle />
 
           <div className="flex items-center gap-3">
