@@ -1,14 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import {
-  Home,
-  Image,
-  BarChart3,
-  Mail,
-  LayoutDashboard,
-  Package,
-  Warehouse,
-  TrendingUp,
-} from "lucide-react";
+import { Home, Image, BarChart3, Mail } from "lucide-react";
 
 export interface NavLink {
   label: string;
@@ -31,11 +22,4 @@ export const PUBLIC_MOBILE_LINKS: NavLink[] = [
 
 export const PUBLIC_MOBILE_MENU_LINKS: NavLink[] = [
   { label: "Contact", href: "/contact", icon: Mail },
-];
-
-export const AUTH_LINKS: NavLink[] = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Shipments", href: "/shipments", icon: Package },
-  { label: "Inventory", href: "/inventory", icon: Warehouse },
-  { label: "Analytics", href: "/analytics", icon: TrendingUp },
 ];

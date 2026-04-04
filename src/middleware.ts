@@ -9,15 +9,15 @@ import { hasPermission } from "@/lib/permissions";
 // /:institution/dashboard, /:institution/shipments, etc.
 // Public routes (login, unauthorized, api, _next) bypass middleware entirely.
 export const config = {
-  matcher: ["/:institution/(dashboard|inventory|shipments|analytics)/:path*"],
+  matcher: ["/:institution/(dashboard|organization|shipments|releases)/:path*"],
 };
 
 // Required permission to enter each top-level admin section.
 const SECTION_PERMISSION_MAP: Record<string, Permission> = {
   dashboard: "VIEW_DASHBOARD",
+  organization: "VIEW_ORGANIZATION",
   shipments: "VIEW_SHIPMENTS",
-  inventory: "VIEW_INVENTORY",
-  analytics: "VIEW_REPORTS",
+  releases: "VIEW_RELEASES",
 };
 
 // Required permission for specific sub-paths within a section.
@@ -82,7 +82,7 @@ export default async function middleware(req: NextRequest) {
     }
   }
 
-  // Check section-level permission (e.g. inventory -> VIEW_INVENTORY).
+  // Check section-level permission (e.g. shipments -> VIEW_SHIPMENTS).
   const sectionPermission = SECTION_PERMISSION_MAP[section];
   if (sectionPermission && !hasPermission(role as Role, sectionPermission)) {
     url.pathname = "/unauthorized";

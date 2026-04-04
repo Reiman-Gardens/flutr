@@ -11,11 +11,10 @@ import { ThemeToggle } from "@/components/shared/theme-toggle";
 
 interface TopNavProps {
   links: NavLink[];
-  isAuthenticated: boolean;
   className?: string;
 }
 
-export function TopNav({ links, isAuthenticated, className }: TopNavProps) {
+export function TopNav({ links, className }: TopNavProps) {
   const { basePath } = useInstitution();
   const pathname = usePathname();
   const institution = useInstitutionData();
@@ -24,11 +23,9 @@ export function TopNav({ links, isAuthenticated, className }: TopNavProps) {
     <header className={cn("bg-background sticky top-0 z-50 w-full border-b", className)}>
       <div className="relative mx-auto flex h-14 max-w-[90vw] items-center px-4 sm:px-6 lg:px-8">
         <Link
-          href={isAuthenticated ? `${basePath}/dashboard` : basePath}
+          href={basePath}
           className="z-10 flex items-center gap-2 font-semibold"
-          aria-label={
-            institution?.name ? `${institution.name} home` : isAuthenticated ? "Dashboard" : "Home"
-          }
+          aria-label={institution?.name ? `${institution.name} home` : "Home"}
         >
           {institution?.logo_url ? (
             <Image
