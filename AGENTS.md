@@ -11,6 +11,7 @@ A WCAG-compliant, multi-tenant web application for butterfly houses to track shi
 - **UI**: Shadcn/UI (Radix-based), Lucide icons, Sonner toasts, next-themes
 - **Forms**: React Hook Form + Zod validation
 - **Charts**: Recharts
+- **Maps**: Leaflet + React Leaflet
 - **Auth**: NextAuth 5 (credentials provider, JWT sessions)
 - **Database**: PostgreSQL 17 (Docker) + Drizzle ORM
 - **Testing**: Jest
