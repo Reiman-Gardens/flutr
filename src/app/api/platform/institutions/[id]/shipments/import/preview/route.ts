@@ -9,9 +9,9 @@ import {
   ok,
   unauthorized,
 } from "@/lib/api-response";
-import { getPlatformShipmentImportPreview } from "@/lib/services/platform-shipment-import";
+import { getPlatformShipmentImportPreview } from "@/lib/services/shipment-import";
 import { platformInstitutionIdParamsSchema } from "@/lib/validation/institution";
-import { shipmentImportPreviewRequestSchema } from "@/lib/validation/platform-shipment-import";
+import { shipmentImportPreviewRequestSchema } from "@/lib/validation/shipment-import";
 import { requireValidBody } from "@/lib/validation/request";
 
 interface RouteContext {

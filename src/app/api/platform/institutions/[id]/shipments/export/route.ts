@@ -8,9 +8,9 @@ import {
   notFound,
   unauthorized,
 } from "@/lib/api-response";
-import { exportPlatformShipmentWorkbook } from "@/lib/services/platform-shipment-import";
+import { exportPlatformShipmentWorkbook } from "@/lib/services/shipment-import";
 import { platformInstitutionIdParamsSchema } from "@/lib/validation/institution";
-import { shipmentExportQuerySchema } from "@/lib/validation/platform-shipment-import";
+import { shipmentExportQuerySchema } from "@/lib/validation/shipment-import";
 import { requireValidQuery } from "@/lib/validation/query";
 
 interface RouteContext {
@@ -36,17 +36,30 @@ export async function GET(request: NextRequest, context: RouteContext) {
       return invalidRequest("Unsupported export format");
     }
 
-    const workbook = await exportPlatformShipmentWorkbook({ institutionId: paramResult.data.id });
+    const { from, to } = queryResult.data;
+    if (from && to && from > to) {
+      return invalidRequest("'from' date must not be after 'to' date");
+    }
+
+    const range = (from ?? to) ? { from, to } : undefined;
+    const institutionId = paramResult.data.id;
+
+    const workbook = await exportPlatformShipmentWorkbook({ institutionId, range });
     const workbookArrayBuffer = Uint8Array.from(workbook).buffer;
     const workbookBlob = new Blob([workbookArrayBuffer], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
 
+    const fromYear = from?.slice(0, 4);
+    const toYear = to?.slice(0, 4);
+    const rangeLabel = (fromYear ?? toYear) ? `-${fromYear ?? "start"}-${toYear ?? "now"}` : "";
+    const filename = `institution-${institutionId}-shipments${rangeLabel}.xlsx`;
+
     return new NextResponse(workbookBlob, {
       status: 200,
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename=\"institution-${paramResult.data.id}-shipments.xlsx\"`,
+        "Content-Disposition": `attachment; filename="${filename}"`,
         "Cache-Control": "no-store",
       },
     });

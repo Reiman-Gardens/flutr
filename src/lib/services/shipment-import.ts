@@ -28,7 +28,7 @@ import {
   type ShipmentImportDraft,
   type ShipmentImportPreviewRequest,
   type ShipmentImportPreviewResponse,
-} from "@/lib/validation/platform-shipment-import";
+} from "@/lib/validation/shipment-import";
 
 type ShipmentExportRow = Awaited<ReturnType<typeof listShipmentExportRows>>[number];
 
@@ -362,18 +362,28 @@ export async function commitShipmentImportForInstitution({
   });
 }
 
-export async function exportPlatformShipmentWorkbook({ institutionId }: { institutionId: number }) {
+type ExportRange = { from?: string; to?: string };
+
+export async function exportPlatformShipmentWorkbook({
+  institutionId,
+  range,
+}: {
+  institutionId: number;
+  range?: ExportRange;
+}) {
   await assertPlatformImportAccess(institutionId);
-  return exportShipmentWorkbookForInstitution({ institutionId });
+  return exportShipmentWorkbookForInstitution({ institutionId, range });
 }
 
 export async function exportShipmentWorkbookForInstitution({
   institutionId,
+  range,
 }: {
   institutionId: number;
+  range?: ExportRange;
 }) {
   const xlsx = await import("xlsx");
-  const rows = await listShipmentExportRows(institutionId);
+  const rows = await listShipmentExportRows(institutionId, range);
   const worksheetRows = [Array.from(SHIPMENT_EXPORT_HEADERS), ...rows.map(mapRowToExportRecord)];
 
   const workbook = xlsx.utils.book_new();

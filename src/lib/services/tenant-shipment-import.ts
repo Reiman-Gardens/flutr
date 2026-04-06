@@ -6,12 +6,12 @@ import type {
   ShipmentImportCommitResponse,
   ShipmentImportPreviewRequest,
   ShipmentImportPreviewResponse,
-} from "@/lib/validation/platform-shipment-import";
+} from "@/lib/validation/shipment-import";
 import {
   buildShipmentImportPreviewForInstitution,
   commitShipmentImportForInstitution,
   exportShipmentWorkbookForInstitution,
-} from "@/lib/services/platform-shipment-import";
+} from "@/lib/services/shipment-import";
 
 type TenantShipmentImportContext = {
   slug: string;
@@ -56,10 +56,11 @@ export async function commitTenantShipmentImport(
 
 export async function exportTenantShipmentWorkbook({
   slug,
-}: TenantShipmentImportContext): Promise<Buffer> {
+  range,
+}: TenantShipmentImportContext & { range?: { from?: string; to?: string } }): Promise<Buffer> {
   const user = requireUser(await auth());
   if (!canManageInstitutionProfile(user)) throw new Error("FORBIDDEN");
 
   const tenantId = await resolveTenantBySlug(user, slug);
-  return exportShipmentWorkbookForInstitution({ institutionId: tenantId });
+  return exportShipmentWorkbookForInstitution({ institutionId: tenantId, range });
 }

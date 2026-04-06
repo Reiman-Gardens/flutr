@@ -1,11 +1,30 @@
 "use client";
 
-import { ChangeEvent, useState } from "react";
+import { useMemo } from "react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { ROUTES } from "@/lib/routes";
+import { cn } from "@/lib/utils";
+import { useShipmentImport } from "@/hooks/use-shipment-import";
+import { useShipmentViewer } from "@/hooks/use-shipment-viewer";
+import DangerZone from "./danger-zone";
+import FileDropZone from "./file-drop-zone";
+import ImportResultsPanel from "./import-results-panel";
+import ShipmentViewer from "./shipment-viewer";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 type InstitutionDataTabProps = {
   institutionId: number;
@@ -13,92 +32,19 @@ type InstitutionDataTabProps = {
   tenantSlug?: string;
 };
 
-type SourceKind = "xlsx" | "xls" | "csv" | "tsv" | "txt" | "paste";
+// ---------------------------------------------------------------------------
+// Module-level constants
+// ---------------------------------------------------------------------------
 
-type PreviewResponse = {
-  summary: {
-    total_rows: number;
-    shipments_detected: number;
-    row_errors: number;
-    warnings: number;
-    unknown_species: number;
-    unknown_suppliers: number;
-  };
-  row_errors: string[];
-  warnings: string[];
-  unknown_species: string[];
-  unknown_suppliers: string[];
-  shipments: {
-    supplier_code: string;
-    shipment_date: string;
-    arrival_date: string;
-    items: {
-      scientific_name: string;
-      number_received: number;
-      emerged_in_transit: number;
-      damaged_in_transit: number;
-      diseased_in_transit: number;
-      parasite: number;
-      non_emergence: number;
-      poor_emergence: number;
-    }[];
-  }[];
-  preview_hash: string;
-};
+const IMPORT_STEPS = [
+  { num: 1, label: "Upload" },
+  { num: 2, label: "Validate" },
+  { num: 3, label: "Complete" },
+] as const;
 
-type CommitResponse = {
-  created: number;
-  failed: number;
-  skipped: number;
-  failures: string[];
-  warnings: string[];
-};
-
-type ApiError = {
-  error?: {
-    message?: string;
-  };
-};
-
-function detectSourceKind(fileName: string): SourceKind {
-  const lowerFileName = fileName.trim().toLowerCase();
-  if (lowerFileName.endsWith(".xlsx")) return "xlsx";
-  if (lowerFileName.endsWith(".xls")) return "xls";
-  if (lowerFileName.endsWith(".csv")) return "csv";
-  if (lowerFileName.endsWith(".tsv")) return "tsv";
-  if (lowerFileName.endsWith(".txt")) return "txt";
-  return "txt";
-}
-
-function rowsToTabDelimitedText(rows: Array<Array<string | number | boolean | null>>) {
-  return rows.map((row) => row.map((cell) => String(cell ?? "").trim()).join("\t")).join("\n");
-}
-
-async function readUploadFileAsText(file: File, kind: SourceKind): Promise<string> {
-  if (kind === "xlsx" || kind === "xls") {
-    const xlsx = await import("xlsx");
-    const workbook = xlsx.read(await file.arrayBuffer(), {
-      type: "array",
-      cellDates: false,
-    });
-
-    const firstSheetName = workbook.SheetNames[0];
-    if (!firstSheetName) {
-      throw new Error("Workbook does not contain any sheets.");
-    }
-
-    const firstSheet = workbook.Sheets[firstSheetName];
-    const rows = xlsx.utils.sheet_to_json<Array<string | number | boolean | null>>(firstSheet, {
-      header: 1,
-      raw: false,
-      defval: "",
-    });
-
-    return rowsToTabDelimitedText(rows);
-  }
-
-  return file.text();
-}
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export default function InstitutionDataTab({
   institutionId,
@@ -106,374 +52,367 @@ export default function InstitutionDataTab({
   tenantSlug,
 }: InstitutionDataTabProps) {
   const isTenantMode = mode === "tenant";
-  const [rawText, setRawText] = useState("");
-  const [sourceKind, setSourceKind] = useState<SourceKind>("paste");
-  const [sourceFileName, setSourceFileName] = useState<string | undefined>(undefined);
-  const [preview, setPreview] = useState<PreviewResponse | null>(null);
-  const [commitSummary, setCommitSummary] = useState<CommitResponse | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isParsing, setIsParsing] = useState(false);
-  const [isImporting, setIsImporting] = useState(false);
-  const [allowSpeciesAutocreate, setAllowSpeciesAutocreate] = useState(false);
-  const [allowDuplicateHeaders, setAllowDuplicateHeaders] = useState(false);
-
   const tenantReady = !isTenantMode || !!tenantSlug;
-  const tenantHeaders = isTenantMode && tenantSlug ? { "x-tenant-slug": tenantSlug } : undefined;
+  const tenantHeaders = useMemo(
+    () => (isTenantMode && tenantSlug ? { "x-tenant-slug": tenantSlug } : undefined),
+    [isTenantMode, tenantSlug],
+  );
+
+  // API URLs
+  const summaryUrl = isTenantMode
+    ? ROUTES.tenant.shipmentSummaryApi
+    : ROUTES.admin.institutionShipmentsApi(institutionId);
   const previewUrl = isTenantMode
     ? ROUTES.tenant.shipmentImportPreviewApi
     : ROUTES.admin.institutionImportPreview(institutionId);
   const commitUrl = isTenantMode
     ? ROUTES.tenant.shipmentImportCommitApi
     : ROUTES.admin.institutionImportCommit(institutionId);
-  const exportUrl = isTenantMode
-    ? ROUTES.tenant.shipmentExportApi("xlsx")
-    : ROUTES.admin.institutionExportApi(institutionId, "xlsx");
 
-  async function handleFileSelection(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const {
+    shipmentRows,
+    isLoading: isLoadingViewer,
+    error: viewerError,
+    refresh: loadShipments,
+  } = useShipmentViewer({ summaryUrl, tenantHeaders, tenantReady });
 
-    const detected = detectSourceKind(file.name);
-    setSourceKind(detected);
-    setSourceFileName(file.name);
-    setPreview(null);
-    setCommitSummary(null);
-    setErrorMessage(null);
+  const {
+    rawText,
+    sourceFileName,
+    processFile,
+    isReadingFile,
+    isPasteMode,
+    setIsPasteMode,
+    handlePasteChange,
+    preview,
+    commitSummary,
+    handleReset,
+    handleParsePreview,
+    handleCommitImport,
+    isParsing,
+    isImporting,
+    canCommit,
+    errorMessage,
+    importStep,
+    allowSpeciesAutocreate,
+    setAllowSpeciesAutocreate,
+    allowDuplicateHeaders,
+    setAllowDuplicateHeaders,
+    exportFrom,
+    setExportFrom,
+    exportTo,
+    setExportTo,
+    exportRangeError,
+    handleExportData,
+    isExporting,
+    rangeShipmentCount,
+  } = useShipmentImport({
+    previewUrl,
+    commitUrl,
+    isTenantMode,
+    institutionId,
+    tenantSlug,
+    tenantHeaders,
+    tenantReady,
+    shipmentRows,
+    onImportSuccess: loadShipments,
+  });
 
-    try {
-      const text = await readUploadFileAsText(file, detected);
-      setRawText(text);
-      setCommitSummary(null);
-    } catch (error) {
-      if (error instanceof Error && error.message) {
-        setErrorMessage(error.message);
-        return;
-      }
-      setErrorMessage("Unable to read file contents.");
-    }
-  }
-
-  async function handleParsePreview() {
-    if (!tenantReady) {
-      setErrorMessage("Tenant context is missing. Refresh and try again.");
-      return;
-    }
-
-    if (!rawText.trim()) {
-      setErrorMessage("Paste data or upload a file before parsing.");
-      return;
-    }
-
-    setIsParsing(true);
-    setPreview(null);
-    setCommitSummary(null);
-    setErrorMessage(null);
-
-    try {
-      const response = await fetch(previewUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...tenantHeaders },
-        body: JSON.stringify({
-          raw_text: rawText,
-          source: {
-            kind: sourceKind,
-            file_name: sourceFileName,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const errorBody = (await response.json().catch(() => null)) as ApiError | null;
-        setErrorMessage(errorBody?.error?.message ?? "Unable to parse preview.");
-        setIsParsing(false);
-        return;
-      }
-
-      const data = (await response.json()) as PreviewResponse;
-      setPreview(data);
-    } catch {
-      setErrorMessage("Unable to parse preview.");
-    } finally {
-      setIsParsing(false);
-    }
-  }
-
-  async function handleCommitImport() {
-    if (!tenantReady) {
-      setErrorMessage("Tenant context is missing. Refresh and try again.");
-      return;
-    }
-
-    if (!preview) {
-      setErrorMessage("Run parse preview before importing.");
-      return;
-    }
-
-    setIsImporting(true);
-    setErrorMessage(null);
-    setCommitSummary(null);
-
-    try {
-      const response = await fetch(commitUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...tenantHeaders },
-        body: JSON.stringify({
-          preview_hash: preview.preview_hash,
-          shipments: preview.shipments,
-          options: {
-            allow_species_autocreate: allowSpeciesAutocreate,
-            allow_duplicate_headers: allowDuplicateHeaders,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const errorBody = (await response.json().catch(() => null)) as ApiError | null;
-        setErrorMessage(errorBody?.error?.message ?? "Unable to commit import.");
-        setIsImporting(false);
-        return;
-      }
-
-      const data = (await response.json()) as CommitResponse;
-      setCommitSummary(data);
-    } catch {
-      setErrorMessage("Unable to commit import.");
-    } finally {
-      setIsImporting(false);
-    }
-  }
-
-  async function handleExportData() {
-    if (!tenantReady) {
-      setErrorMessage("Tenant context is missing. Refresh and try again.");
-      return;
-    }
-
-    try {
-      const response = await fetch(exportUrl, {
-        method: "GET",
-        headers: tenantHeaders,
-      });
-
-      if (!response.ok) {
-        const errorBody = (await response.json().catch(() => null)) as ApiError | null;
-        setErrorMessage(errorBody?.error?.message ?? "Unable to export data.");
-        return;
-      }
-
-      const blob = await response.blob();
-      const disposition = response.headers.get("content-disposition");
-      const fileNameMatch = disposition?.match(/filename=\"?([^\";]+)\"?/i);
-      const fileName =
-        fileNameMatch?.[1] ??
-        (isTenantMode
-          ? `${tenantSlug ?? "institution"}-shipments.xlsx`
-          : `institution-${institutionId}-shipments.xlsx`);
-
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    } catch {
-      setErrorMessage("Unable to export data.");
-    }
-  }
-
-  const canCommit =
-    !!preview &&
-    preview.row_errors.length === 0 &&
-    preview.shipments.length > 0 &&
-    (allowSpeciesAutocreate || preview.unknown_species.length === 0);
-
+  // -------------------------------------------------------------------------
+  // Render
+  // -------------------------------------------------------------------------
   return (
-    <div className="mt-6 flex flex-col gap-4">
-      <h2 className="text-sm font-semibold">Historical Shipment Data</h2>
-
-      <p className="text-muted-foreground text-sm">
-        {isTenantMode
-          ? "Institution admins can import historical shipment records and export current institution data for reporting."
-          : "Superusers can import historical shipment records from Excel files and export current institution data for reporting or migration purposes."}
-      </p>
-
-      <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
-        <div className="space-y-2">
-          <Label htmlFor="historical-import-file">Upload file</Label>
-          <Input
-            id="historical-import-file"
-            type="file"
-            accept=".xlsx,.xls,.csv,.tsv,.txt"
-            onChange={handleFileSelection}
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="historical-import-data">Excel/CSV Data</Label>
-        <Textarea
-          id="historical-import-data"
-          value={rawText}
-          onChange={(event) => {
-            setRawText(event.target.value);
-            setSourceKind("paste");
-            setSourceFileName(undefined);
-            setPreview(null);
-            setCommitSummary(null);
-            setErrorMessage(null);
-          }}
-          className="min-h-56 font-mono text-xs"
-          placeholder="Paste copied rows from legacy Excel export here..."
-        />
-      </div>
-
-      <div className="flex gap-2">
-        <Button variant="outline" onClick={handleParsePreview} disabled={isParsing}>
-          {isParsing ? "Parsing..." : "Parse Preview"}
-        </Button>
-        <Button
-          variant="outline"
-          onClick={handleCommitImport}
-          disabled={isImporting || !canCommit || !tenantReady}
-        >
-          {isImporting ? "Importing..." : "Commit Import"}
-        </Button>
-        <Button variant="outline" onClick={handleExportData} disabled={!tenantReady}>
-          Export XLSX
-        </Button>
-      </div>
-
-      <div className="flex flex-col gap-2 rounded-md border p-3">
-        <Label className="text-xs font-medium">Commit Options</Label>
-        <label className="flex items-center gap-2 text-xs">
-          <input
-            type="checkbox"
-            checked={allowSpeciesAutocreate}
-            onChange={(event) => setAllowSpeciesAutocreate(event.target.checked)}
-            disabled={isTenantMode}
-          />
-          Allow auto-create unknown species {isTenantMode ? "(platform only)" : "(superuser only)"}
-        </label>
-        <label className="flex items-center gap-2 text-xs">
-          <input
-            type="checkbox"
-            checked={allowDuplicateHeaders}
-            onChange={(event) => setAllowDuplicateHeaders(event.target.checked)}
-          />
-          Allow duplicate shipment headers
-        </label>
-      </div>
-
-      {errorMessage ? (
-        <p className="text-destructive text-xs" role="status" aria-live="polite">
-          {errorMessage}
+    <div className="mt-6 flex flex-col gap-8">
+      {/* ------------------------------------------------------------------ */}
+      {/* Import Hub                                                           */}
+      {/* ------------------------------------------------------------------ */}
+      <section aria-labelledby="import-hub-heading">
+        <h2 id="import-hub-heading" className="mb-1 text-sm font-semibold">
+          Historical Shipment Import
+        </h2>
+        <p className="text-muted-foreground mb-4 text-sm">
+          {isTenantMode
+            ? "Institution admins can import historical shipment records and export current institution data for reporting."
+            : "Superusers can import historical shipment records from Excel files and export current institution data for reporting or migration purposes."}
         </p>
-      ) : null}
 
-      {preview ? (
-        <div className="space-y-3 rounded-md border p-4">
-          <p className="text-sm font-medium">Preview Summary</p>
-          <div className="grid gap-2 text-sm md:grid-cols-2">
-            <p>Total parsed rows: {preview.summary.total_rows}</p>
-            <p>Shipments detected: {preview.summary.shipments_detected}</p>
-            <p>Row errors: {preview.summary.row_errors}</p>
-            <p>Warnings: {preview.summary.warnings}</p>
-            <p>Unknown species: {preview.summary.unknown_species}</p>
-            <p>Unknown suppliers: {preview.summary.unknown_suppliers}</p>
-          </div>
+        <div className="grid gap-6 md:grid-cols-[1fr_280px]">
+          {/* ---- Left: drop zone, steps, results ---- */}
+          <div className="flex flex-col gap-4">
+            {/* Step indicator */}
+            <ol className="flex items-center" aria-label="Import progress">
+              {IMPORT_STEPS.map(({ num, label }, i) => (
+                <li key={num} className="flex items-center">
+                  {i > 0 && <div className="bg-border mx-3 h-px w-8 shrink-0" aria-hidden="true" />}
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={cn(
+                        "flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold",
+                        importStep >= num
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground",
+                      )}
+                      aria-hidden="true"
+                    >
+                      {num}
+                    </span>
+                    <span
+                      className={cn(
+                        "text-xs font-medium",
+                        importStep >= num ? "text-foreground" : "text-muted-foreground",
+                      )}
+                    >
+                      {label}
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ol>
 
-          {preview.row_errors.length > 0 ? (
-            <div className="space-y-1">
-              <p className="text-destructive text-sm font-medium">Row Errors</p>
-              <ul className="text-destructive list-disc space-y-1 pl-5 text-xs">
-                {preview.row_errors.slice(0, 20).map((rowError) => (
-                  <li key={rowError}>{rowError}</li>
-                ))}
-              </ul>
+            <FileDropZone
+              rawText={rawText}
+              sourceFileName={sourceFileName}
+              onFile={processFile}
+              isReadingFile={isReadingFile}
+              isPasteMode={isPasteMode}
+              onPasteModeChange={setIsPasteMode}
+              onRawTextChange={handlePasteChange}
+            />
+
+            {/* Action buttons */}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleParsePreview}
+                disabled={isParsing || !rawText.trim()}
+              >
+                {isParsing && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
+                {isParsing ? "Parsing…" : "Parse Preview"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleCommitImport}
+                disabled={isImporting || !canCommit || !tenantReady}
+              >
+                {isImporting && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
+                {isImporting ? "Importing…" : "Commit Import"}
+              </Button>
             </div>
-          ) : null}
 
-          {preview.warnings.length > 0 ? (
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-amber-700">Warnings</p>
-              <ul className="list-disc space-y-1 pl-5 text-xs text-amber-700">
-                {preview.warnings.slice(0, 20).map((warning) => (
-                  <li key={warning}>{warning}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
+            {/* Error message */}
+            {errorMessage && (
+              <p className="text-destructive text-xs" role="status" aria-live="polite">
+                {errorMessage}
+              </p>
+            )}
 
-          {preview.unknown_species.length > 0 ? (
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-amber-700">Unknown Species</p>
-              <ul className="list-disc space-y-1 pl-5 text-xs text-amber-700">
-                {preview.unknown_species.slice(0, 20).map((name) => (
-                  <li key={name}>{name}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
+            <ImportResultsPanel
+              preview={preview}
+              commitSummary={commitSummary}
+              onReset={handleReset}
+            />
 
-          {preview.unknown_suppliers.length > 0 ? (
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-amber-700">Unknown Suppliers</p>
-              <ul className="list-disc space-y-1 pl-5 text-xs text-amber-700">
-                {preview.unknown_suppliers.slice(0, 20).map((code) => (
-                  <li key={code}>{code}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          <p className="text-muted-foreground text-xs">
-            Preview hash: <span className="font-mono">{preview.preview_hash}</span>
-          </p>
-        </div>
-      ) : null}
-
-      {commitSummary ? (
-        <div className="space-y-2 rounded-md border p-4">
-          <p className="text-sm font-medium">Import Summary</p>
-          <div className="grid gap-2 text-sm md:grid-cols-3">
-            <p>Created: {commitSummary.created}</p>
-            <p>Failed: {commitSummary.failed}</p>
-            <p>Skipped: {commitSummary.skipped}</p>
-          </div>
-
-          {commitSummary.warnings.length > 0 ? (
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-amber-700">Import Warnings</p>
-              <ul className="list-disc space-y-1 pl-5 text-xs text-amber-700">
-                {commitSummary.warnings.slice(0, 20).map((warning) => (
-                  <li key={warning}>{warning}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          {commitSummary.failures.length > 0 ? (
-            <div className="space-y-1">
-              <p className="text-destructive text-sm font-medium">Import Failures</p>
-              <ul className="text-destructive list-disc space-y-1 pl-5 text-xs">
-                {commitSummary.failures.slice(0, 20).map((failure) => (
-                  <li key={failure}>{failure}</li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <p className="text-sm text-emerald-700" role="status" aria-live="polite">
-              Import completed without shipment failures.
+            <p className="text-muted-foreground text-xs">
+              Imports are preview-first. Re-run preview after changing input or options.
             </p>
-          )}
-        </div>
-      ) : null}
+          </div>
 
-      <p className="text-muted-foreground text-xs">
-        Imports are preview-first. Re-run preview after changing input or options.
-      </p>
+          {/* ---- Right sidebar: settings + export ---- */}
+          <aside className="flex flex-col gap-4" aria-label="Import settings and export">
+            {/* Import Settings */}
+            <fieldset className="flex flex-col gap-4 rounded-md border p-3">
+              <legend className="px-1 text-xs font-medium">Import Settings</legend>
+
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <Label htmlFor="species-autocreate" className="text-xs">
+                    Auto-create species
+                  </Label>
+                  {isTenantMode && (
+                    <p className="text-muted-foreground text-[10px]">Platform only</p>
+                  )}
+                </div>
+                <Switch
+                  id="species-autocreate"
+                  checked={allowSpeciesAutocreate}
+                  onCheckedChange={setAllowSpeciesAutocreate}
+                  disabled={isTenantMode}
+                  aria-describedby={isTenantMode ? "species-autocreate-hint" : undefined}
+                />
+              </div>
+              {isTenantMode && (
+                <p id="species-autocreate-hint" className="sr-only">
+                  Auto-create species is restricted to platform superusers.
+                </p>
+              )}
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="duplicate-handling" className="text-xs">
+                  Duplicate headers
+                </Label>
+                <Select
+                  value={allowDuplicateHeaders ? "allow" : "skip"}
+                  onValueChange={(v) => setAllowDuplicateHeaders(v === "allow")}
+                >
+                  <SelectTrigger id="duplicate-handling" className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="allow" className="text-xs">
+                      Allow duplicates
+                    </SelectItem>
+                    <SelectItem value="skip" className="text-xs">
+                      Skip duplicates
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </fieldset>
+
+            {/* Preview stats — surfaces after parse */}
+            {preview && (
+              <div className="rounded-md border p-3">
+                <p className="mb-2 text-xs font-medium">Preview Stats</p>
+                <div className="space-y-1.5">
+                  {(
+                    [
+                      { label: "Rows parsed", value: preview.summary.total_rows, warn: false },
+                      {
+                        label: "Shipments",
+                        value: preview.summary.shipments_detected,
+                        warn: false,
+                      },
+                      {
+                        label: "Errors",
+                        value: preview.summary.row_errors,
+                        warn: preview.summary.row_errors > 0,
+                        error: preview.summary.row_errors > 0,
+                      },
+                      {
+                        label: "Warnings",
+                        value: preview.summary.warnings,
+                        warn: preview.summary.warnings > 0,
+                        error: false,
+                      },
+                      {
+                        label: "Unknown species",
+                        value: preview.summary.unknown_species,
+                        warn: preview.summary.unknown_species > 0,
+                        error: false,
+                      },
+                      {
+                        label: "Unknown suppliers",
+                        value: preview.summary.unknown_suppliers,
+                        warn: preview.summary.unknown_suppliers > 0,
+                        error: false,
+                      },
+                    ] as { label: string; value: number; warn: boolean; error?: boolean }[]
+                  ).map(({ label, value, warn, error }) => (
+                    <div key={label} className="flex items-center justify-between">
+                      <span
+                        className={cn(
+                          "text-xs",
+                          error
+                            ? "text-destructive"
+                            : warn
+                              ? "text-amber-700"
+                              : "text-muted-foreground",
+                        )}
+                      >
+                        {label}
+                      </span>
+                      <span
+                        className={cn(
+                          "text-xs font-medium tabular-nums",
+                          error ? "text-destructive" : warn ? "text-amber-700" : "text-foreground",
+                        )}
+                      >
+                        {value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Export */}
+            <fieldset className="flex flex-col gap-3 rounded-md border p-3">
+              <legend className="px-1 text-xs font-medium">Export</legend>
+              <div className="space-y-1">
+                <Label htmlFor="export-from" className="text-xs">
+                  From
+                </Label>
+                <Input
+                  id="export-from"
+                  type="date"
+                  value={exportFrom}
+                  onChange={(e) => setExportFrom(e.target.value)}
+                  className="h-8 text-xs"
+                  aria-describedby={exportRangeError ? "export-range-error" : undefined}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="export-to" className="text-xs">
+                  To
+                </Label>
+                <Input
+                  id="export-to"
+                  type="date"
+                  value={exportTo}
+                  onChange={(e) => setExportTo(e.target.value)}
+                  className="h-8 text-xs"
+                  aria-describedby={exportRangeError ? "export-range-error" : undefined}
+                />
+              </div>
+              {exportRangeError && (
+                <p id="export-range-error" className="text-destructive text-xs" role="alert">
+                  {exportRangeError}
+                </p>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportData}
+                disabled={!tenantReady || !!exportRangeError || isExporting}
+                className="h-8 w-full text-xs"
+              >
+                {isExporting && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
+                {isExporting
+                  ? "Exporting…"
+                  : exportFrom || exportTo
+                    ? `Export XLSX (${exportFrom?.slice(0, 4) ?? "start"}–${exportTo?.slice(0, 4) ?? "now"})`
+                    : "Export XLSX (all)"}
+              </Button>
+              {rangeShipmentCount !== null && (
+                <p className="text-muted-foreground text-xs">
+                  {rangeShipmentCount.toLocaleString()} shipment
+                  {rangeShipmentCount !== 1 ? "s" : ""}
+                  {exportFrom || exportTo ? " in range" : ""}
+                </p>
+              )}
+            </fieldset>
+          </aside>
+        </div>
+      </section>
+
+      <hr />
+
+      <ShipmentViewer
+        shipmentRows={shipmentRows}
+        isLoading={isLoadingViewer}
+        error={viewerError}
+        onRefresh={loadShipments}
+      />
+
+      <hr />
+
+      <DangerZone
+        shipmentRows={shipmentRows}
+        isTenantMode={isTenantMode}
+        institutionId={institutionId}
+        tenantHeaders={tenantHeaders}
+        onDeleteSuccess={loadShipments}
+      />
     </div>
   );
 }

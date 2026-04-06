@@ -4,7 +4,7 @@ import { logger } from "@/lib/logger";
 import { forbidden, internalError, invalidRequest, unauthorized } from "@/lib/api-response";
 import { handleTenantError } from "@/lib/tenant";
 import { exportTenantShipmentWorkbook } from "@/lib/services/tenant-shipment-import";
-import { shipmentExportQuerySchema } from "@/lib/validation/platform-shipment-import";
+import { shipmentExportQuerySchema } from "@/lib/validation/shipment-import";
 import { requireValidQuery } from "@/lib/validation/query";
 
 export async function GET(request: NextRequest) {
@@ -25,17 +25,29 @@ export async function GET(request: NextRequest) {
       return invalidRequest("Unsupported export format");
     }
 
-    const workbook = await exportTenantShipmentWorkbook({ slug });
+    const { from, to } = queryResult.data;
+    if (from && to && from > to) {
+      return invalidRequest("'from' date must not be after 'to' date");
+    }
+
+    const range = (from ?? to) ? { from, to } : undefined;
+
+    const workbook = await exportTenantShipmentWorkbook({ slug, range });
     const workbookArrayBuffer = Uint8Array.from(workbook).buffer;
     const workbookBlob = new Blob([workbookArrayBuffer], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
 
+    const fromYear = from?.slice(0, 4);
+    const toYear = to?.slice(0, 4);
+    const rangeLabel = (fromYear ?? toYear) ? `-${fromYear ?? "start"}-${toYear ?? "now"}` : "";
+    const filename = `${slug}-shipments${rangeLabel}.xlsx`;
+
     return new NextResponse(workbookBlob, {
       status: 200,
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename=\"${slug}-shipments.xlsx\"`,
+        "Content-Disposition": `attachment; filename="${filename}"`,
         "Cache-Control": "no-store",
       },
     });

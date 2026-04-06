@@ -162,5 +162,38 @@ describe("Tenant Shipment Import API", () => {
       );
       expect(mockExportTenantShipmentWorkbook).toHaveBeenCalledWith({ slug: "demo" });
     });
+
+    it("returns 400 when 'from' is after 'to'", async () => {
+      const response = (await exportShipments(
+        makeExportRequest("demo", "?format=xlsx&from=2024-12-31&to=2020-01-01"),
+      ))!;
+      expect(response.status).toBe(400);
+      expect((await response.json()).error.code).toBe("INVALID_REQUEST");
+    });
+
+    it("passes date range to service when both from and to are provided", async () => {
+      mockExportTenantShipmentWorkbook.mockResolvedValueOnce(Buffer.from("xlsx"));
+
+      const response = (await exportShipments(
+        makeExportRequest("demo", "?format=xlsx&from=2020-01-01&to=2024-12-31"),
+      ))!;
+      expect(response.status).toBe(200);
+      expect(mockExportTenantShipmentWorkbook).toHaveBeenCalledWith({
+        slug: "demo",
+        range: { from: "2020-01-01", to: "2024-12-31" },
+      });
+    });
+
+    it("passes partial range to service when only to is provided", async () => {
+      mockExportTenantShipmentWorkbook.mockResolvedValueOnce(Buffer.from("xlsx"));
+
+      const response = (await exportShipments(
+        makeExportRequest("demo", "?format=xlsx&to=2024-12-31"),
+      ))!;
+      expect(response.status).toBe(200);
+      expect(mockExportTenantShipmentWorkbook).toHaveBeenCalledWith(
+        expect.objectContaining({ range: expect.objectContaining({ to: "2024-12-31" }) }),
+      );
+    });
   });
 });

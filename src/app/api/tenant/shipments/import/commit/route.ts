@@ -4,7 +4,7 @@ import { logger } from "@/lib/logger";
 import { forbidden, internalError, invalidRequest, ok, unauthorized } from "@/lib/api-response";
 import { handleTenantError } from "@/lib/tenant";
 import { commitTenantShipmentImport } from "@/lib/services/tenant-shipment-import";
-import { shipmentImportCommitRequestSchema } from "@/lib/validation/platform-shipment-import";
+import { shipmentImportCommitRequestSchema } from "@/lib/validation/shipment-import";
 import { requireValidBody } from "@/lib/validation/request";
 
 export async function POST(request: NextRequest) {

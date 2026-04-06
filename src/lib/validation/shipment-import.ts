@@ -84,11 +84,35 @@ export const shipmentImportCommitResponseSchema = z
   })
   .strict();
 
+/** YYYY-MM-DD date string for export range filters and delete range bounds. */
+const isoDateOnlySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Expected YYYY-MM-DD format");
+
 export const shipmentExportQuerySchema = z
   .object({
     format: z.enum(["xlsx", "csv"]).optional(),
+    from: isoDateOnlySchema.optional(),
+    to: isoDateOnlySchema.optional(),
   })
   .strict();
+
+export const shipmentDeleteBodySchema = z.discriminatedUnion("mode", [
+  z.object({ mode: z.literal("all") }).strict(),
+  z
+    .object({
+      mode: z.literal("year"),
+      year: z.number().int().min(1900).max(2100),
+    })
+    .strict(),
+  z
+    .object({
+      mode: z.literal("range"),
+      from: isoDateOnlySchema,
+      to: isoDateOnlySchema,
+    })
+    .strict(),
+]);
+
+export type ShipmentDeleteBody = z.infer<typeof shipmentDeleteBodySchema>;
 
 export type ShipmentImportPreviewRequest = z.infer<typeof shipmentImportPreviewRequestSchema>;
 export type ShipmentImportDraft = z.infer<typeof shipmentImportDraftSchema>;

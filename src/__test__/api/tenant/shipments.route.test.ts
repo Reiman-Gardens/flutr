@@ -19,6 +19,7 @@ jest.mock("@/lib/services/tenant-shipments", () => ({
   getTenantShipmentById: jest.fn(),
   updateTenantShipment: jest.fn(),
   deleteTenantShipment: jest.fn(),
+  deleteTenantShipments: jest.fn(),
   getTenantShipmentReleases: jest.fn(),
   createTenantRelease: jest.fn(),
 }));
@@ -29,9 +30,14 @@ import {
   getTenantShipmentById,
   updateTenantShipment,
   deleteTenantShipment,
+  deleteTenantShipments,
   getTenantShipmentReleases,
 } from "@/lib/services/tenant-shipments";
-import { GET as getShipments, POST as postShipment } from "@/app/api/tenant/shipments/route";
+import {
+  GET as getShipments,
+  POST as postShipment,
+  DELETE as deleteBulkShipments,
+} from "@/app/api/tenant/shipments/route";
 import {
   GET as getShipmentById,
   PATCH as patchShipmentById,
@@ -44,6 +50,7 @@ const mockCreateTenantShipment = createTenantShipment as jest.Mock;
 const mockGetTenantShipmentById = getTenantShipmentById as jest.Mock;
 const mockUpdateTenantShipment = updateTenantShipment as jest.Mock;
 const mockDeleteTenantShipment = deleteTenantShipment as jest.Mock;
+const mockDeleteTenantShipments = deleteTenantShipments as jest.Mock;
 const mockGetTenantShipmentReleases = getTenantShipmentReleases as jest.Mock;
 
 const SLUG = "butterfly-house";
@@ -93,6 +100,17 @@ function makeDeleteByIdRequest(id: string, slug?: string) {
   return new NextRequest(`http://localhost/api/tenant/shipments/${id}`, {
     method: "DELETE",
     headers,
+  });
+}
+
+function makeDeleteBulkRequest(body: Record<string, unknown>, slug?: string) {
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (slug) headers["x-tenant-slug"] = slug;
+
+  return new NextRequest("http://localhost/api/tenant/shipments", {
+    method: "DELETE",
+    headers,
+    body: JSON.stringify(body),
   });
 }
 
@@ -565,6 +583,87 @@ describe("Shipments API", () => {
       const body = await response.json();
       expect(body.deleted).toBe(true);
       expect(mockDeleteTenantShipment).toHaveBeenCalledWith({ slug: SLUG, id: 44 });
+    });
+  });
+
+  describe("DELETE /api/tenant/shipments (bulk delete)", () => {
+    it("returns 400 when x-tenant-slug header is missing", async () => {
+      const res = (await deleteBulkShipments(makeDeleteBulkRequest({ mode: "all" })))!;
+      expect(res.status).toBe(400);
+      expect((await res.json()).error.code).toBe("INVALID_REQUEST");
+    });
+
+    it("returns 400 for unrecognised mode", async () => {
+      const res = (await deleteBulkShipments(makeDeleteBulkRequest({ mode: "everything" }, SLUG)))!;
+      expect(res.status).toBe(400);
+      expect((await res.json()).error.code).toBe("INVALID_REQUEST");
+    });
+
+    it("returns 400 for year mode missing year field", async () => {
+      const res = (await deleteBulkShipments(makeDeleteBulkRequest({ mode: "year" }, SLUG)))!;
+      expect(res.status).toBe(400);
+      expect((await res.json()).error.code).toBe("INVALID_REQUEST");
+    });
+
+    it("returns 400 for range mode missing from/to fields", async () => {
+      const res = (await deleteBulkShipments(makeDeleteBulkRequest({ mode: "range" }, SLUG)))!;
+      expect(res.status).toBe(400);
+      expect((await res.json()).error.code).toBe("INVALID_REQUEST");
+    });
+
+    it("returns 401 for unauthenticated requests", async () => {
+      mockDeleteTenantShipments.mockRejectedValueOnce(new Error("UNAUTHORIZED"));
+      const res = (await deleteBulkShipments(makeDeleteBulkRequest({ mode: "all" }, SLUG)))!;
+      expect(res.status).toBe(401);
+    });
+
+    it("returns 403 for insufficient permission", async () => {
+      mockDeleteTenantShipments.mockRejectedValueOnce(new Error("FORBIDDEN"));
+      const res = (await deleteBulkShipments(makeDeleteBulkRequest({ mode: "all" }, SLUG)))!;
+      expect(res.status).toBe(403);
+    });
+
+    it("returns 404 when tenant slug cannot be resolved", async () => {
+      mockDeleteTenantShipments.mockRejectedValueOnce(new Error("NOT_FOUND"));
+      const res = (await deleteBulkShipments(makeDeleteBulkRequest({ mode: "all" }, SLUG)))!;
+      expect(res.status).toBe(404);
+    });
+
+    it("deletes all shipments and returns deleted count", async () => {
+      mockDeleteTenantShipments.mockResolvedValueOnce({ deleted: 30 });
+      const res = (await deleteBulkShipments(makeDeleteBulkRequest({ mode: "all" }, SLUG)))!;
+      expect(res.status).toBe(200);
+      expect((await res.json()).deleted).toBe(30);
+      expect(mockDeleteTenantShipments).toHaveBeenCalledWith({
+        slug: SLUG,
+        options: { mode: "all" },
+      });
+    });
+
+    it("deletes shipments by year and returns deleted count", async () => {
+      mockDeleteTenantShipments.mockResolvedValueOnce({ deleted: 12 });
+      const res = (await deleteBulkShipments(
+        makeDeleteBulkRequest({ mode: "year", year: 2023 }, SLUG),
+      ))!;
+      expect(res.status).toBe(200);
+      expect((await res.json()).deleted).toBe(12);
+      expect(mockDeleteTenantShipments).toHaveBeenCalledWith({
+        slug: SLUG,
+        options: { mode: "year", year: 2023 },
+      });
+    });
+
+    it("deletes shipments by range and returns deleted count", async () => {
+      mockDeleteTenantShipments.mockResolvedValueOnce({ deleted: 5 });
+      const res = (await deleteBulkShipments(
+        makeDeleteBulkRequest({ mode: "range", from: "2022-01-01", to: "2022-12-31" }, SLUG),
+      ))!;
+      expect(res.status).toBe(200);
+      expect((await res.json()).deleted).toBe(5);
+      expect(mockDeleteTenantShipments).toHaveBeenCalledWith({
+        slug: SLUG,
+        options: { mode: "range", from: "2022-01-01", to: "2022-12-31" },
+      });
     });
   });
 

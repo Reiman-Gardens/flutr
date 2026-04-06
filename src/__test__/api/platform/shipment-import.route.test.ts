@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 
-jest.mock("@/lib/services/platform-shipment-import", () => ({
+jest.mock("@/lib/services/shipment-import", () => ({
   getPlatformShipmentImportPreview: jest.fn(),
   commitPlatformShipmentImport: jest.fn(),
   exportPlatformShipmentWorkbook: jest.fn(),
@@ -10,7 +10,7 @@ import {
   getPlatformShipmentImportPreview,
   commitPlatformShipmentImport,
   exportPlatformShipmentWorkbook,
-} from "@/lib/services/platform-shipment-import";
+} from "@/lib/services/shipment-import";
 import { POST as previewImport } from "@/app/api/platform/institutions/[id]/shipments/import/preview/route";
 import { POST as commitImport } from "@/app/api/platform/institutions/[id]/shipments/import/commit/route";
 import { GET as exportShipments } from "@/app/api/platform/institutions/[id]/shipments/export/route";
@@ -214,6 +214,42 @@ describe("Platform Shipment Import API", () => {
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       );
       expect(mockExportPlatformShipmentWorkbook).toHaveBeenCalledWith({ institutionId: 1 });
+    });
+
+    it("returns 400 when 'from' is after 'to'", async () => {
+      const response = (await exportShipments(
+        makeExportRequest("1", "?format=xlsx&from=2024-12-31&to=2020-01-01"),
+        routeContext("1"),
+      ))!;
+      expect(response.status).toBe(400);
+      expect((await response.json()).error.code).toBe("INVALID_REQUEST");
+    });
+
+    it("passes date range to service when both from and to are provided", async () => {
+      mockExportPlatformShipmentWorkbook.mockResolvedValueOnce(Buffer.from("xlsx"));
+
+      const response = (await exportShipments(
+        makeExportRequest("1", "?format=xlsx&from=2020-01-01&to=2024-12-31"),
+        routeContext("1"),
+      ))!;
+      expect(response.status).toBe(200);
+      expect(mockExportPlatformShipmentWorkbook).toHaveBeenCalledWith({
+        institutionId: 1,
+        range: { from: "2020-01-01", to: "2024-12-31" },
+      });
+    });
+
+    it("passes partial range to service when only from is provided", async () => {
+      mockExportPlatformShipmentWorkbook.mockResolvedValueOnce(Buffer.from("xlsx"));
+
+      const response = (await exportShipments(
+        makeExportRequest("1", "?format=xlsx&from=2020-01-01"),
+        routeContext("1"),
+      ))!;
+      expect(response.status).toBe(200);
+      expect(mockExportPlatformShipmentWorkbook).toHaveBeenCalledWith(
+        expect.objectContaining({ range: expect.objectContaining({ from: "2020-01-01" }) }),
+      );
     });
   });
 });
