@@ -101,6 +101,7 @@ export default function FileDropZone({
           aria-label="Upload file"
           onChange={(e) => {
             const file = e.target.files?.[0];
+            e.currentTarget.value = "";
             if (file) void handleFileSelection(file);
           }}
         />

@@ -35,8 +35,8 @@ export default function ImportResultsPanel({
             <div className="space-y-1">
               <p className="text-destructive text-sm font-medium">Row Errors</p>
               <ul className="text-destructive list-disc space-y-1 pl-5 text-xs">
-                {preview.row_errors.slice(0, 20).map((rowError) => (
-                  <li key={rowError}>{rowError}</li>
+                {preview.row_errors.slice(0, 20).map((rowError, index) => (
+                  <li key={`row-error-${index}-${rowError}`}>{rowError}</li>
                 ))}
               </ul>
             </div>
@@ -46,8 +46,8 @@ export default function ImportResultsPanel({
             <div className="space-y-1">
               <p className="text-sm font-medium text-amber-700">Warnings</p>
               <ul className="list-disc space-y-1 pl-5 text-xs text-amber-700">
-                {preview.warnings.slice(0, 20).map((warning) => (
-                  <li key={warning}>{warning}</li>
+                {preview.warnings.slice(0, 20).map((warning, index) => (
+                  <li key={`preview-warning-${index}-${warning}`}>{warning}</li>
                 ))}
               </ul>
             </div>
@@ -57,8 +57,8 @@ export default function ImportResultsPanel({
             <div className="space-y-1">
               <p className="text-sm font-medium text-amber-700">Unknown Species</p>
               <ul className="list-disc space-y-1 pl-5 text-xs text-amber-700">
-                {preview.unknown_species.slice(0, 20).map((name) => (
-                  <li key={name}>{name}</li>
+                {preview.unknown_species.slice(0, 20).map((name, index) => (
+                  <li key={`unknown-species-${index}-${name}`}>{name}</li>
                 ))}
               </ul>
             </div>
@@ -68,8 +68,8 @@ export default function ImportResultsPanel({
             <div className="space-y-1">
               <p className="text-sm font-medium text-amber-700">Unknown Suppliers</p>
               <ul className="list-disc space-y-1 pl-5 text-xs text-amber-700">
-                {preview.unknown_suppliers.slice(0, 20).map((code) => (
-                  <li key={code}>{code}</li>
+                {preview.unknown_suppliers.slice(0, 20).map((code, index) => (
+                  <li key={`unknown-supplier-${index}-${code}`}>{code}</li>
                 ))}
               </ul>
             </div>
@@ -95,8 +95,8 @@ export default function ImportResultsPanel({
             <div className="space-y-1">
               <p className="text-sm font-medium text-amber-700">Import Warnings</p>
               <ul className="list-disc space-y-1 pl-5 text-xs text-amber-700">
-                {commitSummary.warnings.slice(0, 20).map((warning) => (
-                  <li key={warning}>{warning}</li>
+                {commitSummary.warnings.slice(0, 20).map((warning, index) => (
+                  <li key={`commit-warning-${index}-${warning}`}>{warning}</li>
                 ))}
               </ul>
             </div>
@@ -106,8 +106,8 @@ export default function ImportResultsPanel({
             <div className="space-y-1">
               <p className="text-destructive text-sm font-medium">Import Failures</p>
               <ul className="text-destructive list-disc space-y-1 pl-5 text-xs">
-                {commitSummary.failures.slice(0, 20).map((failure) => (
-                  <li key={failure}>{failure}</li>
+                {commitSummary.failures.slice(0, 20).map((failure, index) => (
+                  <li key={`commit-failure-${index}-${failure}`}>{failure}</li>
                 ))}
               </ul>
             </div>

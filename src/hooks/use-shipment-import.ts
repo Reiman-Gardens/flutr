@@ -179,7 +179,15 @@ export function useShipmentImport({
         return;
       }
       const data = (await response.json()) as CommitResponse;
+      setPreview(null);
       setCommitSummary(data);
+      if (data.failed === 0) {
+        toast.success("Shipments imported successfully.");
+      } else {
+        toast.warning(
+          `Import completed with ${data.failed.toLocaleString()} failed shipment${data.failed !== 1 ? "s" : ""}.`,
+        );
+      }
       onImportSuccess();
     } catch {
       setErrorMessage("Unable to commit import.");
