@@ -50,6 +50,24 @@ export interface ShipmentImportDraft {
   items: ShipmentImportDraftItem[];
 }
 
+const METRIC_COLUMNS = [
+  "emergedInTransit",
+  "damagedInTransit",
+  "diseasedInTransit",
+  "parasite",
+  "nonEmergence",
+  "poorEmergence",
+] as const satisfies readonly ShipmentImportHeaderKey[];
+
+const METRIC_COLUMN_LABELS: Record<(typeof METRIC_COLUMNS)[number], string> = {
+  emergedInTransit: "Emerg. in tr",
+  damagedInTransit: "Damag in tr",
+  diseasedInTransit: "No. disea",
+  parasite: "No. parasit",
+  nonEmergence: "No emerg",
+  poorEmergence: "Poor emerg",
+};
+
 export function normalizeScientificName(value: string) {
   return value.trim().toLowerCase().replace(/\s+/g, " ");
 }
@@ -234,6 +252,16 @@ export function parseShipmentImportRows(rawText: string): ParsedShipmentImportRe
     };
   }
 
+  const warnings: string[] = [];
+
+  const missingMetricColumns = METRIC_COLUMNS.filter((column) => indices[column] == null);
+  if (missingMetricColumns.length > 0) {
+    const labels = missingMetricColumns.map((column) => METRIC_COLUMN_LABELS[column]).join(", ");
+    warnings.push(
+      `Missing metric columns (${labels}). Values in these columns will default to 0 for each imported row.`,
+    );
+  }
+
   const getCellValue = (cells: string[], key: ShipmentImportHeaderKey) => {
     const index = indices[key];
     if (index == null) return "";
@@ -242,7 +270,6 @@ export function parseShipmentImportRows(rawText: string): ParsedShipmentImportRe
 
   const rows: ParsedShipmentImportRow[] = [];
   const rowErrors: string[] = [];
-  const warnings: string[] = [];
 
   for (let lineIndex = 1; lineIndex < lines.length; lineIndex += 1) {
     const cells = splitDelimitedLine(lines[lineIndex], delimiter);
@@ -253,7 +280,8 @@ export function parseShipmentImportRows(rawText: string): ParsedShipmentImportRe
     const shipmentDate = parseExcelDateToIso(getCellValue(cells, "shipDate"));
     const arrivalDate = parseExcelDateToIso(getCellValue(cells, "arrivalDate"));
 
-    const numberReceived = parseNonNegativeInteger(getCellValue(cells, "numberReceived"), {
+    const numberReceivedRaw = getCellValue(cells, "numberReceived");
+    const numberReceived = parseNonNegativeInteger(numberReceivedRaw, {
       required: false,
     });
     const emergedInTransit = parseNonNegativeInteger(getCellValue(cells, "emergedInTransit"), {
@@ -296,6 +324,10 @@ export function parseShipmentImportRows(rawText: string): ParsedShipmentImportRe
     if (numberReceived == null) {
       rowErrors.push(`Row ${rowNumber}: No. rec must be a non-negative integer.`);
       continue;
+    }
+
+    if (numberReceivedRaw.trim().length === 0) {
+      warnings.push(`Row ${rowNumber}: No. rec was blank and defaulted to 0.`);
     }
 
     if (

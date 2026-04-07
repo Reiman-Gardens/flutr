@@ -216,24 +216,26 @@ export default function DangerZone({
               {pendingDelete?.mode === "all" && (
                 <>
                   This will permanently delete all{" "}
-                  <strong>{deleteAllCount.toLocaleString()}</strong> shipment
-                  {deleteAllCount !== 1 ? "s" : ""} and all related records for this institution.
+                  <strong>{pendingDeleteCount.toLocaleString()}</strong> shipment
+                  {pendingDeleteCount !== 1 ? "s" : ""} and all related records for this
+                  institution.
                 </>
               )}
               {pendingDelete?.mode === "year" && (
                 <>
-                  This will permanently delete <strong>{deleteYearCount.toLocaleString()}</strong>{" "}
-                  shipment
-                  {deleteYearCount !== 1 ? "s" : ""} from <strong>{pendingDelete.year}</strong> and
-                  all related records.
+                  This will permanently delete{" "}
+                  <strong>{pendingDeleteCount.toLocaleString()}</strong> shipment
+                  {pendingDeleteCount !== 1 ? "s" : ""} from <strong>{pendingDelete.year}</strong>{" "}
+                  and all related records.
                 </>
               )}
               {pendingDelete?.mode === "range" && (
                 <>
-                  This will permanently delete <strong>{deleteRangeCount.toLocaleString()}</strong>{" "}
-                  shipment
-                  {deleteRangeCount !== 1 ? "s" : ""} between <strong>{pendingDelete.from}</strong>{" "}
-                  and <strong>{pendingDelete.to}</strong> and all related records.
+                  This will permanently delete{" "}
+                  <strong>{pendingDeleteCount.toLocaleString()}</strong> shipment
+                  {pendingDeleteCount !== 1 ? "s" : ""} between{" "}
+                  <strong>{pendingDelete.from}</strong> and <strong>{pendingDelete.to}</strong> and
+                  all related records.
                 </>
               )}{" "}
               This action cannot be undone.

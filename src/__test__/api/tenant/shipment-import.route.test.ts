@@ -171,6 +171,14 @@ describe("Tenant Shipment Import API", () => {
       expect((await response.json()).error.code).toBe("INVALID_REQUEST");
     });
 
+    it("returns 400 for invalid calendar date in range", async () => {
+      const response = (await exportShipments(
+        makeExportRequest("demo", "?format=xlsx&from=2024-02-31&to=2024-12-31"),
+      ))!;
+      expect(response.status).toBe(400);
+      expect((await response.json()).error.code).toBe("INVALID_REQUEST");
+    });
+
     it("passes date range to service when both from and to are provided", async () => {
       mockExportTenantShipmentWorkbook.mockResolvedValueOnce(Buffer.from("xlsx"));
 

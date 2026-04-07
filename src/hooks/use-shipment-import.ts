@@ -193,6 +193,7 @@ export function useShipmentImport({
       setErrorMessage("Tenant context is missing. Refresh and try again.");
       return;
     }
+    setErrorMessage(null);
     const range =
       exportFrom || exportTo
         ? { from: exportFrom || undefined, to: exportTo || undefined }

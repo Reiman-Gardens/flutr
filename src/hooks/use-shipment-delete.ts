@@ -13,6 +13,11 @@ type PendingDelete =
   | { mode: "year"; year: number }
   | { mode: "range"; from: string; to: string };
 
+type PendingDeleteSnapshot = {
+  request: PendingDelete;
+  count: number;
+};
+
 type ApiError = {
   error?: { message?: string };
 };
@@ -39,7 +44,7 @@ export function useShipmentDelete({
   const [deleteYear, setDeleteYear] = useState("");
   const [deleteRangeFrom, setDeleteRangeFrom] = useState("");
   const [deleteRangeTo, setDeleteRangeTo] = useState("");
-  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const [pendingDeleteState, setPendingDeleteState] = useState<PendingDeleteSnapshot | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const deleteYearParsed = useMemo(() => {
@@ -64,12 +69,28 @@ export function useShipmentDelete({
     return filterRowsByDateRange(shipmentRows, deleteRangeFrom, deleteRangeTo).length;
   }, [shipmentRows, deleteRangeFrom, deleteRangeTo]);
 
-  const pendingDeleteCount =
-    pendingDelete?.mode === "all"
-      ? deleteAllCount
-      : pendingDelete?.mode === "year"
-        ? deleteYearCount
-        : deleteRangeCount;
+  function countRowsForPendingDelete(value: PendingDelete): number {
+    if (!shipmentRows) return 0;
+    if (value.mode === "all") return shipmentRows.length;
+    if (value.mode === "year") {
+      return shipmentRows.filter((row) => extractYear(row.shipmentDate) === value.year).length;
+    }
+    return filterRowsByDateRange(shipmentRows, value.from, value.to).length;
+  }
+
+  function setPendingDelete(value: PendingDelete | null) {
+    if (!value) {
+      setPendingDeleteState(null);
+      return;
+    }
+    setPendingDeleteState({
+      request: value,
+      count: countRowsForPendingDelete(value),
+    });
+  }
+
+  const pendingDelete = pendingDeleteState?.request ?? null;
+  const pendingDeleteCount = pendingDeleteState?.count ?? 0;
 
   async function handleDelete() {
     if (!pendingDelete) return;

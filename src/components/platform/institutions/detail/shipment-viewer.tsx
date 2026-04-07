@@ -172,7 +172,7 @@ export default function ShipmentViewer({
                             Arrival Date
                           </th>
                           <th scope="col" className="pr-4 pb-2 text-right font-medium">
-                            Species
+                            Species count
                           </th>
                           <th scope="col" className="pb-2 text-right font-medium">
                             Total Received

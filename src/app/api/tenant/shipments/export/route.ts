@@ -33,8 +33,8 @@ export async function GET(request: NextRequest) {
     const range = (from ?? to) ? { from, to } : undefined;
 
     const workbook = await exportTenantShipmentWorkbook({ slug, range });
-    const workbookArrayBuffer = Uint8Array.from(workbook).buffer;
-    const workbookBlob = new Blob([workbookArrayBuffer], {
+    const workbookBytes = Uint8Array.from(workbook);
+    const workbookBlob = new Blob([workbookBytes], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
 

@@ -611,6 +611,22 @@ describe("Shipments API", () => {
       expect((await res.json()).error.code).toBe("INVALID_REQUEST");
     });
 
+    it("returns 400 for invalid calendar date in range mode", async () => {
+      const res = (await deleteBulkShipments(
+        makeDeleteBulkRequest({ mode: "range", from: "2024-01-01", to: "2024-02-31" }, SLUG),
+      ))!;
+      expect(res.status).toBe(400);
+      expect((await res.json()).error.code).toBe("INVALID_REQUEST");
+    });
+
+    it("returns 400 when range mode has 'from' after 'to'", async () => {
+      const res = (await deleteBulkShipments(
+        makeDeleteBulkRequest({ mode: "range", from: "2024-12-31", to: "2024-01-01" }, SLUG),
+      ))!;
+      expect(res.status).toBe(400);
+      expect((await res.json()).error.code).toBe("INVALID_REQUEST");
+    });
+
     it("returns 401 for unauthenticated requests", async () => {
       mockDeleteTenantShipments.mockRejectedValueOnce(new Error("UNAUTHORIZED"));
       const res = (await deleteBulkShipments(makeDeleteBulkRequest({ mode: "all" }, SLUG)))!;

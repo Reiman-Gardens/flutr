@@ -45,8 +45,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const institutionId = paramResult.data.id;
 
     const workbook = await exportPlatformShipmentWorkbook({ institutionId, range });
-    const workbookArrayBuffer = Uint8Array.from(workbook).buffer;
-    const workbookBlob = new Blob([workbookArrayBuffer], {
+    const workbookBytes = Uint8Array.from(workbook);
+    const workbookBlob = new Blob([workbookBytes], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
 

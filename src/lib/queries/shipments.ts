@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, lte, sql, count } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import {
@@ -17,6 +17,24 @@ export const SHIPMENT_ERRORS = {
   SHIPMENT_ITEM_NOT_FOUND: "SHIPMENT_ITEM_NOT_FOUND",
   CANNOT_DELETE_SHIPMENT_WITH_DEPENDENCIES: "CANNOT_DELETE_SHIPMENT_WITH_DEPENDENCIES",
 } as const;
+
+/**
+ * Parse a YYYY-MM-DD date-only string into a UTC start-of-day Date.
+ * Input shape/calendar validity is enforced upstream by Zod.
+ */
+export function parseDateOnlyToUtcStart(value: string): Date {
+  const [year, month, day] = value.split("-").map((part) => Number.parseInt(part, 10));
+  return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+}
+
+/**
+ * Compute an exclusive UTC upper bound for a YYYY-MM-DD date-only string.
+ * Example: 2024-12-31 -> 2025-01-01T00:00:00.000Z.
+ */
+export function parseDateOnlyToUtcExclusiveEnd(value: string): Date {
+  const start = parseDateOnlyToUtcStart(value);
+  return new Date(start.getTime() + 24 * 60 * 60 * 1000);
+}
 
 /**
  * List shipments for a tenant (paginated)
@@ -228,10 +246,10 @@ export async function listShipmentExportRows(
   const conditions = [eq(shipment_items.institution_id, institutionId)];
 
   if (range?.from) {
-    conditions.push(gte(shipments.shipment_date, new Date(range.from)));
+    conditions.push(gte(shipments.shipment_date, parseDateOnlyToUtcStart(range.from)));
   }
   if (range?.to) {
-    conditions.push(lte(shipments.shipment_date, new Date(range.to)));
+    conditions.push(lt(shipments.shipment_date, parseDateOnlyToUtcExclusiveEnd(range.to)));
   }
 
   return db
@@ -496,8 +514,8 @@ export async function deleteShipmentsForInstitution(
     if (options.mode === "year") {
       conditions.push(sql`extract(year from ${shipments.shipment_date})::int = ${options.year}`);
     } else if (options.mode === "range") {
-      conditions.push(gte(shipments.shipment_date, new Date(options.from)));
-      conditions.push(lte(shipments.shipment_date, new Date(options.to)));
+      conditions.push(gte(shipments.shipment_date, parseDateOnlyToUtcStart(options.from)));
+      conditions.push(lt(shipments.shipment_date, parseDateOnlyToUtcExclusiveEnd(options.to)));
     }
     const shipmentWhere = and(...conditions);
 

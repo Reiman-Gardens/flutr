@@ -85,7 +85,7 @@ export const shipmentImportCommitResponseSchema = z
   .strict();
 
 /** YYYY-MM-DD date string for export range filters and delete range bounds. */
-const isoDateOnlySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Expected YYYY-MM-DD format");
+const isoDateOnlySchema = z.iso.date();
 
 export const shipmentExportQuerySchema = z
   .object({
@@ -95,6 +95,18 @@ export const shipmentExportQuerySchema = z
   })
   .strict();
 
+const shipmentDeleteRangeSchema = z
+  .object({
+    mode: z.literal("range"),
+    from: isoDateOnlySchema,
+    to: isoDateOnlySchema,
+  })
+  .strict()
+  .refine((value) => value.from <= value.to, {
+    message: "'from' date must not be after 'to' date",
+    path: ["from"],
+  });
+
 export const shipmentDeleteBodySchema = z.discriminatedUnion("mode", [
   z.object({ mode: z.literal("all") }).strict(),
   z
@@ -103,13 +115,7 @@ export const shipmentDeleteBodySchema = z.discriminatedUnion("mode", [
       year: z.number().int().min(1900).max(2100),
     })
     .strict(),
-  z
-    .object({
-      mode: z.literal("range"),
-      from: isoDateOnlySchema,
-      to: isoDateOnlySchema,
-    })
-    .strict(),
+  shipmentDeleteRangeSchema,
 ]);
 
 export type ShipmentDeleteBody = z.infer<typeof shipmentDeleteBodySchema>;

@@ -225,6 +225,15 @@ describe("Platform Shipment Import API", () => {
       expect((await response.json()).error.code).toBe("INVALID_REQUEST");
     });
 
+    it("returns 400 for invalid calendar date in range", async () => {
+      const response = (await exportShipments(
+        makeExportRequest("1", "?format=xlsx&from=2024-99-99&to=2024-12-31"),
+        routeContext("1"),
+      ))!;
+      expect(response.status).toBe(400);
+      expect((await response.json()).error.code).toBe("INVALID_REQUEST");
+    });
+
     it("passes date range to service when both from and to are provided", async () => {
       mockExportPlatformShipmentWorkbook.mockResolvedValueOnce(Buffer.from("xlsx"));
 
