@@ -43,6 +43,50 @@ Services own all auth, authorization, and tenant resolution:
 3. **Resolve tenant** (tenant routes): `const tenantId = await resolveTenantBySlug(user, slug);`
 4. **Strip slug** before passing data to the query layer
 
+## Historical Import/Export Pattern (Platform)
+
+For platform onboarding shipment imports, use a two-phase flow:
+
+1. `preview` endpoint validates/parses input and returns diagnostics (`row_errors`, `warnings`, unknown references) with **no writes**
+2. `commit` endpoint performs writes only after receiving validated preview payload + `preview_hash`
+
+Rules:
+
+- `preview` must be side-effect free
+- `commit` must enforce superuser access and validate preview integrity (`preview_hash`)
+- `export` endpoints should return deterministic flat records (CSV-first is acceptable)
+- `export` endpoints accept optional `from`/`to` YYYY-MM-DD query params; reversed ranges are rejected with `invalidRequest`
+
+Tenant variants follow the same contract but must:
+
+- require `x-tenant-slug`
+- resolve tenant in the service layer via `resolveTenantBySlug`
+- enforce tenant-scoped permissions (`canReadShipment` / `canWriteShipment`)
+- restrict import/export endpoints to institution admins (`canManageInstitutionProfile`)
+- force `allow_species_autocreate=false` for tenant commit flows
+
+## Bulk Delete Pattern
+
+For bulk-delete operations on institution-scoped data, use a discriminated union body validated with Zod:
+
+```typescript
+// Validation schema
+const deleteBodySchema = z.discriminatedUnion("mode", [
+  z.object({ mode: z.literal("all") }),
+  z.object({ mode: z.literal("year"), year: z.number().int().min(1900).max(2100) }),
+  z.object({ mode: z.literal("range"), from: isoDateOnlySchema, to: isoDateOnlySchema }),
+]);
+```
+
+Rules:
+
+- Use `DELETE` method with a JSON body (not query params) so the mode is always explicit and validated
+- Route validates body, service enforces auth, query runs in a transaction
+- Delete order must respect FK constraints — delete child rows before parent rows (e.g., `in_flight` before `shipment_items` before `shipments`)
+- Guard `inArray` calls with length checks to avoid invalid `WHERE id IN ()` SQL
+- Return `{ deleted: number }` — count of top-level rows deleted (not cascaded rows)
+- Platform deletes require `canCrossTenant` (SUPERUSER); tenant deletes require `canManageInstitutionProfile` (ADMIN+) — appropriate for an irreversible bulk operation
+
 ## Validation Rules
 
 - Required text: `sanitizedNonEmpty(maxLen)` — sanitizes before enforcing non-empty

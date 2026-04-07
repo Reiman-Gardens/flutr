@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql, count } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import {
@@ -17,6 +17,24 @@ export const SHIPMENT_ERRORS = {
   SHIPMENT_ITEM_NOT_FOUND: "SHIPMENT_ITEM_NOT_FOUND",
   CANNOT_DELETE_SHIPMENT_WITH_DEPENDENCIES: "CANNOT_DELETE_SHIPMENT_WITH_DEPENDENCIES",
 } as const;
+
+/**
+ * Parse a YYYY-MM-DD date-only string into a UTC start-of-day Date.
+ * Input shape/calendar validity is enforced upstream by Zod.
+ */
+export function parseDateOnlyToUtcStart(value: string): Date {
+  const [year, month, day] = value.split("-").map((part) => Number.parseInt(part, 10));
+  return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+}
+
+/**
+ * Compute an exclusive UTC upper bound for a YYYY-MM-DD date-only string.
+ * Example: 2024-12-31 -> 2025-01-01T00:00:00.000Z.
+ */
+export function parseDateOnlyToUtcExclusiveEnd(value: string): Date {
+  const start = parseDateOnlyToUtcStart(value);
+  return new Date(start.getTime() + 24 * 60 * 60 * 1000);
+}
 
 /**
  * List shipments for a tenant (paginated)
@@ -159,6 +177,111 @@ export async function createShipment(institutionId: number, payload: CreateShipm
 
     return inserted.id;
   });
+}
+
+/**
+ * Check whether a shipment header already exists for the same tenant and key.
+ */
+export async function shipmentHeaderExists(
+  institutionId: number,
+  supplierCode: string,
+  shipmentDate: Date,
+  arrivalDate: Date,
+) {
+  const [row] = await db
+    .select({ id: shipments.id })
+    .from(shipments)
+    .where(
+      and(
+        eq(shipments.institution_id, institutionId),
+        eq(shipments.supplier_code, supplierCode),
+        eq(shipments.shipment_date, shipmentDate),
+        eq(shipments.arrival_date, arrivalDate),
+      ),
+    )
+    .limit(1);
+
+  return !!row;
+}
+
+/**
+ * Lightweight summary list of all shipments for an institution, with aggregated
+ * item count and total received. Used by the Data tab shipment viewer.
+ * Returns all rows ordered by shipment date descending (no pagination).
+ */
+export async function getShipmentSummaryList(institutionId: number) {
+  return db
+    .select({
+      id: shipments.id,
+      supplierCode: shipments.supplier_code,
+      shipmentDate: shipments.shipment_date,
+      arrivalDate: shipments.arrival_date,
+      itemCount: count(shipment_items.id),
+      totalReceived: sql<number>`coalesce(sum(${shipment_items.number_received}), 0)`.as(
+        "total_received",
+      ),
+    })
+    .from(shipments)
+    .leftJoin(
+      shipment_items,
+      and(
+        eq(shipment_items.shipment_id, shipments.id),
+        eq(shipment_items.institution_id, shipments.institution_id),
+      ),
+    )
+    .where(eq(shipments.institution_id, institutionId))
+    .groupBy(shipments.id, shipments.supplier_code, shipments.shipment_date, shipments.arrival_date)
+    .orderBy(desc(shipments.shipment_date));
+}
+
+/**
+ * Flat shipment rows for XLSX export, with optional date range filter.
+ * `from` and `to` are YYYY-MM-DD strings; when provided, only shipments
+ * whose `shipment_date` falls within the inclusive range are exported.
+ */
+export async function listShipmentExportRows(
+  institutionId: number,
+  range?: { from?: string; to?: string },
+) {
+  const conditions = [eq(shipment_items.institution_id, institutionId)];
+
+  if (range?.from) {
+    conditions.push(gte(shipments.shipment_date, parseDateOnlyToUtcStart(range.from)));
+  }
+  if (range?.to) {
+    conditions.push(lt(shipments.shipment_date, parseDateOnlyToUtcExclusiveEnd(range.to)));
+  }
+
+  return db
+    .select({
+      supplierCode: shipments.supplier_code,
+      shipmentDate: shipments.shipment_date,
+      arrivalDate: shipments.arrival_date,
+      scientificName: butterfly_species.scientific_name,
+      commonName: butterfly_species.common_name,
+      numberReceived: shipment_items.number_received,
+      emergedInTransit: shipment_items.emerged_in_transit,
+      damagedInTransit: shipment_items.damaged_in_transit,
+      diseasedInTransit: shipment_items.diseased_in_transit,
+      parasite: shipment_items.parasite,
+      nonEmergence: shipment_items.non_emergence,
+      poorEmergence: shipment_items.poor_emergence,
+    })
+    .from(shipment_items)
+    .innerJoin(
+      shipments,
+      and(
+        eq(shipments.id, shipment_items.shipment_id),
+        eq(shipments.institution_id, shipment_items.institution_id),
+      ),
+    )
+    .innerJoin(butterfly_species, eq(butterfly_species.id, shipment_items.butterfly_species_id))
+    .where(and(...conditions))
+    .orderBy(
+      asc(shipments.shipment_date),
+      asc(shipments.supplier_code),
+      asc(butterfly_species.scientific_name),
+    );
 }
 
 /**
@@ -362,4 +485,100 @@ export async function deleteShipment(institutionId: number, shipmentId: number) 
  */
 export async function bulkDeleteShipmentsForTenant(institutionId: number) {
   return db.delete(shipments).where(eq(shipments.institution_id, institutionId));
+}
+
+// ---------------------------------------------------------------------------
+// Bulk delete
+// ---------------------------------------------------------------------------
+
+export type ShipmentDeleteOptions =
+  | { mode: "all" }
+  | { mode: "year"; year: number }
+  | { mode: "range"; from: string; to: string };
+
+/**
+ * Bulk-delete shipments for an institution by mode.
+ *
+ * Deletion order respects FK constraints:
+ *   in_flight (restrict on shipment_items) → release_events → shipment_items → shipments
+ *
+ * Returns the count of shipment headers deleted.
+ */
+export async function deleteShipmentsForInstitution(
+  institutionId: number,
+  options: ShipmentDeleteOptions,
+): Promise<{ deleted: number }> {
+  return db.transaction(async (tx) => {
+    // Build shipment-level conditions
+    const conditions = [eq(shipments.institution_id, institutionId)];
+    if (options.mode === "year") {
+      conditions.push(sql`extract(year from ${shipments.shipment_date})::int = ${options.year}`);
+    } else if (options.mode === "range") {
+      conditions.push(gte(shipments.shipment_date, parseDateOnlyToUtcStart(options.from)));
+      conditions.push(lt(shipments.shipment_date, parseDateOnlyToUtcExclusiveEnd(options.to)));
+    }
+    const shipmentWhere = and(...conditions);
+
+    // Resolve target shipment IDs
+    const targetShipments = await tx
+      .select({ id: shipments.id })
+      .from(shipments)
+      .where(shipmentWhere);
+
+    if (targetShipments.length === 0) return { deleted: 0 };
+
+    const shipmentIds = targetShipments.map((s) => s.id);
+
+    // Resolve shipment item IDs (needed to target in_flight)
+    const targetItems = await tx
+      .select({ id: shipment_items.id })
+      .from(shipment_items)
+      .where(
+        and(
+          eq(shipment_items.institution_id, institutionId),
+          inArray(shipment_items.shipment_id, shipmentIds),
+        ),
+      );
+
+    const itemIds = targetItems.map((i) => i.id);
+
+    // 1. Remove in_flight rows first — they have RESTRICT on shipment_items
+    if (itemIds.length > 0) {
+      await tx
+        .delete(in_flight)
+        .where(
+          and(
+            eq(in_flight.institution_id, institutionId),
+            inArray(in_flight.shipment_item_id, itemIds),
+          ),
+        );
+    }
+
+    // 2. Remove release_events (CASCADE would clean up any remaining in_flight)
+    await tx
+      .delete(release_events)
+      .where(
+        and(
+          eq(release_events.institution_id, institutionId),
+          inArray(release_events.shipment_id, shipmentIds),
+        ),
+      );
+
+    // 3. Remove shipment_items
+    if (itemIds.length > 0) {
+      await tx
+        .delete(shipment_items)
+        .where(
+          and(
+            eq(shipment_items.institution_id, institutionId),
+            inArray(shipment_items.shipment_id, shipmentIds),
+          ),
+        );
+    }
+
+    // 4. Remove shipments and return count
+    const deleted = await tx.delete(shipments).where(shipmentWhere).returning({ id: shipments.id });
+
+    return { deleted: deleted.length };
+  });
 }

@@ -1,5 +1,11 @@
 import { auth } from "@/auth";
-import { requireUser, canReadShipment, canWriteShipment, canCreateRelease } from "@/lib/authz";
+import {
+  requireUser,
+  canReadShipment,
+  canWriteShipment,
+  canCreateRelease,
+  canManageInstitutionProfile,
+} from "@/lib/authz";
 import { resolveTenantBySlug } from "@/lib/tenant";
 import {
   listShipments,
@@ -7,7 +13,10 @@ import {
   getShipmentWithItems,
   updateShipment,
   deleteShipment,
+  deleteShipmentsForInstitution,
+  getShipmentSummaryList,
   SHIPMENT_ERRORS,
+  type ShipmentDeleteOptions,
 } from "@/lib/queries/shipments";
 import {
   listReleaseEventsForShipment,
@@ -103,6 +112,28 @@ export async function getTenantShipmentReleases({ slug, id }: TenantShipmentIdIn
   const tenantId = await resolveTenantBySlug(user, slug);
 
   return listReleaseEventsForShipment(tenantId, id);
+}
+
+export async function getTenantShipmentSummary({ slug }: TenantShipmentContext) {
+  const user = requireUser(await auth());
+
+  if (!canReadShipment(user)) throw new Error("FORBIDDEN");
+
+  const tenantId = await resolveTenantBySlug(user, slug);
+  const rows = await getShipmentSummaryList(tenantId);
+  return { shipments: rows };
+}
+
+export async function deleteTenantShipments({
+  slug,
+  options,
+}: TenantShipmentContext & { options: ShipmentDeleteOptions }) {
+  const user = requireUser(await auth());
+
+  if (!canManageInstitutionProfile(user)) throw new Error("FORBIDDEN");
+
+  const tenantId = await resolveTenantBySlug(user, slug);
+  return deleteShipmentsForInstitution(tenantId, options);
 }
 
 export async function createTenantRelease(data: CreateTenantReleaseInput) {

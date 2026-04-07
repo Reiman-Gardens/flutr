@@ -12,6 +12,21 @@ export function dayIndex(length: number): number {
   return daysSinceEpoch % length;
 }
 
+/**
+ * Trigger a browser file download from a Blob.
+ * Creates a temporary anchor element, clicks it, then cleans up.
+ */
+export function downloadBlob(blob: Blob, fileName: string): void {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 /** Split a name into up to 2 lines, breaking at a space or hard-cutting with ellipsis. */
 export function splitName(name: string, maxChars: number): string[] {
   if (name.length <= maxChars) return [name];

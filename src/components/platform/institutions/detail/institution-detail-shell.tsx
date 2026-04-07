@@ -215,7 +215,11 @@ export default function InstitutionDetailShell({
 
         {!(isTenant && readOnly) && (
           <TabsContent value="data">
-            <InstitutionDataTab />
+            <InstitutionDataTab
+              institutionId={currentInstitution.id}
+              mode={mode}
+              tenantSlug={isTenant ? currentInstitution.slug : undefined}
+            />
           </TabsContent>
         )}
       </Tabs>

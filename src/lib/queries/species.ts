@@ -103,6 +103,35 @@ export async function upsertSpeciesOverride(
 }
 
 /**
+ * TENANT QUERY
+ *
+ * Ensure species are linked/enabled for an institution.
+ * Creates missing rows in butterfly_species_institution and ignores existing links.
+ */
+export async function ensureSpeciesLinksForInstitution(
+  institutionId: number,
+  speciesIds: number[],
+) {
+  const uniqueSpeciesIds = Array.from(new Set(speciesIds));
+  if (uniqueSpeciesIds.length === 0) return;
+
+  await db
+    .insert(butterfly_species_institution)
+    .values(
+      uniqueSpeciesIds.map((speciesId) => ({
+        institution_id: institutionId,
+        butterfly_species_id: speciesId,
+      })),
+    )
+    .onConflictDoNothing({
+      target: [
+        butterfly_species_institution.butterfly_species_id,
+        butterfly_species_institution.institution_id,
+      ],
+    });
+}
+
+/**
  * PLATFORM QUERY
  *
  * List all global species.
