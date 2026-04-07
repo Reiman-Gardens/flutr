@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 import { logger } from "@/lib/logger";
 import {
@@ -8,10 +8,13 @@ import {
   notFound,
   unauthorized,
 } from "@/lib/api-response";
+import {
+  buildShipmentExportFilename,
+  buildShipmentWorkbookResponse,
+  parseShipmentExportQuery,
+} from "@/lib/shipment-export";
 import { exportPlatformShipmentWorkbook } from "@/lib/services/shipment-import";
 import { platformInstitutionIdParamsSchema } from "@/lib/validation/institution";
-import { shipmentExportQuerySchema } from "@/lib/validation/shipment-import";
-import { requireValidQuery } from "@/lib/validation/query";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -25,44 +28,18 @@ export async function GET(request: NextRequest, context: RouteContext) {
       return invalidRequest("Invalid request parameters", paramResult.error.issues);
     }
 
-    const queryResult = requireValidQuery(
-      shipmentExportQuerySchema,
-      Object.fromEntries(request.nextUrl.searchParams),
-    );
-    if ("error" in queryResult) return queryResult.error;
-
-    const format = queryResult.data.format ?? "xlsx";
-    if (format !== "xlsx") {
-      return invalidRequest("Unsupported export format");
-    }
-
-    const { from, to } = queryResult.data;
-    if (from && to && from > to) {
-      return invalidRequest("'from' date must not be after 'to' date");
-    }
-
-    const range = (from ?? to) ? { from, to } : undefined;
+    const query = parseShipmentExportQuery(request);
+    if ("error" in query) return query.error;
+    const { from, to, range } = query.data;
     const institutionId = paramResult.data.id;
 
     const workbook = await exportPlatformShipmentWorkbook({ institutionId, range });
-    const workbookBytes = Uint8Array.from(workbook);
-    const workbookBlob = new Blob([workbookBytes], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    });
-
-    const fromYear = from?.slice(0, 4);
-    const toYear = to?.slice(0, 4);
-    const rangeLabel = (fromYear ?? toYear) ? `-${fromYear ?? "start"}-${toYear ?? "now"}` : "";
-    const filename = `institution-${institutionId}-shipments${rangeLabel}.xlsx`;
-
-    return new NextResponse(workbookBlob, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename="${filename}"`,
-        "Cache-Control": "no-store",
-      },
-    });
+    const filename = buildShipmentExportFilename(
+      `institution-${institutionId}-shipments`,
+      from,
+      to,
+    );
+    return buildShipmentWorkbookResponse(workbook, filename);
   } catch (error) {
     if (error instanceof Error) {
       if (error.message === "UNAUTHORIZED") return unauthorized();

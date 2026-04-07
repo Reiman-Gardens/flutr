@@ -1,11 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 import { logger } from "@/lib/logger";
 import { forbidden, internalError, invalidRequest, unauthorized } from "@/lib/api-response";
+import {
+  buildShipmentExportFilename,
+  buildShipmentWorkbookResponse,
+  parseShipmentExportQuery,
+} from "@/lib/shipment-export";
 import { handleTenantError } from "@/lib/tenant";
 import { exportTenantShipmentWorkbook } from "@/lib/services/tenant-shipment-import";
-import { shipmentExportQuerySchema } from "@/lib/validation/shipment-import";
-import { requireValidQuery } from "@/lib/validation/query";
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,43 +17,13 @@ export async function GET(request: NextRequest) {
       return invalidRequest("Missing tenant slug");
     }
 
-    const queryResult = requireValidQuery(
-      shipmentExportQuerySchema,
-      Object.fromEntries(request.nextUrl.searchParams),
-    );
-    if ("error" in queryResult) return queryResult.error;
-
-    const format = queryResult.data.format ?? "xlsx";
-    if (format !== "xlsx") {
-      return invalidRequest("Unsupported export format");
-    }
-
-    const { from, to } = queryResult.data;
-    if (from && to && from > to) {
-      return invalidRequest("'from' date must not be after 'to' date");
-    }
-
-    const range = (from ?? to) ? { from, to } : undefined;
+    const query = parseShipmentExportQuery(request);
+    if ("error" in query) return query.error;
+    const { from, to, range } = query.data;
 
     const workbook = await exportTenantShipmentWorkbook({ slug, range });
-    const workbookBytes = Uint8Array.from(workbook);
-    const workbookBlob = new Blob([workbookBytes], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    });
-
-    const fromYear = from?.slice(0, 4);
-    const toYear = to?.slice(0, 4);
-    const rangeLabel = (fromYear ?? toYear) ? `-${fromYear ?? "start"}-${toYear ?? "now"}` : "";
-    const filename = `${slug}-shipments${rangeLabel}.xlsx`;
-
-    return new NextResponse(workbookBlob, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename="${filename}"`,
-        "Cache-Control": "no-store",
-      },
-    });
+    const filename = buildShipmentExportFilename(`${slug}-shipments`, from, to);
+    return buildShipmentWorkbookResponse(workbook, filename);
   } catch (error) {
     if (error instanceof Error) {
       if (error.message === "UNAUTHORIZED") return unauthorized();

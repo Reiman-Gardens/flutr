@@ -3,6 +3,11 @@
  * No React dependencies — safe to use in both client components and server-side code.
  */
 
+import type {
+  ShipmentImportCommitResponse,
+  ShipmentImportPreviewResponse,
+} from "@/lib/validation/shipment-import";
+
 // ---------------------------------------------------------------------------
 // Shared types
 // ---------------------------------------------------------------------------
@@ -18,44 +23,9 @@ export type ShipmentSummaryRow = {
   totalReceived: number;
 };
 
-export type PreviewResponse = {
-  summary: {
-    total_rows: number;
-    shipments_detected: number;
-    row_errors: number;
-    warnings: number;
-    unknown_species: number;
-    unknown_suppliers: number;
-  };
-  row_errors: string[];
-  warnings: string[];
-  unknown_species: string[];
-  unknown_suppliers: string[];
-  shipments: {
-    supplier_code: string;
-    shipment_date: string;
-    arrival_date: string;
-    items: {
-      scientific_name: string;
-      number_received: number;
-      emerged_in_transit: number;
-      damaged_in_transit: number;
-      diseased_in_transit: number;
-      parasite: number;
-      non_emergence: number;
-      poor_emergence: number;
-    }[];
-  }[];
-  preview_hash: string;
-};
+export type PreviewResponse = ShipmentImportPreviewResponse;
 
-export type CommitResponse = {
-  created: number;
-  failed: number;
-  skipped: number;
-  failures: string[];
-  warnings: string[];
-};
+export type CommitResponse = ShipmentImportCommitResponse;
 
 // ---------------------------------------------------------------------------
 // Shared constants
