@@ -289,6 +289,26 @@ describe("Platform Species API", () => {
       );
     });
 
+    it("allows clearing fun_facts with null", async () => {
+      mockUpdatePlatformSpecies.mockResolvedValueOnce({
+        id: 10,
+        scientificName: "Papilio glaucus",
+        commonName: "Eastern Tiger Swallowtail",
+        fun_facts: null,
+      });
+
+      const response = (await patchSpeciesById(
+        makePatchRequest("10", { fun_facts: null }),
+        routeContext("10"),
+      ))!;
+      expect(response.status).toBe(200);
+
+      expect(mockUpdatePlatformSpecies).toHaveBeenCalledWith(
+        10,
+        expect.objectContaining({ fun_facts: null }),
+      );
+    });
+
     it("returns 409 when scientific_name conflicts", async () => {
       mockUpdatePlatformSpecies.mockRejectedValueOnce(new Error("CONFLICT"));
 
