@@ -20,8 +20,22 @@ import suppliersData from "./data/suppliers.json";
 import masterSpeciesData from "./data/master_butterfly_list.json";
 import newsData from "./data/institution_news.json";
 import institutionData from "./data/institution.json";
+import type { SpeciesFunFact } from "../src/types/butterfly";
 
 type MasterSpeciesRecord = (typeof masterSpeciesData)[number];
+const DEFAULT_FUN_FACT_TITLE = "Fun Fact";
+
+function legacyFunFactsToStructured(funFacts: string | null | undefined): SpeciesFunFact[] | null {
+  if (funFacts == null) return null;
+  if (funFacts.trim() === "") return null;
+
+  return [
+    {
+      title: DEFAULT_FUN_FACT_TITLE,
+      fact: funFacts,
+    },
+  ];
+}
 
 async function main() {
   console.log("Starting seed...");
@@ -76,7 +90,7 @@ async function main() {
     range: species.range,
     host_plant: species.plant ?? null,
     habitat: species.habitat ?? null,
-    fun_facts: species.funFacts ?? null,
+    fun_facts: legacyFunFactsToStructured(species.funFacts),
     img_wings_open: species.imgWingsOpen ?? null,
     img_wings_closed: species.imgWingsClosed ?? null,
     extra_img_1: species.extraImg1 ?? null,

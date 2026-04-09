@@ -2,6 +2,13 @@ import { z } from "zod";
 
 import { sanitizeText, sanitizedNonEmpty } from "@/lib/validation/sanitize";
 
+const speciesFunFactSchema = z
+  .object({
+    title: sanitizedNonEmpty(120),
+    fact: sanitizedNonEmpty(5000),
+  })
+  .strict();
+
 /**
  * Route param validation
  */
@@ -39,11 +46,7 @@ export const createSpeciesBodySchema = z
       .max(500)
       .transform((v) => sanitizeText(v))
       .optional(),
-    fun_facts: z
-      .string()
-      .max(5000)
-      .transform((v) => sanitizeText(v))
-      .optional(),
+    fun_facts: z.array(speciesFunFactSchema).min(1).optional(),
     img_wings_open: z
       .string()
       .trim()
