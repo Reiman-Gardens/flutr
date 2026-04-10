@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
 import { Link } from "@/components/ui/link";
 import { MoreHorizontal, Trash2 } from "lucide-react";
@@ -68,6 +68,7 @@ type Pagination = {
 
 export default function ShipmentsListPage() {
   const params = useParams<{ institution: string }>();
+  const router = useRouter();
   const slug = params?.institution ?? "";
 
   const [shipments, setShipments] = useState<ShipmentListRow[]>([]);
@@ -207,7 +208,7 @@ export default function ShipmentsListPage() {
               </EmptyContent>
             </Empty>
           ) : (
-            <div className="overflow-x-auto rounded-md border">
+            <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -220,17 +221,24 @@ export default function ShipmentsListPage() {
                 </TableHeader>
                 <TableBody>
                   {shipments.map((shipment) => {
-                    // The supplier cell is a real anchor so keyboard and
-                    // screen-reader users get native link semantics. The
-                    // action buttons stay in the rightmost cell and do not
-                    // rely on row-level click propagation.
+                    // The whole row navigates to the shipment detail. The
+                    // supplier cell stays a real anchor so keyboard and
+                    // screen-reader users still get native link semantics, and
+                    // the actions cell stops propagation so its buttons don't
+                    // accidentally trigger row navigation.
+                    const href = detailHref(shipment.id);
                     return (
-                      <TableRow key={shipment.id} className="hover:bg-muted/50">
+                      <TableRow
+                        key={shipment.id}
+                        className="hover:bg-muted/50 cursor-pointer"
+                        onClick={() => router.push(href)}
+                      >
                         <TableCell className="font-medium">
                           <Link
-                            href={detailHref(shipment.id)}
+                            href={href}
                             aria-label={`Open shipment from ${shipment.supplierCode}`}
                             className="focus-visible:ring-ring rounded-sm underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:outline-none"
+                            onClick={(event) => event.stopPropagation()}
                           >
                             {shipment.supplierCode}
                           </Link>
@@ -243,7 +251,10 @@ export default function ShipmentsListPage() {
                             isCompleted={shipment.isCompleted}
                           />
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell
+                          className="text-right"
+                          onClick={(event) => event.stopPropagation()}
+                        >
                           <div className="flex items-center justify-end gap-1">
                             {!shipment.isCompleted && (
                               <Button asChild size="sm">

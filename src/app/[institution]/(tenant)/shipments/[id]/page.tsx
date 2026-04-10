@@ -22,7 +22,6 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import { ShipmentItemsTable } from "@/components/tenant/shipments/shipment-items-table";
-import { ShipmentStatusBadge } from "@/components/tenant/shipments/shipment-status-badge";
 import { SpeciesPickerDialog } from "@/components/tenant/shipments/species-picker-dialog";
 import {
   Table,
@@ -458,13 +457,15 @@ export default function ShipmentDetailPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader>
-            <CardDescription>Status</CardDescription>
+      <div className="grid grid-cols-4 gap-3">
+        <Card className="gap-1 py-3">
+          <CardHeader className="px-3">
+            <CardDescription className="text-xs">Status</CardDescription>
           </CardHeader>
-          <CardContent>
-            <ShipmentStatusBadge remaining={totals.remaining} isCompleted={totals.isCompleted} />
+          <CardContent className="px-3">
+            <div className="text-base font-semibold">
+              {totals.isCompleted ? "Completed" : `${totals.remaining} remaining`}
+            </div>
           </CardContent>
         </Card>
         <SummaryCard label="Received" value={totals.totalReceived} />
@@ -532,7 +533,7 @@ export default function ShipmentDetailPage() {
               No releases yet.
             </p>
           ) : (
-            <div className="overflow-x-auto rounded-md border">
+            <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -612,12 +613,12 @@ export default function ShipmentDetailPage() {
 
 function SummaryCard({ label, value }: { label: string; value: number }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardDescription>{label}</CardDescription>
+    <Card className="gap-1 py-3">
+      <CardHeader className="px-3">
+        <CardDescription className="text-xs">{label}</CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-semibold">{value}</div>
+      <CardContent className="px-3">
+        <div className="text-base font-semibold">{value}</div>
       </CardContent>
     </Card>
   );

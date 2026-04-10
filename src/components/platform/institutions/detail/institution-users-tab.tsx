@@ -161,7 +161,7 @@ export default function InstitutionUsersTab({
           readOnly={readOnly}
         />
 
-        <div className="hidden rounded-md border md:block">
+        <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow>

@@ -151,7 +151,7 @@ export function ShipmentItemsTable({
         onReset={search.resetAll}
       />
 
-      <div className="overflow-x-auto rounded-md border">
+      <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
