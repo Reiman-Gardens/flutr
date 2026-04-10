@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
-import { Bug, Minus, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Bug, Minus, Plus, Trash2 } from "lucide-react";
 
 import {
   AlertDialog,
@@ -361,6 +361,10 @@ export default function AddShipmentPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="space-y-1">
+        <Button variant="ghost" size="sm" className="-ml-2" onClick={() => router.back()}>
+          <ArrowLeft className="size-4" />
+          Back
+        </Button>
         <h1 className="text-3xl font-semibold">Add shipment</h1>
         <p className="text-muted-foreground">
           Record a new shipment and the butterflies that arrived.

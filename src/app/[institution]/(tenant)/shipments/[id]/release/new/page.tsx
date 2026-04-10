@@ -202,8 +202,12 @@ export default function CreateReleasePage() {
     );
   }
 
+  // -mb-6 lets the page-root's padding box reach the wrapper layout's padding
+  // box bottom, so the sticky footer below stays pinned to the very bottom of
+  // `main` even at maximum scroll (without it the footer rises by the
+  // wrapper's py-6 at the end of the page).
   return (
-    <div className="flex flex-col gap-6 pb-32">
+    <div className="-mb-6 flex flex-col gap-6 pb-32">
       <div>
         <Button variant="ghost" size="sm" className="-ml-2" onClick={handleGoBack}>
           <ArrowLeft className="size-4" />
@@ -249,9 +253,9 @@ export default function CreateReleasePage() {
 
 /**
  * Compact summary of what the release will save: a prominent "Releasing N"
- * primary line with a single muted breakdown line for any loss buckets that
- * have been allocated. Designed to live next to the Save button in the sticky
- * footer so the user can confirm the totals at a glance.
+ * primary line plus a muted per-category breakdown for any "Other" buckets
+ * that have been allocated. Lives next to the Save button in the sticky
+ * footer so the user can confirm totals at a glance.
  */
 function ReleaseSummary({
   totalGood,
@@ -260,10 +264,9 @@ function ReleaseSummary({
   totalGood: number;
   categoryTotals: Record<ReleaseCategory, number>;
 }) {
-  const populatedLosses = RELEASE_CATEGORIES.filter(
+  const populatedOther = RELEASE_CATEGORIES.filter(
     (c) => c !== "goodEmergence" && categoryTotals[c] > 0,
   );
-  const totalLosses = populatedLosses.reduce((acc, c) => acc + categoryTotals[c], 0);
 
   return (
     <div className="min-w-0 space-y-0.5">
@@ -273,15 +276,13 @@ function ReleaseSummary({
           {totalGood === 1 ? "butterfly to release" : "butterflies to release"}
         </span>
       </div>
-      {totalLosses > 0 ? (
+      {populatedOther.length > 0 && (
         <p className="text-muted-foreground truncate text-xs">
-          + {totalLosses} loss{totalLosses === 1 ? "" : "es"} ·{" "}
-          {populatedLosses
+          +{" "}
+          {populatedOther
             .map((category) => `${CATEGORY_LABELS[category]} ${categoryTotals[category]}`)
-            .join(", ")}
+            .join(" · ")}
         </p>
-      ) : (
-        <p className="text-muted-foreground text-xs">No losses recorded</p>
       )}
     </div>
   );

@@ -47,7 +47,7 @@ const CATEGORY_SHORT: Record<ReleaseCategory, string> = {
 
 export type CategoryQuantities = Record<number, Partial<Record<ReleaseCategory, number>>>;
 
-type ComposerMode = "emergence" | "losses";
+type ComposerMode = "emergence" | "other";
 
 interface ReleaseCategoryComposerProps {
   items: ShipmentItemRow[];
@@ -71,7 +71,7 @@ function sumValues(values: Partial<Record<ReleaseCategory, number>> | undefined)
  * shows two or three inline steppers depending on the active mode:
  *
  * - **Emergence** (default): Good Emergence + Poor Emergence
- * - **Losses**: Diseased + Parasite + No Emergence
+ * - **Other**: Diseased + Parasite + No Emergence
  *
  * A single mode toggle at the top swaps the visible steppers without losing
  * the values entered in the other mode. Good Emergence becomes the release
@@ -79,6 +79,8 @@ function sumValues(values: Partial<Record<ReleaseCategory, number>> | undefined)
  */
 export function ReleaseCategoryComposer({ items, values, onChange }: ReleaseCategoryComposerProps) {
   const [mode, setMode] = useState<ComposerMode>("emergence");
+  // Toggle row pins to the top of the scroll area so the user can switch
+  // categories without scrolling back up on long shipments.
 
   const adapted = useMemo<ComposerSpeciesItem[]>(
     () =>
@@ -106,25 +108,25 @@ export function ReleaseCategoryComposer({ items, values, onChange }: ReleaseCate
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-card sticky top-0 z-20 -mx-6 flex flex-wrap items-center justify-between gap-3 border-b px-6 py-3">
         <ToggleGroup
           type="single"
           value={mode}
           onValueChange={(next) => {
             // Radix returns "" when the user clicks the active item; ignore it
             // so the toggle always reflects a real mode.
-            if (next === "emergence" || next === "losses") setMode(next);
+            if (next === "emergence" || next === "other") setMode(next);
           }}
           variant="outline"
           aria-label="Stepper mode"
         >
           <ToggleGroupItem value="emergence">Emergence</ToggleGroupItem>
-          <ToggleGroupItem value="losses">Losses</ToggleGroupItem>
+          <ToggleGroupItem value="other">Other</ToggleGroupItem>
         </ToggleGroup>
         <p className="text-muted-foreground text-xs">
           {mode === "emergence"
             ? "Set Good and Poor emergence counts. Good releases the butterflies."
-            : "Set Diseased, Parasite, and No-emergence loss counts."}
+            : "Set Diseased, Parasite, and No-emergence counts."}
         </p>
       </div>
 
