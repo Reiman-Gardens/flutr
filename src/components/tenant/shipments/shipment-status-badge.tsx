@@ -9,7 +9,7 @@ interface ShipmentStatusBadgeProps {
 
 /**
  * Compact status badge used in shipment lists. Shows "Completed" when no
- * butterflies remain to release, otherwise "In progress" with the remaining
+ * butterflies remain to release, otherwise the remaining
  * count.
  */
 export function ShipmentStatusBadge({ remaining, isCompleted }: ShipmentStatusBadgeProps) {

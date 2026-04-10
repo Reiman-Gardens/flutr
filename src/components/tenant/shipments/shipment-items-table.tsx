@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import Image from "next/image";
 import { Bug, CheckCircle2, Minus, Plus, Trash2 } from "lucide-react";
 
@@ -128,7 +128,7 @@ export function ShipmentItemsTable({
         common_name: item.commonName,
         // The shipment items query doesn't expose `family`, so default to "—"
         // which renders harmlessly in the toolbar's family filter.
-        family: "",
+        family: "—",
       })),
     [items],
   );
@@ -309,12 +309,11 @@ interface MetricStepperProps {
   max?: number;
 }
 
-let metricStepperHintId = 0;
-
 function MetricStepper({ value, ariaLabel, onChange, min = 0, max }: MetricStepperProps) {
   // Stable id for the visually-hidden constraint hint so screen readers can
   // announce the allowed range alongside the input via aria-describedby.
-  const [hintId] = useState(() => `metric-stepper-hint-${++metricStepperHintId}`);
+  // useId() yields stable, hydration-safe ids across server and client.
+  const hintId = useId();
 
   const clamp = (next: number) => {
     const floored = Math.floor(Number.isFinite(next) ? next : min);

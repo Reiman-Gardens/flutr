@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId } from "react";
 import { Minus, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -13,8 +13,6 @@ interface ReleaseQuantityControlsProps {
   ariaLabel: string;
   onChange: (next: number) => void;
 }
-
-let releaseHintIdCounter = 0;
 
 /**
  * Mouse/tap-friendly quantity controls used by the release composers.
@@ -30,7 +28,8 @@ export function ReleaseQuantityControls({
 }: ReleaseQuantityControlsProps) {
   // Stable id for the visually-hidden cap hint so screen readers can announce
   // the per-row maximum alongside the input via aria-describedby.
-  const [hintId] = useState(() => `release-qty-hint-${++releaseHintIdCounter}`);
+  // useId() yields stable, hydration-safe ids across server and client.
+  const hintId = useId();
   const clamp = (next: number) => {
     if (!Number.isFinite(next)) return 0;
     return Math.max(0, Math.min(cap, Math.floor(next)));
