@@ -3,16 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import {
-  Shield,
-  X,
-  LayoutDashboard,
-  Building2,
-  Package,
-  Rocket,
-  Leaf,
-  Warehouse,
-} from "lucide-react";
+import { Shield, X, LayoutDashboard, Building2, Package, Leaf, Warehouse } from "lucide-react";
 
 import { Link } from "@/components/ui/link";
 import { Button } from "@/components/ui/button";
@@ -39,7 +30,6 @@ function getTenantLinks(slug: string): PanelLink[] {
     { label: "Dashboard", href: ROUTES.tenant.dashboard(slug), icon: LayoutDashboard },
     { label: "Organization", href: ROUTES.tenant.organization(slug), icon: Building2 },
     { label: "Shipments", href: ROUTES.tenant.shipments(slug), icon: Package },
-    { label: "Releases", href: ROUTES.tenant.releases(slug), icon: Rocket },
   ];
 }
 

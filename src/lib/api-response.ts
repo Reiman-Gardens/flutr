@@ -85,3 +85,19 @@ export function internalError(message = "Internal server error") {
 export function ok<T>(data: T, status = 200) {
   return NextResponse.json(data, { status });
 }
+
+/**
+ * Map the sentinel "UNAUTHORIZED" / "FORBIDDEN" / "NOT_FOUND" error messages
+ * thrown by service-layer helpers to standard HTTP error responses. Returns
+ * `null` when the error is not one of the known sentinels so callers can fall
+ * through to other handlers (e.g. `handleTenantError`).
+ */
+export function mapAuthError(error: unknown) {
+  if (!(error instanceof Error)) return null;
+
+  if (error.message === "UNAUTHORIZED") return unauthorized();
+  if (error.message === "FORBIDDEN") return forbidden();
+  if (error.message === "NOT_FOUND") return notFound("Institution not found");
+
+  return null;
+}

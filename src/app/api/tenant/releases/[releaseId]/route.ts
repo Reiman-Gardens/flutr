@@ -3,12 +3,11 @@ import { NextRequest } from "next/server";
 import { logger } from "@/lib/logger";
 import {
   conflict,
-  forbidden,
   internalError,
   invalidRequest,
+  mapAuthError,
   notFound,
   ok,
-  unauthorized,
 } from "@/lib/api-response";
 import { requireValidBody } from "@/lib/validation/request";
 import {
@@ -55,11 +54,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
       items: result.items,
     });
   } catch (error) {
-    if (error instanceof Error) {
-      if (error.message === "UNAUTHORIZED") return unauthorized();
-      if (error.message === "FORBIDDEN") return forbidden();
-      if (error.message === "NOT_FOUND") return notFound("Institution not found");
-    }
+    const authError = mapAuthError(error);
+    if (authError) return authError;
 
     const tenantError = handleTenantError(error);
     if (tenantError) return tenantError;
@@ -111,14 +107,17 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         return notFound(error.message);
       }
 
+      if (error.message === RELEASE_ERRORS.RELEASE_ITEMS_MUST_MATCH) {
+        return invalidRequest(error.message);
+      }
+
       if (error.message === RELEASE_ERRORS.QUANTITY_EXCEEDS_REMAINING) {
         return conflict(error.message);
       }
-
-      if (error.message === "UNAUTHORIZED") return unauthorized();
-      if (error.message === "FORBIDDEN") return forbidden();
-      if (error.message === "NOT_FOUND") return notFound("Institution not found");
     }
+
+    const authError = mapAuthError(error);
+    if (authError) return authError;
 
     const tenantError = handleTenantError(error);
     if (tenantError) return tenantError;
@@ -153,11 +152,10 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       if (error.message === RELEASE_ERRORS.RELEASE_EVENT_NOT_FOUND) {
         return notFound(error.message);
       }
-
-      if (error.message === "UNAUTHORIZED") return unauthorized();
-      if (error.message === "FORBIDDEN") return forbidden();
-      if (error.message === "NOT_FOUND") return notFound("Institution not found");
     }
+
+    const authError = mapAuthError(error);
+    if (authError) return authError;
 
     const tenantError = handleTenantError(error);
     if (tenantError) return tenantError;

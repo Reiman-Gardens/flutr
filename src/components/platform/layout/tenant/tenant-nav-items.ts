@@ -1,4 +1,4 @@
-import { Building2, LayoutDashboard, LogOut, type LucideIcon, Package, Rocket } from "lucide-react";
+import { Building2, LayoutDashboard, LogOut, type LucideIcon, Package } from "lucide-react";
 
 export interface NavItem {
   id: string;
@@ -27,12 +27,6 @@ export const TENANT_NAV_ITEMS: readonly NavItem[] = [
     label: "Shipments",
     href: "/shipments",
     icon: Package,
-  },
-  {
-    id: "releases",
-    label: "Releases",
-    href: "/releases",
-    icon: Rocket,
   },
 ];
 

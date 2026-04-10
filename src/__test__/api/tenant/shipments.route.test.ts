@@ -189,7 +189,7 @@ describe("Shipments API", () => {
       expect((await response.json()).error.code).toBe("INVALID_REQUEST");
     });
 
-    it("returns 200 with paginated shipments list", async () => {
+    it("returns 200 with paginated shipments list including completion status", async () => {
       mockGetTenantShipments.mockResolvedValueOnce({
         shipments: [
           {
@@ -198,9 +198,20 @@ describe("Shipments API", () => {
             shipmentDate: "2026-01-10",
             arrivalDate: "2026-01-11",
             createdAt: "2026-01-12T00:00:00.000Z",
+            remaining: 12,
+            isCompleted: false,
+          },
+          {
+            id: 2,
+            supplierCode: "SUP-2",
+            shipmentDate: "2026-01-08",
+            arrivalDate: "2026-01-09",
+            createdAt: "2026-01-09T00:00:00.000Z",
+            remaining: 0,
+            isCompleted: true,
           },
         ],
-        pagination: { page: 1, limit: 50, total: 1, totalPages: 1 },
+        pagination: { page: 1, limit: 50, total: 2, totalPages: 1 },
       });
 
       const response = (await getShipments(makeListRequest({}, SLUG)))!;
@@ -208,7 +219,9 @@ describe("Shipments API", () => {
 
       const body = await response.json();
       expect(Array.isArray(body.shipments)).toBe(true);
-      expect(body.shipments).toHaveLength(1);
+      expect(body.shipments).toHaveLength(2);
+      expect(body.shipments[0]).toMatchObject({ remaining: 12, isCompleted: false });
+      expect(body.shipments[1]).toMatchObject({ remaining: 0, isCompleted: true });
       expect(mockGetTenantShipments).toHaveBeenCalledWith({ slug: SLUG, page: 1, limit: 50 });
     });
 
