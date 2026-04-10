@@ -106,6 +106,7 @@ All tenant routes use `x-tenant-slug` for tenant context:
 - `GET/PATCH/DELETE /api/tenant/shipments/[id]` — shipment detail, update, delete
 - `GET /api/tenant/species` — list tenant-visible species with applied overrides
 - `PATCH /api/tenant/species/[id]` — upsert tenant override fields for a species
+- `GET /api/tenant/releases` — list paginated release events for the institution
 - `POST /api/tenant/shipments/[id]/releases` — create release event with multiple shipment items
 - `POST /api/tenant/releases/[releaseId]/in-flight` — add one in-flight row to an existing release event
 - `PATCH/DELETE /api/tenant/in-flight/[id]` — update or remove an in-flight row
@@ -262,6 +263,41 @@ Returns `200 OK` with `{ "deleted": true }` when the shipment has no dependencie
 
 Returns `404 NOT_FOUND` if the shipment does not exist.
 
+### Tenant releases list contract
+
+`GET /api/tenant/releases` supports pagination with query params (mirrors the
+shipments list shape):
+
+- `page` (number, default `1`)
+- `limit` (number, default `50`, max `200`)
+
+Response shape:
+
+```json
+{
+  "releases": [
+    {
+      "id": 9,
+      "shipmentId": 55,
+      "supplierCode": "SUP-1",
+      "shipmentDate": "2026-03-01T00:00:00.000Z",
+      "releaseDate": "2026-03-13T00:00:00.000Z",
+      "releasedBy": "Alice",
+      "totalReleased": 25
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 50,
+    "total": 1,
+    "totalPages": 1
+  }
+}
+```
+
+Returns `400 INVALID_REQUEST` for non-numeric `page` / `limit` values or
+`limit` > 200.
+
 ### Tenant release detail contract
 
 `GET /api/tenant/releases/[releaseId]`, `PATCH /api/tenant/releases/[releaseId]`, and
@@ -384,6 +420,7 @@ All tenant routes use the `x-tenant-slug` header for tenant context. Missing hea
 | `/tenant/shipments`                      | GET, POST          | `x-tenant-slug` header |
 | `/tenant/shipments/[id]`                 | GET, PATCH, DELETE | `x-tenant-slug` header |
 | `/tenant/shipments/[id]/releases`        | GET, POST          | `x-tenant-slug` header |
+| `/tenant/releases`                       | GET                | `x-tenant-slug` header |
 | `/tenant/releases/[releaseId]`           | GET, PATCH, DELETE | `x-tenant-slug` header |
 | `/tenant/releases/[releaseId]/in-flight` | POST               | `x-tenant-slug` header |
 | `/tenant/in-flight/[id]`                 | PATCH, DELETE      | `x-tenant-slug` header |

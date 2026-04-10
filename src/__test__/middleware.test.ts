@@ -41,9 +41,7 @@ describe("middleware", () => {
     });
 
     it("matches actual admin route segments", () => {
-      expect(config.matcher[0]).toBe(
-        "/:institution/(dashboard|organization|shipments|releases)/:path*",
-      );
+      expect(config.matcher[0]).toBe("/:institution/(dashboard|organization|shipments)/:path*");
     });
   });
 
@@ -101,22 +99,6 @@ describe("middleware", () => {
     const response = await middleware(makeRequest("/monarch-house/dashboard"));
 
     expect(response.headers.get("location")).toContain("/unauthorized");
-  });
-
-  it("allows EMPLOYEE users on releases route (has VIEW_RELEASES)", async () => {
-    mockGetToken.mockResolvedValue(makeToken("EMPLOYEE", "monarch-house"));
-
-    const response = await middleware(makeRequest("/monarch-house/releases"));
-
-    expect(response.headers.get("location")).toBeNull();
-  });
-
-  it("allows ADMIN users on releases route", async () => {
-    mockGetToken.mockResolvedValue(makeToken("ADMIN", "monarch-house"));
-
-    const response = await middleware(makeRequest("/monarch-house/releases"));
-
-    expect(response.headers.get("location")).toBeNull();
   });
 
   it("allows SUPERUSER across institutions", async () => {

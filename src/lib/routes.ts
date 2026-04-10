@@ -30,7 +30,11 @@ export const ROUTES = {
     organization: (slug: string) => `/${slug}/organization`,
     shipments: (slug: string) => `/${slug}/shipments`,
     shipmentAdd: (slug: string) => `/${slug}/shipments/add`,
-    releases: (slug: string) => `/${slug}/releases`,
+    shipmentById: (slug: string, id: string | number) => `/${slug}/shipments/${id}`,
+    shipmentReleaseNew: (slug: string, id: string | number) =>
+      `/${slug}/shipments/${id}/release/new`,
+    shipmentReleaseEdit: (slug: string, id: string | number, releaseId: string | number) =>
+      `/${slug}/shipments/${id}/release/${releaseId}/edit`,
     shipmentsApi: "/api/tenant/shipments",
     shipmentSummaryApi: "/api/tenant/shipments/summary",
     shipmentImportPreviewApi: "/api/tenant/shipments/import/preview",

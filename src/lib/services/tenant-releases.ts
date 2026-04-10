@@ -1,10 +1,11 @@
 import { auth } from "@/auth";
-import { canCreateRelease, requireUser } from "@/lib/authz";
+import { canCreateRelease, canReadShipment, requireUser } from "@/lib/authz";
 import {
   createInFlightForRelease,
   deleteInFlightRow,
   deleteReleaseEvent,
   getReleaseEventWithItems,
+  listInstitutionReleases,
   RELEASE_ERRORS,
   updateInFlightQuantity,
   updateReleaseEventItems,
@@ -23,6 +24,11 @@ type TenantReleaseContext = {
   slug: string;
 };
 
+type ListTenantReleasesInput = TenantReleaseContext & {
+  page?: number;
+  limit?: number;
+};
+
 type TenantReleaseByIdInput = TenantReleaseContext & {
   releaseId: number;
 };
@@ -37,10 +43,21 @@ type UpdateTenantReleaseInput = TenantReleaseByIdInput & UpdateReleaseEventItems
 
 type UpdateTenantInFlightInput = TenantInFlightByIdInput & UpdateInFlightQuantityBody;
 
+export async function getTenantReleases({ slug, page = 1, limit = 50 }: ListTenantReleasesInput) {
+  const user = requireUser(await auth());
+
+  if (!canReadShipment(user)) {
+    throw new Error("FORBIDDEN");
+  }
+
+  const tenantId = await resolveTenantBySlug(user, slug);
+  return listInstitutionReleases(tenantId, page, limit);
+}
+
 export async function getTenantReleaseById({ slug, releaseId }: TenantReleaseByIdInput) {
   const user = requireUser(await auth());
 
-  if (!canCreateRelease(user)) {
+  if (!canReadShipment(user)) {
     throw new Error("FORBIDDEN");
   }
 

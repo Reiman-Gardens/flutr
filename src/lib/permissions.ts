@@ -11,7 +11,6 @@ export type Role = "SUPERUSER" | "ADMIN" | "EMPLOYEE" | string;
 export type Permission =
   | "VIEW_DASHBOARD"
   | "VIEW_SHIPMENTS"
-  | "VIEW_RELEASES"
   | "CREATE_RELEASE"
   | "CREATE_SHIPMENT"
   | "VIEW_INVENTORY"
@@ -32,7 +31,6 @@ export const PERMISSION_MATRIX: Record<Role, Permission[]> = {
   SUPERUSER: [
     "VIEW_DASHBOARD",
     "VIEW_SHIPMENTS",
-    "VIEW_RELEASES",
     "CREATE_RELEASE",
     "CREATE_SHIPMENT",
     "VIEW_INVENTORY",
@@ -52,7 +50,6 @@ export const PERMISSION_MATRIX: Record<Role, Permission[]> = {
   ADMIN: [
     "VIEW_DASHBOARD",
     "VIEW_SHIPMENTS",
-    "VIEW_RELEASES",
     "CREATE_RELEASE",
     "CREATE_SHIPMENT",
     "VIEW_INVENTORY",
@@ -68,7 +65,6 @@ export const PERMISSION_MATRIX: Record<Role, Permission[]> = {
   EMPLOYEE: [
     "VIEW_DASHBOARD",
     "VIEW_SHIPMENTS",
-    "VIEW_RELEASES",
     "VIEW_ORGANIZATION",
     "CREATE_RELEASE",
     "CREATE_SHIPMENT",

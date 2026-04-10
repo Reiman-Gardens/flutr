@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray, ne, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { in_flight, release_events, shipment_items, shipments } from "@/lib/schema";
@@ -20,6 +20,8 @@ export const RELEASE_ERRORS = {
   INVALID_QUANTITY: "Quantity must be a positive integer",
   SHIPMENT_ITEM_RELEASE_MISMATCH: "Shipment item does not belong to the release shipment",
   QUANTITY_EXCEEDS_REMAINING: "Quantity exceeds remaining available butterflies",
+  RELEASE_ITEMS_MUST_MATCH:
+    "Release update must include every existing in-flight row for the release event",
 } as const;
 
 type LockedShipmentItem = {
@@ -32,6 +34,14 @@ type LockedShipmentItem = {
   non_emergence: number;
   poor_emergence: number;
 };
+
+const LOSS_COLUMNS = [
+  "damaged_in_transit",
+  "diseased_in_transit",
+  "parasite",
+  "non_emergence",
+  "poor_emergence",
+] as const;
 
 type ReleaseItemInput = {
   shipment_item_id: number;
@@ -77,7 +87,77 @@ function calculateRemaining(item: LockedShipmentItem, alreadyReleased: number) {
 }
 
 /**
- * List release events for a shipment (newest first).
+ * List release events for an institution (newest first, paginated), enriched
+ * with the supplier code of the parent shipment and the total butterflies
+ * released in each event.
+ */
+export async function listInstitutionReleases(institutionId: number, page: number, limit: number) {
+  const offset = (page - 1) * limit;
+
+  const [rows, totalResult] = await Promise.all([
+    db
+      .select({
+        id: release_events.id,
+        shipmentId: release_events.shipment_id,
+        releaseDate: release_events.release_date,
+        releasedBy: release_events.released_by,
+        supplierCode: shipments.supplier_code,
+        shipmentDate: shipments.shipment_date,
+        totalReleased: sql<number>`coalesce(sum(${in_flight.quantity}), 0)::int`.as(
+          "total_released",
+        ),
+      })
+      .from(release_events)
+      .innerJoin(
+        shipments,
+        and(
+          eq(shipments.id, release_events.shipment_id),
+          eq(shipments.institution_id, release_events.institution_id),
+        ),
+      )
+      .leftJoin(
+        in_flight,
+        and(
+          eq(in_flight.release_event_id, release_events.id),
+          eq(in_flight.institution_id, release_events.institution_id),
+        ),
+      )
+      .where(eq(release_events.institution_id, institutionId))
+      .groupBy(
+        release_events.id,
+        release_events.shipment_id,
+        release_events.release_date,
+        release_events.released_by,
+        shipments.supplier_code,
+        shipments.shipment_date,
+      )
+      .orderBy(desc(release_events.release_date))
+      .limit(limit)
+      .offset(offset),
+
+    db
+      .select({ total: count() })
+      .from(release_events)
+      .where(eq(release_events.institution_id, institutionId)),
+  ]);
+
+  const total = totalResult[0]?.total ?? 0;
+
+  return {
+    releases: rows,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+    },
+  };
+}
+
+/**
+ * List release events for a shipment (newest first), enriched with the total
+ * butterflies released per event so the shipment-detail history table can
+ * render a meaningful "Released" column without an extra round-trip.
  */
 export async function listReleaseEventsForShipment(institutionId: number, shipmentId: number) {
   return db
@@ -85,14 +165,23 @@ export async function listReleaseEventsForShipment(institutionId: number, shipme
       id: release_events.id,
       releaseDate: release_events.release_date,
       releasedBy: release_events.released_by,
+      totalReleased: sql<number>`coalesce(sum(${in_flight.quantity}), 0)::int`.as("total_released"),
     })
     .from(release_events)
+    .leftJoin(
+      in_flight,
+      and(
+        eq(in_flight.release_event_id, release_events.id),
+        eq(in_flight.institution_id, release_events.institution_id),
+      ),
+    )
     .where(
       and(
         eq(release_events.institution_id, institutionId),
         eq(release_events.shipment_id, shipmentId),
       ),
     )
+    .groupBy(release_events.id, release_events.release_date, release_events.released_by)
     .orderBy(desc(release_events.release_date));
 }
 
@@ -166,6 +255,10 @@ export async function updateReleaseEventItems(
 
     const shipmentItemIds = payload.items.map((item) => item.shipment_item_id);
 
+    // Read every in-flight row for the release event so we can enforce that
+    // the caller supplied an update for each one. Partial updates (omitting
+    // an existing row) would silently leave that row untouched, which is
+    // almost never what the UI intends.
     const existingRows = await tx
       .select({
         id: in_flight.id,
@@ -176,13 +269,16 @@ export async function updateReleaseEventItems(
         and(
           eq(in_flight.institution_id, institutionId),
           eq(in_flight.release_event_id, releaseEventId),
-          inArray(in_flight.shipment_item_id, shipmentItemIds),
         ),
       )
       .for("update");
 
-    if (existingRows.length !== shipmentItemIds.length) {
-      throw new Error(RELEASE_ERRORS.SHIPMENT_ITEM_NOT_FOUND);
+    const payloadSet = new Set(shipmentItemIds);
+    if (
+      existingRows.length !== payloadSet.size ||
+      existingRows.some((row) => !payloadSet.has(row.shipmentItemId))
+    ) {
+      throw new Error(RELEASE_ERRORS.RELEASE_ITEMS_MUST_MATCH);
     }
 
     const existingByShipmentItemId = new Map(existingRows.map((row) => [row.shipmentItemId, row]));
@@ -253,6 +349,10 @@ export async function updateReleaseEventItems(
 
 /**
  * Create a release event and corresponding in-flight rows from a shipment.
+ *
+ * `payload.loss_updates` are applied inside the same transaction as the
+ * release event so callers can correct loss-column values atomically with
+ * the release they're creating from the remaining inventory.
  */
 export async function createReleaseFromShipment(
   institutionId: number,
@@ -273,7 +373,15 @@ export async function createReleaseFromShipment(
       throw new Error(RELEASE_ERRORS.SHIPMENT_NOT_FOUND);
     }
 
+    // Lock the union of items touched by the release + the loss updates so
+    // every row used in the subsequent validation is locked in one shot.
+    const lossUpdates = payload.loss_updates ?? [];
+    const lockedIdSet = new Set<number>([
+      ...payload.items.map((item) => item.shipment_item_id),
+      ...lossUpdates.map((row) => row.shipment_item_id),
+    ]);
     const shipmentItemIds = payload.items.map((item) => item.shipment_item_id);
+    const allLockedIds = Array.from(lockedIdSet);
 
     const lockedItems = await tx
       .select({
@@ -291,15 +399,59 @@ export async function createReleaseFromShipment(
         and(
           eq(shipment_items.institution_id, institutionId),
           eq(shipment_items.shipment_id, shipmentId),
-          inArray(shipment_items.id, shipmentItemIds),
+          inArray(shipment_items.id, allLockedIds),
         ),
       )
       .for("update");
 
-    if (lockedItems.length !== shipmentItemIds.length) {
+    if (lockedItems.length !== allLockedIds.length) {
       throw new Error(RELEASE_ERRORS.SHIPMENT_ITEM_NOT_FOUND);
     }
 
+    // Apply loss updates in memory + via UPDATE statements so downstream
+    // remaining checks see the corrected inventory.
+    const lockedMutableItems = new Map(lockedItems.map((row) => [row.id, { ...row }]));
+    for (const update of lossUpdates) {
+      const row = lockedMutableItems.get(update.shipment_item_id);
+      if (!row) {
+        throw new Error(RELEASE_ERRORS.SHIPMENT_ITEM_NOT_FOUND);
+      }
+
+      const patch: Partial<Record<(typeof LOSS_COLUMNS)[number], number>> = {};
+      for (const column of LOSS_COLUMNS) {
+        const next = update[column];
+        if (typeof next === "number") {
+          row[column] = next;
+          patch[column] = next;
+        }
+      }
+
+      if (Object.keys(patch).length === 0) continue;
+
+      await tx
+        .update(shipment_items)
+        .set({ ...patch, updated_at: new Date() })
+        .where(
+          and(
+            eq(shipment_items.id, update.shipment_item_id),
+            eq(shipment_items.institution_id, institutionId),
+          ),
+        );
+    }
+
+    // Replace the original lockedItems list with the mutated copies so the
+    // rest of the function reads post-correction values.
+    const lockedItemsAfterUpdates = Array.from(lockedMutableItems.values()).filter((row) =>
+      shipmentItemIds.includes(row.id),
+    );
+
+    if (lockedItemsAfterUpdates.length !== shipmentItemIds.length) {
+      throw new Error(RELEASE_ERRORS.SHIPMENT_ITEM_NOT_FOUND);
+    }
+
+    // Query in-flight for every locked id, not just the items being released,
+    // so we can also validate that loss-only updates don't push remaining
+    // below the already-released quantity for untouched items.
     const releasedRows = await tx
       .select({
         shipment_item_id: in_flight.shipment_item_id,
@@ -309,12 +461,25 @@ export async function createReleaseFromShipment(
       .where(
         and(
           eq(in_flight.institution_id, institutionId),
-          inArray(in_flight.shipment_item_id, shipmentItemIds),
+          inArray(in_flight.shipment_item_id, allLockedIds),
         ),
       )
       .groupBy(in_flight.shipment_item_id);
 
-    const lockedItemById = new Map(lockedItems.map((row) => [row.id, row]));
+    // Guard against loss corrections that would push a non-released item's
+    // remaining below zero (i.e. losses + in_flight > number_received).
+    for (const update of lossUpdates) {
+      const row = lockedMutableItems.get(update.shipment_item_id);
+      if (!row) continue;
+      const alreadyReleased = Number(
+        releasedRows.find((r) => r.shipment_item_id === update.shipment_item_id)?.quantity ?? 0,
+      );
+      if (calculateRemaining(row, alreadyReleased) < 0) {
+        throw new Error(RELEASE_ERRORS.QUANTITY_EXCEEDS_REMAINING);
+      }
+    }
+
+    const lockedItemById = new Map(lockedItemsAfterUpdates.map((row) => [row.id, row]));
     const alreadyReleasedByShipmentItemId = new Map(
       releasedRows.map((row) => [row.shipment_item_id, Number(row.quantity)]),
     );

@@ -9,7 +9,7 @@ import { hasPermission } from "@/lib/permissions";
 // /:institution/dashboard, /:institution/shipments, etc.
 // Public routes (login, unauthorized, api, _next) bypass middleware entirely.
 export const config = {
-  matcher: ["/:institution/(dashboard|organization|shipments|releases)/:path*"],
+  matcher: ["/:institution/(dashboard|organization|shipments)/:path*"],
 };
 
 // Required permission to enter each top-level admin section.
@@ -17,7 +17,6 @@ const SECTION_PERMISSION_MAP: Record<string, Permission> = {
   dashboard: "VIEW_DASHBOARD",
   organization: "VIEW_ORGANIZATION",
   shipments: "VIEW_SHIPMENTS",
-  releases: "VIEW_RELEASES",
 };
 
 // Required permission for specific sub-paths within a section.
