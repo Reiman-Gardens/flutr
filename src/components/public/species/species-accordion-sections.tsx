@@ -7,14 +7,18 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import type { SpeciesFunFact } from "@/types/butterfly";
 
 interface SpeciesAccordionSectionsProps {
   hostPlant: string | null;
-  funFacts: string | null;
+  funFacts: SpeciesFunFact[] | null;
 }
 
 export function SpeciesAccordionSections({ hostPlant, funFacts }: SpeciesAccordionSectionsProps) {
-  if (!hostPlant && !funFacts) return null;
+  const structuredFunFacts = funFacts ?? [];
+  const hasFunFacts = structuredFunFacts.length > 0;
+
+  if (!hostPlant && !hasFunFacts) return null;
 
   return (
     <Accordion type="multiple" className="w-full">
@@ -32,7 +36,7 @@ export function SpeciesAccordionSections({ hostPlant, funFacts }: SpeciesAccordi
         </AccordionItem>
       )}
 
-      {funFacts && (
+      {hasFunFacts && (
         <AccordionItem value="fun-facts">
           <AccordionTrigger>
             <span className="flex items-center gap-2">
@@ -41,11 +45,12 @@ export function SpeciesAccordionSections({ hostPlant, funFacts }: SpeciesAccordi
             </span>
           </AccordionTrigger>
           <AccordionContent>
-            <div className="space-y-2">
-              {funFacts.split(/\n\n+/).map((paragraph, i) => (
-                <p key={i} className="text-muted-foreground text-sm leading-relaxed">
-                  {paragraph}
-                </p>
+            <div className="space-y-4">
+              {structuredFunFacts.map((funFact, index) => (
+                <div key={`${funFact.title}-${index}`} className="space-y-1">
+                  <h3 className="text-sm font-medium">{funFact.title}</h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed">{funFact.fact}</p>
+                </div>
               ))}
             </div>
           </AccordionContent>

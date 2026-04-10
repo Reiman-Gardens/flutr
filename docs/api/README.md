@@ -127,6 +127,84 @@ All tenant routes use `x-tenant-slug` for tenant context:
 - `GET/POST /api/platform/suppliers` — list & create suppliers (cross-tenant)
 - `GET/PATCH/DELETE /api/platform/suppliers/[id]` — supplier detail, update, delete
 
+### Platform species create/update contract
+
+`POST /api/platform/species` accepts a full species payload.
+
+`PATCH /api/platform/species/[id]` accepts any subset of the same fields, but at least one field is required.
+
+`fun_facts` shape:
+
+```json
+[
+  {
+    "title": "Fun Fact",
+    "fact": "Adults can glide for long distances."
+  },
+  {
+    "title": "Fun Fact",
+    "fact": "Larvae prefer citrus host plants."
+  }
+]
+```
+
+Example request body:
+
+```json
+{
+  "scientific_name": "Papilio glaucus",
+  "common_name": "Eastern Tiger Swallowtail",
+  "family": "Papilionidae",
+  "sub_family": "Papilioninae",
+  "lifespan_days": 14,
+  "range": ["North America"],
+  "description": "A striking yellow butterfly species",
+  "host_plant": "Willow",
+  "habitat": "Woodlands",
+  "fun_facts": [
+    { "title": "Fun Fact", "fact": "Adults can glide for long distances." },
+    { "title": "Fun Fact", "fact": "Larvae prefer citrus host plants." }
+  ],
+  "img_wings_open": "https://example.com/open.jpg",
+  "img_wings_closed": "https://example.com/closed.jpg"
+}
+```
+
+Notes:
+
+- `fun_facts` is optional.
+- When provided, `fun_facts` must be a non-empty array of `{ title, fact }` objects.
+- `PATCH` replaces the full `fun_facts` array; it does not append a single fact item.
+- The legacy string format for `fun_facts` is no longer accepted.
+
+### Public species detail contract
+
+`GET /api/public/institutions/[slug]/species/[scientific_name]` response shape:
+
+```json
+{
+  "species": {
+    "speciesId": 10,
+    "scientific_name": "Papilio glaucus",
+    "common_name": "Eastern Tiger Swallowtail",
+    "common_name_override": null,
+    "lifespan_days": 14,
+    "lifespan_override": null,
+    "description": "A striking yellow butterfly species",
+    "host_plant": "Willow",
+    "habitat": "Woodlands",
+    "fun_facts": [
+      { "title": "Fun Fact", "fact": "Adults can glide for long distances." },
+      { "title": "Fun Fact", "fact": "Larvae prefer citrus host plants." }
+    ],
+    "img_wings_open": "https://example.com/open.jpg",
+    "img_wings_closed": "https://example.com/closed.jpg",
+    "extra_img_1": null,
+    "extra_img_2": null
+  }
+}
+```
+
 ### Tenant shipments list contract
 
 `GET /api/tenant/shipments` supports pagination with query params:

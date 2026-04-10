@@ -4,6 +4,7 @@ import { eq, and, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { butterfly_species, butterfly_species_institution } from "@/lib/schema";
 import { inFlightCountSubquery } from "@/lib/queries/subqueries";
+import type { SpeciesFunFact } from "@/types/butterfly";
 
 export interface SpeciesDetail {
   id: number;
@@ -16,7 +17,7 @@ export interface SpeciesDetail {
   description: string | null;
   host_plant: string | null;
   habitat: string | null;
-  fun_facts: string | null;
+  fun_facts: SpeciesFunFact[] | null;
   img_wings_open: string | null;
   img_wings_closed: string | null;
   extra_img_1: string | null;
