@@ -35,8 +35,7 @@ src/
 │   │   ├── (tenant)/       # Protected tenant admin routes (sidebar + header + footer shell)
 │   │   │   ├── dashboard/  # Admin dashboard
 │   │   │   ├── organization/ # Institution organization management
-│   │   │   ├── shipments/  # Shipment tracking (list + add)
-│   │   │   └── releases/   # Butterfly release events
+│   │   │   └── shipments/  # Shipment list, detail (force-edit + release history), add, create release (shipments/[id]/release/new), edit release (shipments/[id]/release/[releaseId]/edit)
 │   │   └── (public)/       # Public-facing routes
 │   │       ├── gallery/    # Butterfly species gallery
 │   │       ├── stats/      # Institution statistics
@@ -54,10 +53,13 @@ src/
 │   │   └── detail/     # Institution detail tab components (DangerZone, FileDropZone, ImportResultsPanel, ShipmentViewer)
 │   │   ├── species/        # SpeciesTable, SpeciesGalleryCard, toolbar, row, utils
 │   │   └── suppliers/      # SuppliersTable, toolbar, row, utils
+│   ├── tenant/             # Tenant-facing feature components
+│   │   ├── shipments/      # SpeciesPickerDialog, ShipmentItemsTable, ShipmentStatusBadge, SupplierSelect, types
+│   │   └── releases/       # ReleaseComposer, ReleaseCategoryComposer, ReleaseQuantityControls
 │   ├── nav/                # Public navigation components (top-nav, mobile-nav, footer)
 │   ├── providers/          # Context providers (session, institution data, theme)
 │   ├── public/             # Public-facing components (gallery, home, species detail)
-│   ├── shared/             # Shared components used across public/admin (theme toggle, back button, nav card)
+│   ├── shared/             # Shared components used across public/admin (theme toggle, back button, nav card, DatePicker, species search toolbar)
 │   └── ui/                 # 55 Shadcn/UI primitives
 ├── hooks/                  # Custom React hooks
 │   ├── use-institution.ts  # Institution slug/basePath from URL params
@@ -167,6 +169,12 @@ Detailed documentation lives in `docs/`:
 | Schema                | `* from @/lib/schema`                                                                                                                       | All table definitions (institutions, users, species, etc.)                                                                                                                                     |
 | Auth                  | `auth` from `@/auth`                                                                                                                        | NextAuth session helper                                                                                                                                                                        |
 | Link (no prefetch)    | `Link` from `@/components/ui/link`                                                                                                          | Next.js Link without scroll-prefetch (hover/focus only). Used for large lists to reduce requests                                                                                               |
+| Date picker           | `DatePicker` from `@/components/shared/date-picker`                                                                                         | Popover + calendar that stores its value as a `YYYY-MM-DD` string; supports `minDate` / `maxDate` bounds and `aria-invalid` / `aria-describedby`                                               |
+| Supplier select       | `SupplierSelect` from `@/components/tenant/shipments/supplier-select`                                                                       | Tenant-scoped supplier combobox used by the shipment add/edit forms                                                                                                                            |
+| Shipment status badge | `ShipmentStatusBadge` from `@/components/tenant/shipments/shipment-status-badge`                                                            | Standard pill rendering for "In flight" / "Completed" shipment status                                                                                                                          |
+| Shipment items table  | `ShipmentItemsTable` from `@/components/tenant/shipments/shipment-items-table`                                                              | Read-only + inline-editable species table wrapped in the shared search toolbar; enforces per-metric min/max client-side                                                                        |
+| Species picker dialog | `SpeciesPickerDialog` from `@/components/tenant/shipments/species-picker-dialog`                                                            | Multi-select species picker backed by `useSpeciesSearch`; used by shipment add/edit                                                                                                            |
+| Remaining helper      | `computeItemRemaining` from `@/components/tenant/shipments/types`                                                                           | Mirrors the DB `calculateRemaining` formula so client caps match the server                                                                                                                    |
 
 ## Workflow Rules
 

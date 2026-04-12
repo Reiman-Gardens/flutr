@@ -4,10 +4,27 @@ import { eq, and, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { butterfly_species, butterfly_species_institution } from "@/lib/schema";
 import { inFlightCountSubquery } from "@/lib/queries/subqueries";
+import type { SpeciesFunFact } from "@/types/butterfly";
 
-export interface FunFact {
-  title: string;
-  description: string;
+/** Normalize fun facts from DB: ensure it's a valid array of {title, fact} objects, or null */
+function normalizeFunFacts(raw: unknown): SpeciesFunFact[] | null {
+  if (!raw) return null;
+
+  // If it's already an array, validate it
+  if (Array.isArray(raw)) {
+    const filtered = raw.filter(
+      (item): item is SpeciesFunFact =>
+        typeof item === "object" &&
+        item !== null &&
+        typeof (item as unknown as SpeciesFunFact).title === "string" &&
+        typeof (item as unknown as SpeciesFunFact).fact === "string" &&
+        ((item as unknown as SpeciesFunFact).title as string).trim() !== "" &&
+        ((item as unknown as SpeciesFunFact).fact as string).trim() !== "",
+    );
+    return filtered.length > 0 ? filtered : null;
+  }
+
+  return null;
 }
 
 export interface SpeciesDetail {
@@ -21,7 +38,7 @@ export interface SpeciesDetail {
   description: string | null;
   host_plant: string | null;
   habitat: string | null;
-  fun_facts: FunFact[] | null;
+  fun_facts: SpeciesFunFact[] | null;
   img_wings_open: string | null;
   img_wings_closed: string | null;
   extra_img_1: string | null;
@@ -84,7 +101,7 @@ export const getSpeciesDetail = cache(
       description: row.description,
       host_plant: row.host_plant,
       habitat: row.habitat,
-      fun_facts: (row.fun_facts as FunFact[] | null) ?? null,
+      fun_facts: normalizeFunFacts(row.fun_facts),
       img_wings_open: row.img_wings_open,
       img_wings_closed: row.img_wings_closed,
       extra_img_1: row.extra_img_1,

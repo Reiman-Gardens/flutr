@@ -106,6 +106,7 @@ All tenant routes use `x-tenant-slug` for tenant context:
 - `GET/PATCH/DELETE /api/tenant/shipments/[id]` — shipment detail, update, delete
 - `GET /api/tenant/species` — list tenant-visible species with applied overrides
 - `PATCH /api/tenant/species/[id]` — upsert tenant override fields for a species
+- `GET /api/tenant/releases` — list paginated release events for the institution
 - `POST /api/tenant/shipments/[id]/releases` — create release event with multiple shipment items
 - `POST /api/tenant/releases/[releaseId]/in-flight` — add one in-flight row to an existing release event
 - `PATCH/DELETE /api/tenant/in-flight/[id]` — update or remove an in-flight row
@@ -126,6 +127,84 @@ All tenant routes use `x-tenant-slug` for tenant context:
 - `GET/PATCH/DELETE /api/platform/species/[id]` — species detail, update, delete
 - `GET/POST /api/platform/suppliers` — list & create suppliers (cross-tenant)
 - `GET/PATCH/DELETE /api/platform/suppliers/[id]` — supplier detail, update, delete
+
+### Platform species create/update contract
+
+`POST /api/platform/species` accepts a full species payload.
+
+`PATCH /api/platform/species/[id]` accepts any subset of the same fields, but at least one field is required.
+
+`fun_facts` shape:
+
+```json
+[
+  {
+    "title": "Fun Fact",
+    "fact": "Adults can glide for long distances."
+  },
+  {
+    "title": "Fun Fact",
+    "fact": "Larvae prefer citrus host plants."
+  }
+]
+```
+
+Example request body:
+
+```json
+{
+  "scientific_name": "Papilio glaucus",
+  "common_name": "Eastern Tiger Swallowtail",
+  "family": "Papilionidae",
+  "sub_family": "Papilioninae",
+  "lifespan_days": 14,
+  "range": ["North America"],
+  "description": "A striking yellow butterfly species",
+  "host_plant": "Willow",
+  "habitat": "Woodlands",
+  "fun_facts": [
+    { "title": "Fun Fact", "fact": "Adults can glide for long distances." },
+    { "title": "Fun Fact", "fact": "Larvae prefer citrus host plants." }
+  ],
+  "img_wings_open": "https://example.com/open.jpg",
+  "img_wings_closed": "https://example.com/closed.jpg"
+}
+```
+
+Notes:
+
+- `fun_facts` is optional.
+- When provided, `fun_facts` must be a non-empty array of `{ title, fact }` objects.
+- `PATCH` replaces the full `fun_facts` array; it does not append a single fact item.
+- The legacy string format for `fun_facts` is no longer accepted.
+
+### Public species detail contract
+
+`GET /api/public/institutions/[slug]/species/[scientific_name]` response shape:
+
+```json
+{
+  "species": {
+    "speciesId": 10,
+    "scientific_name": "Papilio glaucus",
+    "common_name": "Eastern Tiger Swallowtail",
+    "common_name_override": null,
+    "lifespan_days": 14,
+    "lifespan_override": null,
+    "description": "A striking yellow butterfly species",
+    "host_plant": "Willow",
+    "habitat": "Woodlands",
+    "fun_facts": [
+      { "title": "Fun Fact", "fact": "Adults can glide for long distances." },
+      { "title": "Fun Fact", "fact": "Larvae prefer citrus host plants." }
+    ],
+    "img_wings_open": "https://example.com/open.jpg",
+    "img_wings_closed": "https://example.com/closed.jpg",
+    "extra_img_1": null,
+    "extra_img_2": null
+  }
+}
+```
 
 ### Tenant shipments list contract
 
@@ -183,6 +262,41 @@ Returns `409 CONFLICT` if the shipment has any dependent records:
 Returns `200 OK` with `{ "deleted": true }` when the shipment has no dependencies and is successfully deleted.
 
 Returns `404 NOT_FOUND` if the shipment does not exist.
+
+### Tenant releases list contract
+
+`GET /api/tenant/releases` supports pagination with query params (mirrors the
+shipments list shape):
+
+- `page` (number, default `1`)
+- `limit` (number, default `50`, max `200`)
+
+Response shape:
+
+```json
+{
+  "releases": [
+    {
+      "id": 9,
+      "shipmentId": 55,
+      "supplierCode": "SUP-1",
+      "shipmentDate": "2026-03-01T00:00:00.000Z",
+      "releaseDate": "2026-03-13T00:00:00.000Z",
+      "releasedBy": "Alice",
+      "totalReleased": 25
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 50,
+    "total": 1,
+    "totalPages": 1
+  }
+}
+```
+
+Returns `400 INVALID_REQUEST` for non-numeric `page` / `limit` values or
+`limit` > 200.
 
 ### Tenant release detail contract
 
@@ -306,6 +420,7 @@ All tenant routes use the `x-tenant-slug` header for tenant context. Missing hea
 | `/tenant/shipments`                      | GET, POST          | `x-tenant-slug` header |
 | `/tenant/shipments/[id]`                 | GET, PATCH, DELETE | `x-tenant-slug` header |
 | `/tenant/shipments/[id]/releases`        | GET, POST          | `x-tenant-slug` header |
+| `/tenant/releases`                       | GET                | `x-tenant-slug` header |
 | `/tenant/releases/[releaseId]`           | GET, PATCH, DELETE | `x-tenant-slug` header |
 | `/tenant/releases/[releaseId]/in-flight` | POST               | `x-tenant-slug` header |
 | `/tenant/in-flight/[id]`                 | PATCH, DELETE      | `x-tenant-slug` header |

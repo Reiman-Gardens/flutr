@@ -73,7 +73,7 @@ function validCreatePayload() {
     description: "A striking yellow butterfly species",
     host_plant: "Willow",
     habitat: "Woodlands",
-    fun_facts: "Mimics toxic butterflies",
+    fun_facts: [{ title: "Fun Fact", fact: "Mimics toxic butterflies" }],
     img_wings_open: "https://example.com/open.jpg",
     img_wings_closed: "https://example.com/closed.jpg",
   };
@@ -141,6 +141,18 @@ describe("Platform Species API", () => {
 
     it("returns 400 for invalid request body", async () => {
       const response = (await postSpecies(makePostRequest({ scientific_name: "Only one field" })))!;
+      expect(response.status).toBe(400);
+      expect((await response.json()).error.code).toBe("INVALID_REQUEST");
+    });
+
+    it("returns 400 when fun_facts uses the legacy string shape", async () => {
+      const response = (await postSpecies(
+        makePostRequest({
+          ...validCreatePayload(),
+          fun_facts: "Mimics toxic butterflies",
+        }),
+      ))!;
+
       expect(response.status).toBe(400);
       expect((await response.json()).error.code).toBe("INVALID_REQUEST");
     });
@@ -274,6 +286,26 @@ describe("Platform Species API", () => {
       expect(mockUpdatePlatformSpecies).toHaveBeenCalledWith(
         10,
         expect.objectContaining({ common_name: "Updated Name" }),
+      );
+    });
+
+    it("allows clearing fun_facts with null", async () => {
+      mockUpdatePlatformSpecies.mockResolvedValueOnce({
+        id: 10,
+        scientificName: "Papilio glaucus",
+        commonName: "Eastern Tiger Swallowtail",
+        fun_facts: null,
+      });
+
+      const response = (await patchSpeciesById(
+        makePatchRequest("10", { fun_facts: null }),
+        routeContext("10"),
+      ))!;
+      expect(response.status).toBe(200);
+
+      expect(mockUpdatePlatformSpecies).toHaveBeenCalledWith(
+        10,
+        expect.objectContaining({ fun_facts: null }),
       );
     });
 

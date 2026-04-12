@@ -1,29 +1,54 @@
-"use client";
-
 import { Sparkles } from "lucide-react";
-import type { FunFact } from "@/lib/queries/species-detail";
+import type { SpeciesFunFact } from "@/types/butterfly";
 
 interface FunFactsDisplayProps {
-  funFacts: FunFact[] | null;
+  funFacts: SpeciesFunFact[] | null | string;
 }
 
 export function FunFactsDisplay({ funFacts }: FunFactsDisplayProps) {
-  // Handle cases where funFacts might be a JSON string, null, or not an array
-  let parsedFunFacts: typeof funFacts = null;
+  // Normalize fun facts: handle array, string (legacy JSON), or null
+  let parsedFunFacts: SpeciesFunFact[] | null = null;
 
   if (funFacts) {
     if (typeof funFacts === "string") {
+      // Handle legacy JSON-encoded string (arrays or quoted strings)
       try {
-        parsedFunFacts = JSON.parse(funFacts);
+        const trimmed = funFacts.trim();
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          parsedFunFacts = parsed;
+        } else if (typeof parsed === "string") {
+          // Double-encoded string; try parsing again
+          try {
+            const reparsed = JSON.parse(parsed);
+            if (Array.isArray(reparsed)) {
+              parsedFunFacts = reparsed;
+            }
+          } catch {
+            // Keep as-is
+          }
+        }
       } catch {
-        return null;
+        // Not valid JSON; ignore
       }
     } else if (Array.isArray(funFacts)) {
       parsedFunFacts = funFacts;
     }
   }
 
-  if (!parsedFunFacts || !Array.isArray(parsedFunFacts) || parsedFunFacts.length === 0) {
+  // Filter out empty/null facts and ensure structure is valid
+  const validFunFacts =
+    parsedFunFacts?.filter(
+      (fact): fact is SpeciesFunFact =>
+        typeof fact === "object" &&
+        fact !== null &&
+        typeof (fact as unknown as SpeciesFunFact).title === "string" &&
+        typeof (fact as unknown as SpeciesFunFact).fact === "string" &&
+        ((fact as unknown as SpeciesFunFact).title as string).trim() !== "" &&
+        ((fact as unknown as SpeciesFunFact).fact as string).trim() !== "",
+    ) ?? [];
+
+  if (validFunFacts.length === 0) {
     return null;
   }
 
@@ -35,13 +60,13 @@ export function FunFactsDisplay({ funFacts }: FunFactsDisplayProps) {
       </div>
 
       <div className="grid grid-cols-1 gap-3">
-        {parsedFunFacts.map((fact, index) => (
+        {validFunFacts.map((fact, index) => (
           <div
-            key={index}
+            key={`${fact.title}-${index}`}
             className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950"
           >
             <h4 className="text-sm font-medium text-amber-900 dark:text-amber-100">{fact.title}</h4>
-            <p className="text-muted-foreground mt-2 text-sm leading-relaxed">{fact.description}</p>
+            <p className="text-muted-foreground mt-2 text-sm leading-relaxed">{fact.fact}</p>
           </div>
         ))}
       </div>

@@ -5,30 +5,27 @@ interface SpeciesDescriptionProps {
   habitat: string | null;
 }
 
-export function SpeciesDescription({ description, habitat }: SpeciesDescriptionProps) {
-  // Safely parse description if it's a JSON string
-  let parsedDescription = description;
-  if (description && typeof description === "string" && description.startsWith("{")) {
+function tryParseJSON(value: string | null): string | null {
+  if (!value) return null;
+
+  const trimmed = value.trim();
+
+  // Check if it looks like JSON (starts with {, [, or ")
+  if (trimmed.startsWith("{") || trimmed.startsWith("[") || trimmed.startsWith('"')) {
     try {
-      const parsed = JSON.parse(description);
-      parsedDescription = typeof parsed === "string" ? parsed : description;
+      const parsed = JSON.parse(trimmed);
+      return typeof parsed === "string" ? parsed : value;
     } catch {
-      // Keep original if parsing fails
-      parsedDescription = description;
+      return value;
     }
   }
 
-  // Safely parse habitat if it's a JSON string
-  let parsedHabitat = habitat;
-  if (habitat && typeof habitat === "string" && habitat.startsWith("{")) {
-    try {
-      const parsed = JSON.parse(habitat);
-      parsedHabitat = typeof parsed === "string" ? parsed : habitat;
-    } catch {
-      // Keep original if parsing fails
-      parsedHabitat = habitat;
-    }
-  }
+  return value;
+}
+
+export function SpeciesDescription({ description, habitat }: SpeciesDescriptionProps) {
+  const parsedDescription = tryParseJSON(description);
+  const parsedHabitat = tryParseJSON(habitat);
 
   if (!parsedDescription && !parsedHabitat) return null;
 

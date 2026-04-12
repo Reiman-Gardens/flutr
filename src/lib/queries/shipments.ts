@@ -37,7 +37,8 @@ export function parseDateOnlyToUtcExclusiveEnd(value: string): Date {
 }
 
 /**
- * List shipments for a tenant (paginated)
+ * List shipments for a tenant (paginated). Each row carries a `remaining`
+ * count and an `isCompleted` flag derived from shipment items + in_flight.
  */
 export async function listShipments(institutionId: number, page: number, limit: number) {
   const offset = (page - 1) * limit;
@@ -64,9 +65,22 @@ export async function listShipments(institutionId: number, page: number, limit: 
   ]);
 
   const total = totalResult[0]?.total ?? 0;
+  const completionByShipmentId = await getShipmentCompletionMap(
+    institutionId,
+    rows.map((row) => row.id),
+  );
+
+  const enriched = rows.map((row) => {
+    const status = completionByShipmentId.get(row.id) ?? { remaining: 0, isCompleted: true };
+    return {
+      ...row,
+      remaining: status.remaining,
+      isCompleted: status.isCompleted,
+    };
+  });
 
   return {
-    shipments: rows,
+    shipments: enriched,
     pagination: {
       page,
       limit,
@@ -74,6 +88,113 @@ export async function listShipments(institutionId: number, page: number, limit: 
       totalPages: Math.ceil(total / limit),
     },
   };
+}
+
+/**
+ * Pure helper that turns the raw aggregation rows from the DB into the
+ * shipment-id → {remaining, isCompleted} map. Extracted so the completion
+ * logic (clamping, empty-shipment defaulting, in_flight subtraction) can be
+ * unit-tested without going through drizzle.
+ */
+export function buildShipmentCompletionMap(
+  itemRows: { shipmentId: number; itemCount: number; grossAvailable: number | string }[],
+  releasedRows: { shipmentId: number; released: number | string }[],
+  shipmentIds?: number[],
+): Map<number, { remaining: number; isCompleted: boolean }> {
+  const releasedByShipmentId = new Map(
+    releasedRows.map((row) => [row.shipmentId, Number(row.released)]),
+  );
+
+  const map = new Map<number, { remaining: number; isCompleted: boolean }>();
+
+  for (const row of itemRows) {
+    const released = releasedByShipmentId.get(row.shipmentId) ?? 0;
+    const remaining = Math.max(0, Number(row.grossAvailable) - released);
+    map.set(row.shipmentId, {
+      remaining,
+      isCompleted: row.itemCount > 0 && remaining === 0,
+    });
+  }
+
+  // Shipments with zero items aren't returned by the grouping above. Default
+  // them to "in progress" so empty shells aren't surfaced as completed.
+  if (shipmentIds) {
+    for (const id of shipmentIds) {
+      if (!map.has(id)) {
+        map.set(id, { remaining: 0, isCompleted: false });
+      }
+    }
+  }
+
+  return map;
+}
+
+/**
+ * Compute remaining butterflies + completion flag per shipment for a tenant.
+ *
+ * Per shipment item, "remaining" = number_received − (damaged + diseased
+ * + parasite + non_emergence + poor_emergence) − sum(in_flight.quantity).
+ * A shipment is "completed" when remaining sums to zero across all of its
+ * items AND it has at least one item (an empty shipment is treated as
+ * in-progress so users see something to fill in).
+ *
+ * If `shipmentIds` is provided the result is restricted to those ids;
+ * otherwise every shipment for the institution is included.
+ */
+export async function getShipmentCompletionMap(
+  institutionId: number,
+  shipmentIds?: number[],
+): Promise<Map<number, { remaining: number; isCompleted: boolean }>> {
+  if (shipmentIds && shipmentIds.length === 0) {
+    return new Map();
+  }
+
+  const itemConditions = [eq(shipment_items.institution_id, institutionId)];
+  if (shipmentIds) {
+    itemConditions.push(inArray(shipment_items.shipment_id, shipmentIds));
+  }
+
+  // Per-shipment item totals (received minus losses), grouped in SQL.
+  const itemRows = await db
+    .select({
+      shipmentId: shipment_items.shipment_id,
+      itemCount: count(shipment_items.id),
+      grossAvailable: sql<number>`coalesce(sum(
+        ${shipment_items.number_received}
+        - ${shipment_items.damaged_in_transit}
+        - ${shipment_items.diseased_in_transit}
+        - ${shipment_items.parasite}
+        - ${shipment_items.non_emergence}
+        - ${shipment_items.poor_emergence}
+      ), 0)::int`.as("gross_available"),
+    })
+    .from(shipment_items)
+    .where(and(...itemConditions))
+    .groupBy(shipment_items.shipment_id);
+
+  // Per-shipment in_flight totals via shipment_items join.
+  const releasedConditions = [eq(in_flight.institution_id, institutionId)];
+  if (shipmentIds) {
+    releasedConditions.push(inArray(shipment_items.shipment_id, shipmentIds));
+  }
+
+  const releasedRows = await db
+    .select({
+      shipmentId: shipment_items.shipment_id,
+      released: sql<number>`coalesce(sum(${in_flight.quantity}), 0)::int`.as("released_total"),
+    })
+    .from(in_flight)
+    .innerJoin(
+      shipment_items,
+      and(
+        eq(shipment_items.id, in_flight.shipment_item_id),
+        eq(shipment_items.institution_id, in_flight.institution_id),
+      ),
+    )
+    .where(and(...releasedConditions))
+    .groupBy(shipment_items.shipment_id);
+
+  return buildShipmentCompletionMap(itemRows, releasedRows, shipmentIds);
 }
 
 /**
@@ -114,7 +235,11 @@ export async function getShipmentWithItems(institutionId: number, shipmentId: nu
       nonEmergence: shipment_items.non_emergence,
       poorEmergence: shipment_items.poor_emergence,
 
-      inFlightQuantity: sql<number>`coalesce(sum(${in_flight.quantity}), 0)`.as(
+      // ::int cast is required: PG sum() over integer returns bigint, which
+      // node-postgres serializes as a string. Without the cast, JS code that
+      // does `acc + item.inFlightQuantity` ends up string-concatenating
+      // ("0" + "5" + "10" → "0510") and surfaces as a giant number.
+      inFlightQuantity: sql<number>`coalesce(sum(${in_flight.quantity}), 0)::int`.as(
         "in_flight_quantity",
       ),
     })

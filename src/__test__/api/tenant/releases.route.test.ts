@@ -22,7 +22,10 @@ jest.mock("@/lib/services/tenant-releases", () => ({
     IN_FLIGHT_ALREADY_EXISTS: "In-flight row already exists for this release item",
     SHIPMENT_ITEM_RELEASE_MISMATCH: "Shipment item does not belong to the release shipment",
     QUANTITY_EXCEEDS_REMAINING: "Quantity exceeds remaining available butterflies",
+    RELEASE_ITEMS_MUST_MATCH:
+      "Release update must include every existing in-flight row for the release event",
   },
+  getTenantReleases: jest.fn(),
   getTenantReleaseById: jest.fn(),
   updateTenantRelease: jest.fn(),
   deleteTenantRelease: jest.fn(),
@@ -37,6 +40,7 @@ import {
   createTenantReleaseInFlight,
   deleteTenantRelease,
   getTenantReleaseById,
+  getTenantReleases,
   RELEASE_ERRORS as TENANT_RELEASE_ERRORS,
   updateTenantRelease,
 } from "@/lib/services/tenant-releases";
@@ -48,8 +52,10 @@ import {
   GET as getReleaseById,
   PATCH as patchReleaseById,
 } from "@/app/api/tenant/releases/[releaseId]/route";
+import { GET as getReleasesList } from "@/app/api/tenant/releases/route";
 
 const mockCreateTenantRelease = createTenantRelease as jest.Mock;
+const mockGetTenantReleases = getTenantReleases as jest.Mock;
 const mockGetTenantReleaseById = getTenantReleaseById as jest.Mock;
 const mockUpdateTenantRelease = updateTenantRelease as jest.Mock;
 const mockDeleteTenantRelease = deleteTenantRelease as jest.Mock;
@@ -108,6 +114,14 @@ function makeReleasePatchRequest(releaseId: string, body: Record<string, unknown
   });
 }
 
+function makeReleasesListRequest(slug?: string, query?: Record<string, string>) {
+  const headers: Record<string, string> = {};
+  if (slug) headers["x-tenant-slug"] = slug;
+  const search = new URLSearchParams(query ?? {});
+  const url = `http://localhost/api/tenant/releases${search.size ? `?${search.toString()}` : ""}`;
+  return new NextRequest(url, { headers });
+}
+
 function shipmentRouteContext(id: string) {
   return { params: Promise.resolve({ id }) };
 }
@@ -145,6 +159,87 @@ function validReleasePatchPayload() {
 describe("Tenant Releases API", () => {
   beforeEach(() => {
     jest.resetAllMocks();
+  });
+
+  describe("GET /api/tenant/releases", () => {
+    it("returns 400 when x-tenant-slug header is missing", async () => {
+      const response = (await getReleasesList(makeReleasesListRequest()))!;
+      expect(response.status).toBe(400);
+      expect((await response.json()).error.code).toBe("INVALID_REQUEST");
+    });
+
+    it("returns 401 for unauthenticated requests", async () => {
+      mockGetTenantReleases.mockRejectedValueOnce(new Error("UNAUTHORIZED"));
+      const response = (await getReleasesList(makeReleasesListRequest(SLUG)))!;
+      expect(response.status).toBe(401);
+      expect((await response.json()).error.code).toBe("UNAUTHORIZED");
+    });
+
+    it("returns 403 when permission check fails", async () => {
+      mockGetTenantReleases.mockRejectedValueOnce(new Error("FORBIDDEN"));
+      const response = (await getReleasesList(makeReleasesListRequest(SLUG)))!;
+      expect(response.status).toBe(403);
+      expect((await response.json()).error.code).toBe("FORBIDDEN");
+    });
+
+    it("returns 404 when tenant slug cannot be resolved", async () => {
+      mockGetTenantReleases.mockRejectedValueOnce(new Error("NOT_FOUND"));
+      const response = (await getReleasesList(makeReleasesListRequest(SLUG)))!;
+      expect(response.status).toBe(404);
+      expect((await response.json()).error.code).toBe("NOT_FOUND");
+    });
+
+    it("returns 200 with the institution releases list", async () => {
+      mockGetTenantReleases.mockResolvedValueOnce({
+        releases: [
+          {
+            id: 9,
+            shipmentId: 55,
+            supplierCode: "SUP-1",
+            shipmentDate: "2026-03-01",
+            releaseDate: "2026-03-13",
+            releasedBy: "Alice",
+            totalReleased: 25,
+          },
+        ],
+        pagination: { page: 1, limit: 50, total: 1, totalPages: 1 },
+      });
+
+      const response = (await getReleasesList(makeReleasesListRequest(SLUG)))!;
+      expect(response.status).toBe(200);
+
+      const body = await response.json();
+      expect(Array.isArray(body.releases)).toBe(true);
+      expect(body.releases).toHaveLength(1);
+      expect(body.releases[0].id).toBe(9);
+      expect(body.pagination).toEqual({ page: 1, limit: 50, total: 1, totalPages: 1 });
+      expect(mockGetTenantReleases).toHaveBeenCalledWith({ slug: SLUG, page: 1, limit: 50 });
+    });
+
+    it("forwards page and limit query params to the service", async () => {
+      mockGetTenantReleases.mockResolvedValueOnce({
+        releases: [],
+        pagination: { page: 3, limit: 25, total: 0, totalPages: 1 },
+      });
+
+      const response = (await getReleasesList(
+        makeReleasesListRequest(SLUG, { page: "3", limit: "25" }),
+      ))!;
+      expect(response.status).toBe(200);
+      expect(mockGetTenantReleases).toHaveBeenCalledWith({ slug: SLUG, page: 3, limit: 25 });
+    });
+
+    it("returns 400 for non-numeric pagination params", async () => {
+      const response = (await getReleasesList(makeReleasesListRequest(SLUG, { page: "abc" })))!;
+      expect(response.status).toBe(400);
+      expect((await response.json()).error.code).toBe("INVALID_REQUEST");
+    });
+
+    it("returns 400 when limit exceeds the cap", async () => {
+      const response = (await getReleasesList(makeReleasesListRequest(SLUG, { limit: "9999" })))!;
+      expect(response.status).toBe(400);
+      expect((await response.json()).error.code).toBe("INVALID_REQUEST");
+    });
   });
 
   describe("POST /api/tenant/shipments/[id]/releases", () => {
@@ -630,6 +725,19 @@ describe("Tenant Releases API", () => {
     it("returns 400 for duplicate shipment_item_id values", async () => {
       mockUpdateTenantRelease.mockRejectedValueOnce(
         new Error(TENANT_RELEASE_ERRORS.DUPLICATE_SHIPMENT_ITEM),
+      );
+
+      const response = (await patchReleaseById(
+        makeReleasePatchRequest("500", validReleasePatchPayload(), SLUG),
+        releaseRouteContext("500"),
+      ))!;
+      expect(response.status).toBe(400);
+      expect((await response.json()).error.code).toBe("INVALID_REQUEST");
+    });
+
+    it("returns 400 when payload omits an existing release in-flight row", async () => {
+      mockUpdateTenantRelease.mockRejectedValueOnce(
+        new Error(TENANT_RELEASE_ERRORS.RELEASE_ITEMS_MUST_MATCH),
       );
 
       const response = (await patchReleaseById(

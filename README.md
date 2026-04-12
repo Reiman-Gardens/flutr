@@ -110,11 +110,32 @@ Then run:
 ```bash
 docker compose down -v     # Reset Docker volumes if data exists (caution: deletes all data)
 docker compose up -d
-pnpm db:push               # Or: docker compose exec app pnpm db:push
+pnpm db:migrate            # Apply Drizzle migration history from scratch
 pnpm seed                  # Run seed script to populate initial data (Ensure .json files in scripts/data/ are present)
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to view the app.
+
+## Fresh Migration Reset
+
+When a migration changes the local schema in a way that is easier to rebuild than backfill, the team should start from a clean local database instead of trying to preserve old dev data.
+
+Current recommended reset flow:
+
+```bash
+git pull
+docker compose down -v
+docker compose up -d
+pnpm db:migrate
+pnpm seed
+```
+
+Notes:
+
+- `docker compose down -v` removes the local Postgres volume and deletes all local DB data.
+- Use `pnpm db:migrate`, not `pnpm db:push`, so everyone applies the committed Drizzle migration history in order.
+- `pnpm seed` expects a fresh database and will stop if data already exists.
+- This is the preferred workflow for the new baseline `0000` migration and follow-up schema migration.
 
 ## Environment Variables
 

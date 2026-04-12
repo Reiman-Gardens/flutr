@@ -11,6 +11,7 @@ import {
   foreignKey,
   unique,
 } from "drizzle-orm/pg-core";
+import type { SpeciesFunFact } from "@/types/butterfly";
 
 /**
  * Flutr V2 Schema
@@ -168,7 +169,7 @@ export const butterfly_species = pgTable("butterfly_species", {
 
   host_plant: text("host_plant"),
   habitat: text("habitat"),
-  fun_facts: jsonb("fun_facts").$type<{ title: string; description: string }[]>(),
+  fun_facts: jsonb("fun_facts").$type<SpeciesFunFact[]>(),
 
   img_wings_open: text("img_wings_open"),
   img_wings_closed: text("img_wings_closed"),

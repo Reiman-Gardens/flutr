@@ -2,6 +2,15 @@ import { z } from "zod";
 
 import { sanitizeText, sanitizedNonEmpty } from "@/lib/validation/sanitize";
 
+const speciesFunFactSchema = z
+  .object({
+    title: sanitizedNonEmpty(120),
+    fact: sanitizedNonEmpty(5000),
+  })
+  .strict();
+
+const speciesFunFactsArraySchema = z.array(speciesFunFactSchema).min(1);
+
 /**
  * Route param validation
  */
@@ -39,11 +48,7 @@ export const createSpeciesBodySchema = z
       .max(500)
       .transform((v) => sanitizeText(v))
       .optional(),
-    fun_facts: z
-      .string()
-      .max(5000)
-      .transform((v) => sanitizeText(v))
-      .optional(),
+    fun_facts: speciesFunFactsArraySchema.optional(),
     img_wings_open: z
       .string()
       .trim()
@@ -78,8 +83,55 @@ export type CreateSpeciesBody = z.infer<typeof createSpeciesBodySchema>;
  *
  * Prevent empty PATCH bodies.
  */
-export const updateSpeciesBodySchema = createSpeciesBodySchema
-  .partial()
+export const updateSpeciesBodySchema = z
+  .object({
+    scientific_name: sanitizedNonEmpty(200).optional(),
+    common_name: sanitizedNonEmpty(200).optional(),
+    family: sanitizedNonEmpty(200).optional(),
+    sub_family: sanitizedNonEmpty(200).optional(),
+    lifespan_days: z.coerce.number().int().positive().optional(),
+    range: z.array(sanitizedNonEmpty(200)).min(1).optional(),
+    description: z
+      .string()
+      .max(5000)
+      .transform((v) => sanitizeText(v))
+      .optional(),
+    host_plant: z
+      .string()
+      .max(500)
+      .transform((v) => sanitizeText(v))
+      .optional(),
+    habitat: z
+      .string()
+      .max(500)
+      .transform((v) => sanitizeText(v))
+      .optional(),
+    fun_facts: speciesFunFactsArraySchema.nullable().optional(),
+    img_wings_open: z
+      .string()
+      .trim()
+      .url()
+      .transform((v) => sanitizeText(v))
+      .optional(),
+    img_wings_closed: z
+      .string()
+      .trim()
+      .url()
+      .transform((v) => sanitizeText(v))
+      .optional(),
+    extra_img_1: z
+      .string()
+      .trim()
+      .url()
+      .transform((v) => sanitizeText(v))
+      .optional(),
+    extra_img_2: z
+      .string()
+      .trim()
+      .url()
+      .transform((v) => sanitizeText(v))
+      .optional(),
+  })
   .strict()
   .superRefine((data, ctx) => {
     if (Object.keys(data).length === 0) {

@@ -76,8 +76,8 @@ export default async function ButterflyPage({ params }: ButterflyPageProps) {
 
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="grid gap-8 lg:grid-cols-3">
-          {/* Left Column: Content sections */}
-          <div className="space-y-8 lg:col-span-2">
+          {/* Left Column: Content sections (30-40% of width) */}
+          <div className="space-y-8 lg:col-span-1">
             <SpeciesRangeBadges range={species.range} />
 
             <SpeciesDescription description={species.description} habitat={species.habitat} />
@@ -87,8 +87,8 @@ export default async function ButterflyPage({ params }: ButterflyPageProps) {
             <SpeciesAccordionSections hostPlant={species.host_plant} />
           </div>
 
-          {/* Right Column: Gallery */}
-          <div className="lg:col-span-1">
+          {/* Right Column: Gallery (60-70% of width) */}
+          <div className="lg:col-span-2">
             <SpeciesImageGallery
               commonName={species.common_name}
               imgWingsOpen={species.img_wings_open}
