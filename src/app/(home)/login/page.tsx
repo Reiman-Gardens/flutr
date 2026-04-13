@@ -84,23 +84,24 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const result = await signIn("credentials", {
+      await signIn("credentials", {
         email: data.email,
         password: data.password,
         redirect: false,
       });
 
-      if (!result?.ok) {
-        toast.error(result?.error || "Invalid email or password");
+      // NextAuth v5 beta does not reliably reflect auth failure in the signIn return
+      // value. Verify by checking whether a session was actually created.
+      const sessionResponse = await fetch("/api/auth/session");
+      const session = await sessionResponse.json();
+      const role = session?.user?.role;
+
+      if (!role) {
+        toast.error("Invalid email or password");
         return;
       }
 
       toast.success("Logged in successfully");
-
-      // Get the session to retrieve institution information
-      const sessionResponse = await fetch("/api/auth/session");
-      const session = await sessionResponse.json();
-      const role = session?.user?.role;
 
       if (role === "SUPERUSER") {
         // Redirect superusers to the platform dashboard
@@ -109,7 +110,7 @@ export default function LoginPage() {
         // Redirect to institution dashboard using slug (public tenant segment)
         router.push(ROUTES.tenant.dashboard(session.user.institutionSlug));
       } else {
-        // Fallback if institution slug is missing (e.g. SUPERUSER with no institution)
+        // Fallback if institution slug is missing
         router.push("/");
       }
     } catch (error) {
