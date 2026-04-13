@@ -8,6 +8,7 @@ import { SpeciesStatsGrid } from "@/components/public/species/species-stats-grid
 import { SpeciesRangeBadges } from "@/components/public/species/species-range-badges";
 import { SpeciesDescription } from "@/components/public/species/species-description";
 import { SpeciesAccordionSections } from "@/components/public/species/species-accordion-sections";
+import { FunFactsDisplay } from "@/components/public/species/fun-facts-display";
 import { SpeciesImageGallery } from "@/components/public/species/species-image-gallery";
 
 interface ButterflyPageProps {
@@ -73,21 +74,29 @@ export default async function ButterflyPage({ params }: ButterflyPageProps) {
         </div>
       </div>
 
-      <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="space-y-8">
-          <SpeciesRangeBadges range={species.range} />
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="grid gap-8 lg:grid-cols-3">
+          {/* Left Column: Content sections (30-40% of width) */}
+          <div className="space-y-8 lg:col-span-1">
+            <SpeciesRangeBadges range={species.range} />
 
-          <SpeciesDescription description={species.description} habitat={species.habitat} />
+            <SpeciesDescription description={species.description} habitat={species.habitat} />
 
-          <SpeciesAccordionSections hostPlant={species.host_plant} funFacts={species.fun_facts} />
+            <FunFactsDisplay funFacts={species.fun_facts} />
 
-          <SpeciesImageGallery
-            commonName={species.common_name}
-            imgWingsOpen={species.img_wings_open}
-            imgWingsClosed={species.img_wings_closed}
-            extraImg1={species.extra_img_1}
-            extraImg2={species.extra_img_2}
-          />
+            <SpeciesAccordionSections hostPlant={species.host_plant} />
+          </div>
+
+          {/* Right Column: Gallery (60-70% of width) */}
+          <div className="lg:col-span-2">
+            <SpeciesImageGallery
+              commonName={species.common_name}
+              imgWingsOpen={species.img_wings_open}
+              imgWingsClosed={species.img_wings_closed}
+              extraImg1={species.extra_img_1}
+              extraImg2={species.extra_img_2}
+            />
+          </div>
         </div>
       </div>
     </article>

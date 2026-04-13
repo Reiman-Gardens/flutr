@@ -5,8 +5,29 @@ interface SpeciesDescriptionProps {
   habitat: string | null;
 }
 
+function tryParseJSON(value: string | null): string | null {
+  if (!value) return null;
+
+  const trimmed = value.trim();
+
+  // Check if it looks like JSON (starts with {, [, or ")
+  if (trimmed.startsWith("{") || trimmed.startsWith("[") || trimmed.startsWith('"')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      return typeof parsed === "string" ? parsed : value;
+    } catch {
+      return value;
+    }
+  }
+
+  return value;
+}
+
 export function SpeciesDescription({ description, habitat }: SpeciesDescriptionProps) {
-  if (!description && !habitat) return null;
+  const parsedDescription = tryParseJSON(description);
+  const parsedHabitat = tryParseJSON(habitat);
+
+  if (!parsedDescription && !parsedHabitat) return null;
 
   return (
     <section aria-labelledby="about-heading">
@@ -15,9 +36,11 @@ export function SpeciesDescription({ description, habitat }: SpeciesDescriptionP
         Habitat & Behavior
       </h2>
 
-      {habitat && <p className="text-muted-foreground mt-3 text-sm leading-relaxed">{habitat}</p>}
-      {description && (
-        <p className="text-muted-foreground mt-3 text-sm leading-relaxed">{description}</p>
+      {parsedHabitat && (
+        <p className="text-muted-foreground mt-3 text-sm leading-relaxed">{parsedHabitat}</p>
+      )}
+      {parsedDescription && (
+        <p className="text-muted-foreground mt-3 text-sm leading-relaxed">{parsedDescription}</p>
       )}
     </section>
   );

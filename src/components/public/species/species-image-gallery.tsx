@@ -38,7 +38,7 @@ export function SpeciesImageGallery({
 
       <SpeciesImageLightbox commonName={commonName} images={images}>
         {(openAt) => (
-          <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="mt-3 grid grid-cols-2 gap-4 lg:grid-cols-2">
             {images.map((img, index) => (
               <figure key={img.label} className="overflow-hidden rounded-xl">
                 <button
@@ -51,7 +51,7 @@ export function SpeciesImageGallery({
                     src={img.src}
                     alt={`${commonName} — ${img.label}`}
                     fill
-                    sizes="(min-width: 1024px) 25vw, 50vw"
+                    sizes="(min-width: 1024px) 50vw, 50vw"
                     className="object-cover transition-transform motion-safe:group-hover:scale-105"
                   />
                 </button>
