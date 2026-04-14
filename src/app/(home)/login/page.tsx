@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
 import { toast } from "sonner";
+import { X } from "lucide-react";
 import { logger } from "@/lib/logger";
 import { ROUTES } from "@/lib/routes";
 
@@ -40,6 +41,7 @@ type PublicInstitutionsResponse = {
 export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -82,6 +84,7 @@ export default function LoginPage() {
 
   async function onSubmit(data: LoginFormData) {
     setIsLoading(true);
+    setAuthError(null);
 
     try {
       await signIn("credentials", {
@@ -97,7 +100,7 @@ export default function LoginPage() {
       const role = session?.user?.role;
 
       if (!role) {
-        toast.error("Invalid email or password");
+        setAuthError("Incorrect email or password.");
         return;
       }
 
@@ -114,7 +117,7 @@ export default function LoginPage() {
         router.push("/");
       }
     } catch (error) {
-      toast.error("An error occurred. Please try again.");
+      setAuthError("An error occurred. Please try again.");
       logger.error("Login error:", error);
     } finally {
       setIsLoading(false);
@@ -144,6 +147,22 @@ export default function LoginPage() {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                {authError && (
+                  <div
+                    role="alert"
+                    className="flex items-center justify-between gap-2 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/50 dark:text-red-400"
+                  >
+                    <span>{authError}</span>
+                    <button
+                      type="button"
+                      aria-label="Dismiss error"
+                      onClick={() => setAuthError(null)}
+                      className="shrink-0 rounded focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
                 <FormField
                   control={form.control}
                   name="email"
