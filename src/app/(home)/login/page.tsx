@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
 import { toast } from "sonner";
+import { X } from "lucide-react";
 import { logger } from "@/lib/logger";
 import { ROUTES } from "@/lib/routes";
 
@@ -40,6 +41,7 @@ type PublicInstitutionsResponse = {
 export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -82,25 +84,27 @@ export default function LoginPage() {
 
   async function onSubmit(data: LoginFormData) {
     setIsLoading(true);
+    setAuthError(null);
 
     try {
-      const result = await signIn("credentials", {
+      await signIn("credentials", {
         email: data.email,
         password: data.password,
         redirect: false,
       });
 
-      if (!result?.ok) {
-        toast.error(result?.error || "Invalid email or password");
+      // NextAuth v5 beta does not reliably reflect auth failure in the signIn return
+      // value. Verify by checking whether a session was actually created.
+      const sessionResponse = await fetch("/api/auth/session");
+      const session = await sessionResponse.json();
+      const role = session?.user?.role;
+
+      if (!role) {
+        setAuthError("Incorrect email or password.");
         return;
       }
 
       toast.success("Logged in successfully");
-
-      // Get the session to retrieve institution information
-      const sessionResponse = await fetch("/api/auth/session");
-      const session = await sessionResponse.json();
-      const role = session?.user?.role;
 
       if (role === "SUPERUSER") {
         // Redirect superusers to the platform dashboard
@@ -109,11 +113,11 @@ export default function LoginPage() {
         // Redirect to institution dashboard using slug (public tenant segment)
         router.push(ROUTES.tenant.dashboard(session.user.institutionSlug));
       } else {
-        // Fallback if institution slug is missing (e.g. SUPERUSER with no institution)
+        // Fallback if institution slug is missing
         router.push("/");
       }
     } catch (error) {
-      toast.error("An error occurred. Please try again.");
+      setAuthError("An error occurred. Please try again.");
       logger.error("Login error:", error);
     } finally {
       setIsLoading(false);
@@ -143,6 +147,22 @@ export default function LoginPage() {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                {authError && (
+                  <div
+                    role="alert"
+                    className="flex items-center justify-between gap-2 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/50 dark:text-red-400"
+                  >
+                    <span>{authError}</span>
+                    <button
+                      type="button"
+                      aria-label="Dismiss error"
+                      onClick={() => setAuthError(null)}
+                      className="shrink-0 rounded focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
                 <FormField
                   control={form.control}
                   name="email"
