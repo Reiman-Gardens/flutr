@@ -11,7 +11,7 @@ A WCAG-compliant, multi-tenant web application for butterfly houses to track shi
 - **UI**: Shadcn/UI (Radix-based), Lucide icons, Sonner toasts, next-themes
 - **Forms**: React Hook Form + Zod validation
 - **Charts**: Recharts
-- **Maps**: Leaflet + React Leaflet
+- **Maps**: React Simple Maps + world-atlas + world-countries
 - **Auth**: NextAuth 5 (credentials provider, JWT sessions)
 - **Database**: PostgreSQL 17 (Docker) + Drizzle ORM
 - **Testing**: Jest
@@ -51,8 +51,12 @@ src/
 │   │   ├── layout/         # PlatformSidebar, PlatformHeader, PlatformFooter, nav items
 │   │   │   └── tenant/     # TenantHeader, TenantSidebar, TenantFooter, TenantNavList, nav items
 │   │   ├── institutions/   # InstitutionsTable and related
+<<<<<<< HEAD
 │   │   └── detail/     # Institution detail tab components (DangerZone, FileDropZone, ImportResultsPanel, ShipmentViewer)
 │   │   ├── species/        # SpeciesTable, SpeciesGalleryCard, toolbar, row, utils
+=======
+│   │   ├── species/        # Platform species CRUD client, dialogs, table/cards, utilities
+>>>>>>> 2a85b65 (feat: heatmap and manage butterflies implemented)
 │   │   └── suppliers/      # SuppliersTable, toolbar, row, utils
 │   ├── tenant/             # Tenant-facing feature components
 │   │   ├── shipments/      # SpeciesPickerDialog, ShipmentItemsTable, ShipmentStatusBadge, SupplierSelect, types
@@ -76,6 +80,7 @@ src/
 │   ├── queries/            # Server-side data queries (gallery, home, institution, shipments, suppliers, species, users, inflight, releases, news)
 │   ├── services/           # Business logic layer (auth, permissions, tenant resolution)
 │   ├── schema.ts           # Database schema definitions
+│   ├── maps/               # Geographic mapping utilities/data wrappers for stats map
 │   ├── tenant.ts           # Tenant resolution/enforcement helpers
 │   ├── validation/         # Zod schemas + request/query helpers
 │   ├── logger.ts           # Dev-only logging utility

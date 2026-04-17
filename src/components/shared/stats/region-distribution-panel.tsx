@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Bug, Expand, MapPin, Minimize2, Search } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -13,10 +14,12 @@ import RegionHeatMap from "@/components/shared/stats/region-heat-map";
 import {
   buildMappedRegions,
   getHeatColor,
+  getRegionKeyForLabel,
   getRegionLabelForRange,
   speciesBelongsToRegion,
 } from "@/components/shared/stats/region-heat-map.utils";
 import type { StatsPageData } from "@/lib/queries/stats";
+import { cn } from "@/lib/utils";
 
 interface RegionDistributionPanelProps {
   data: StatsPageData["regionDistribution"];
@@ -25,40 +28,59 @@ interface RegionDistributionPanelProps {
 }
 
 export function RegionDistributionPanel({ data, speciesData, slug }: RegionDistributionPanelProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [isDetailed, setIsDetailed] = useState(false);
   const [search, setSearch] = useState("");
-  const mappedRegions = useMemo(() => buildMappedRegions(data), [data]);
-  const [selectedLabel, setSelectedLabel] = useState<string | null>(
-    mappedRegions[0]?.label ?? null,
+  const mappedRegions = useMemo(
+    () =>
+      [...buildMappedRegions(data)].sort(
+        (a, b) => b.count - a.count || a.label.localeCompare(b.label),
+      ),
+    [data],
   );
+  const selectedRegionFromQuery = useMemo(() => {
+    const regionKey = searchParams.get("region");
+    if (!regionKey) return null;
+    return mappedRegions.find((region) => region.key === regionKey) ?? null;
+  }, [mappedRegions, searchParams]);
+
+  const resolvedSelectedLabel = selectedRegionFromQuery?.label ?? mappedRegions[0]?.label ?? null;
+  const selectedRegion =
+    mappedRegions.find((region) => region.label === resolvedSelectedLabel) ?? null;
+  const maxCount = Math.max(...mappedRegions.map((region) => region.count), 0);
+
+  function handleRegionSelect(regionLabel: string) {
+    const regionKey = getRegionKeyForLabel(regionLabel);
+    if (!regionKey) return;
+
+    const nextQuery = new URLSearchParams(searchParams.toString());
+    nextQuery.set("region", regionKey);
+    router.replace(`${pathname}?${nextQuery.toString()}`, { scroll: false });
+  }
+
+  const filteredSpecies = useMemo(() => {
+    const searchTerm = search.trim().toLowerCase();
+
+    return speciesData
+      .filter((species) =>
+        selectedRegion ? speciesBelongsToRegion(species, selectedRegion.label) : false,
+      )
+      .filter((species) => {
+        if (!searchTerm) return true;
+
+        return (
+          species.name.toLowerCase().includes(searchTerm) ||
+          species.scientific_name.toLowerCase().includes(searchTerm) ||
+          species.family.toLowerCase().includes(searchTerm)
+        );
+      });
+  }, [search, selectedRegion, speciesData]);
 
   if (data.length === 0) {
     return null;
   }
-
-  const resolvedSelectedLabel =
-    selectedLabel && mappedRegions.some((region) => region.label === selectedLabel)
-      ? selectedLabel
-      : (mappedRegions[0]?.label ?? null);
-  const selectedRegion =
-    mappedRegions.find((region) => region.label === resolvedSelectedLabel) ??
-    mappedRegions[0] ??
-    null;
-  const maxCount = Math.max(...mappedRegions.map((region) => region.count), 0);
-  const filteredSpecies = speciesData
-    .filter((species) =>
-      selectedRegion ? speciesBelongsToRegion(species, selectedRegion.label) : false,
-    )
-    .filter((species) => {
-      const term = search.trim().toLowerCase();
-      if (!term) return true;
-
-      return (
-        species.name.toLowerCase().includes(term) ||
-        species.scientific_name.toLowerCase().includes(term) ||
-        species.family.toLowerCase().includes(term)
-      );
-    });
 
   return (
     <section aria-labelledby="geo-heading">
@@ -90,7 +112,7 @@ export function RegionDistributionPanel({ data, speciesData, slug }: RegionDistr
               <RegionHeatMap
                 data={data}
                 selectedLabel={resolvedSelectedLabel}
-                onSelect={setSelectedLabel}
+                onSelect={handleRegionSelect}
                 variant="detailed"
               />
 
@@ -124,6 +146,44 @@ export function RegionDistributionPanel({ data, speciesData, slug }: RegionDistr
                 </div>
 
                 <div className="rounded-xl border p-4">
+                  <p className="mb-2 text-sm font-medium">Select region</p>
+                  <p className="text-muted-foreground mb-3 text-xs">
+                    Click the map or use these buttons for keyboard-friendly selection.
+                  </p>
+                  <ul className="flex flex-wrap gap-2" role="list" aria-label="Mapped regions">
+                    {mappedRegions.length > 0 ? (
+                      mappedRegions.map((region) => (
+                        <li key={region.key}>
+                          <button
+                            type="button"
+                            onClick={() => handleRegionSelect(region.label)}
+                            aria-pressed={region.label === resolvedSelectedLabel}
+                            className={cn(
+                              "ring-offset-background focus-visible:ring-ring inline-flex rounded-full focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
+                            )}
+                          >
+                            <Badge
+                              variant={
+                                region.label === resolvedSelectedLabel ? "default" : "secondary"
+                              }
+                            >
+                              {region.label}
+                              <span className="text-muted-foreground ml-1.5 font-normal">
+                                {region.count} species
+                              </span>
+                            </Badge>
+                          </button>
+                        </li>
+                      ))
+                    ) : (
+                      <li>
+                        <Badge variant="secondary">No mapped regions available</Badge>
+                      </li>
+                    )}
+                  </ul>
+                </div>
+
+                <div className="rounded-xl border p-4">
                   <label
                     htmlFor="geo-species-search"
                     className="mb-2 flex items-center gap-2 text-sm font-medium"
@@ -141,50 +201,54 @@ export function RegionDistributionPanel({ data, speciesData, slug }: RegionDistr
 
                 <div className="space-y-3 xl:max-h-[28rem] xl:overflow-y-auto xl:pr-1">
                   {filteredSpecies.length > 0 ? (
-                    filteredSpecies.map((species) => (
-                      <Link
-                        key={species.scientific_name}
-                        href={`/${slug}/${encodeURIComponent(species.scientific_name)}`}
-                        className="hover:border-foreground/30 block rounded-xl border p-3 transition-colors"
-                      >
-                        <div className="flex gap-3">
-                          <div className="bg-muted relative h-24 w-24 shrink-0 overflow-hidden rounded-lg border">
-                            {species.img_wings_open ? (
-                              <Image
-                                src={species.img_wings_open}
-                                alt={`${species.name} (${species.scientific_name})`}
-                                fill
-                                sizes="96px"
-                                className="object-cover"
-                              />
-                            ) : (
-                              <div className="flex size-full items-center justify-center">
-                                <Bug
-                                  className="text-muted-foreground/40 size-7"
-                                  aria-hidden="true"
-                                />
-                              </div>
-                            )}
-                          </div>
+                    filteredSpecies.map((species) => {
+                      const mappedLabel = getRegionLabelForRange(species.range);
 
-                          <div className="min-w-0 space-y-1">
-                            <h3 className="truncate text-base font-semibold">{species.name}</h3>
-                            <p className="text-muted-foreground truncate text-sm italic">
-                              {species.scientific_name}
-                            </p>
-                            <p className="text-sm">{species.family}</p>
-                            <p className="text-muted-foreground text-xs">
-                              {species.quantity.toLocaleString()} in flight
-                            </p>
-                            {getRegionLabelForRange(species.range) && (
-                              <p className="text-muted-foreground text-xs">
-                                Region: {getRegionLabelForRange(species.range)}
+                      return (
+                        <Link
+                          key={species.scientific_name}
+                          href={`/${slug}/${encodeURIComponent(species.scientific_name)}`}
+                          className="hover:border-foreground/30 block rounded-xl border p-3 transition-colors"
+                        >
+                          <div className="flex gap-3">
+                            <div className="bg-muted relative h-24 w-24 shrink-0 overflow-hidden rounded-lg border">
+                              {species.img_wings_open ? (
+                                <Image
+                                  src={species.img_wings_open}
+                                  alt={`${species.name} (${species.scientific_name})`}
+                                  fill
+                                  sizes="96px"
+                                  className="object-cover"
+                                />
+                              ) : (
+                                <div className="flex size-full items-center justify-center">
+                                  <Bug
+                                    className="text-muted-foreground/40 size-7"
+                                    aria-hidden="true"
+                                  />
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="min-w-0 space-y-1">
+                              <h3 className="truncate text-base font-semibold">{species.name}</h3>
+                              <p className="text-muted-foreground truncate text-sm italic">
+                                {species.scientific_name}
                               </p>
-                            )}
+                              <p className="text-sm">{species.family}</p>
+                              <p className="text-muted-foreground text-xs">
+                                {species.quantity.toLocaleString()} in flight
+                              </p>
+                              {mappedLabel && (
+                                <p className="text-muted-foreground text-xs">
+                                  Region: {mappedLabel}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </Link>
-                    ))
+                        </Link>
+                      );
+                    })
                   ) : (
                     <div className="bg-muted/35 rounded-xl border p-4 text-sm">
                       <p className="font-medium">No species match this search.</p>
@@ -201,22 +265,41 @@ export function RegionDistributionPanel({ data, speciesData, slug }: RegionDistr
               <RegionHeatMap
                 data={data}
                 selectedLabel={resolvedSelectedLabel}
-                onSelect={setSelectedLabel}
+                onSelect={handleRegionSelect}
               />
 
               <div className="flex flex-wrap items-center gap-2">
                 <MapPin className="text-muted-foreground size-4" aria-hidden="true" />
                 <ul className="flex flex-wrap gap-2" role="list" aria-label="Geographic regions">
-                  {data.map(({ name, count }) => (
-                    <li key={name}>
-                      <Badge variant="secondary">
-                        {name}
-                        <span className="text-muted-foreground ml-1.5 font-normal">
-                          {count} species
-                        </span>
-                      </Badge>
+                  {mappedRegions.length > 0 ? (
+                    mappedRegions.map((region) => (
+                      <li key={region.key}>
+                        <button
+                          type="button"
+                          onClick={() => handleRegionSelect(region.label)}
+                          aria-pressed={region.label === resolvedSelectedLabel}
+                          className={cn(
+                            "ring-offset-background focus-visible:ring-ring inline-flex rounded-full focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
+                          )}
+                        >
+                          <Badge
+                            variant={
+                              region.label === resolvedSelectedLabel ? "default" : "secondary"
+                            }
+                          >
+                            {region.label}
+                            <span className="text-muted-foreground ml-1.5 font-normal">
+                              {region.count} species
+                            </span>
+                          </Badge>
+                        </button>
+                      </li>
+                    ))
+                  ) : (
+                    <li>
+                      <Badge variant="secondary">No mapped regions available</Badge>
                     </li>
-                  ))}
+                  )}
                 </ul>
               </div>
             </>

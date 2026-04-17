@@ -1,9 +1,21 @@
-// placeholder for species management page
-export default function PlatformSpeciesPage() {
-  return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-10">
-      <h1 className="text-2xl font-bold">Species Management</h1>
-      <p>This is a placeholder for the species management page.</p>
-    </div>
-  );
+import SpeciesClient from "@/components/platform/species/species-client";
+import type { PlatformSpeciesSummary } from "@/components/platform/species/species.utils";
+import { getPlatformSpecies } from "@/lib/services/platform-species";
+
+export default async function PlatformSpeciesPage() {
+  const rawSpecies = await getPlatformSpecies();
+
+  const species: PlatformSpeciesSummary[] = rawSpecies.map((item) => ({
+    id: item.id,
+    scientificName: item.scientificName,
+    commonName: item.commonName,
+    family: item.family,
+    subFamily: item.subFamily,
+    lifespanDays: item.lifespanDays,
+    range: item.range,
+    createdAt:
+      item.createdAt instanceof Date ? item.createdAt.toISOString() : String(item.createdAt),
+  }));
+
+  return <SpeciesClient species={species} />;
 }

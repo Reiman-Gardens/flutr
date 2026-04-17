@@ -1,16 +1,17 @@
 "use client";
 
 import { useMemo } from "react";
-import type { LatLngBoundsExpression } from "leaflet";
-import { Circle, MapContainer, TileLayer, Tooltip } from "react-leaflet";
+import { ComposableMap, Geographies, Geography } from "react-simple-maps";
 import { Flame, LocateFixed } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { getRegionKeyForCountry } from "@/lib/maps/country-region";
+import worldCountriesTopoJson from "@/lib/maps/world-countries-topojson";
 import {
   buildMappedRegions,
   findUnmappedRegions,
   getHeatColor,
-  getHeatRadius,
+  getRegionKeyForLabel,
   type MappedRegion,
   type RegionDatum,
 } from "@/components/shared/stats/region-heat-map.utils";
@@ -22,22 +23,20 @@ interface RegionHeatMapProps {
   variant?: "compact" | "detailed";
 }
 
-const WORLD_BOUNDS: LatLngBoundsExpression = [
-  [-60, -180],
-  [85, 180],
-];
-
-const MAP_CENTER: [number, number] = [18, 0];
-const MAP_ZOOM = 1;
+const OCEAN_COLOR = "#a9c9d8";
+const COUNTRY_BASE_FILL = "#d6dde4";
+const COUNTRY_BASE_STROKE = "#edf2f6";
 
 function RegionSummary({
   mappedRegions,
   selectedRegion,
   unmappedRegions,
+  onSelect,
 }: {
   mappedRegions: MappedRegion[];
   selectedRegion: MappedRegion | null;
   unmappedRegions: RegionDatum[];
+  onSelect: (label: string) => void;
 }) {
   const maxCount = Math.max(...mappedRegions.map((region) => region.count), 0);
 
@@ -77,10 +76,13 @@ function RegionSummary({
           const color = getHeatColor(region.count, maxCount);
 
           return (
-            <div
+            <button
+              type="button"
               key={region.label}
+              onClick={() => onSelect(region.label)}
+              aria-pressed={isSelected}
               className={cn(
-                "rounded-xl border p-3 text-left transition-colors",
+                "ring-offset-background focus-visible:ring-ring w-full rounded-xl border p-3 text-left transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
                 isSelected && "border-foreground/30 bg-muted/40",
               )}
             >
@@ -95,7 +97,7 @@ function RegionSummary({
               <span className="text-muted-foreground block text-xs">
                 {region.count} species represented
               </span>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -124,6 +126,12 @@ export default function RegionHeatMap({
     mappedRegions.find((region) => region.label === selectedLabel) ?? mappedRegions[0] ?? null;
   const containerHeight = variant === "detailed" ? "h-[34rem]" : "h-[22rem]";
   const unmappedRegions = findUnmappedRegions(data);
+  const mappedRegionByKey = useMemo(
+    () => new Map(mappedRegions.map((region) => [region.key, region] as const)),
+    [mappedRegions],
+  );
+  const selectedRegionKey = selectedRegion ? getRegionKeyForLabel(selectedRegion.label) : null;
+  const mapScale = variant === "detailed" ? 198 : 175;
 
   return (
     <div
@@ -141,59 +149,89 @@ export default function RegionHeatMap({
           <p className="text-muted-foreground mt-1 text-xs">
             {variant === "detailed"
               ? "Select a region to explore the species currently represented from that part of the world."
-              : "Larger, warmer circles indicate regions with more species currently represented in flight."}
+              : "Darker green regions indicate more species currently represented in flight."}
           </p>
         </div>
 
         <div
           className={cn(
             containerHeight,
-            "bg-[radial-gradient(circle_at_top,_rgba(251,191,36,0.18),_transparent_35%),linear-gradient(180deg,rgba(15,23,42,0.06),transparent_25%)]",
+            "bg-[linear-gradient(180deg,rgba(22,163,74,0.07),rgba(255,255,255,0.03)_30%,rgba(2,132,199,0.05))]",
           )}
         >
-          <MapContainer
-            center={MAP_CENTER}
-            zoom={MAP_ZOOM}
-            minZoom={MAP_ZOOM}
-            scrollWheelZoom={false}
-            className="h-full w-full"
-            attributionControl={false}
-            maxBounds={WORLD_BOUNDS}
-            maxBoundsViscosity={1}
-            worldCopyJump={false}
-          >
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" noWrap />
+          <div className="h-full w-full" aria-label="Global butterfly origin map" role="img">
+            <ComposableMap
+              projection="geoEqualEarth"
+              projectionConfig={{ scale: mapScale }}
+              className="h-full w-full"
+              style={{ backgroundColor: OCEAN_COLOR }}
+              aria-hidden="true"
+            >
+              <Geographies geography={worldCountriesTopoJson}>
+                {({ geographies }) =>
+                  geographies.map((geography) => {
+                    const countryRegionKey = getRegionKeyForCountry(
+                      geography.id,
+                      geography.properties?.name as string | undefined,
+                    );
+                    const mappedRegion = countryRegionKey
+                      ? (mappedRegionByKey.get(countryRegionKey) ?? null)
+                      : null;
+                    const isInteractive = Boolean(mappedRegion);
+                    const isSelected = Boolean(
+                      selectedRegionKey &&
+                      countryRegionKey &&
+                      selectedRegionKey === countryRegionKey,
+                    );
+                    const fillColor = mappedRegion
+                      ? getHeatColor(mappedRegion.count, maxCount)
+                      : COUNTRY_BASE_FILL;
+                    const ariaLabel = mappedRegion
+                      ? `${geography.properties?.name}: ${mappedRegion.label}, ${mappedRegion.count} species represented`
+                      : `${geography.properties?.name}: no mapped butterfly region data`;
 
-            {mappedRegions.map((region) => {
-              const isSelected = region.label === selectedRegion?.label;
-              const color = getHeatColor(region.count, maxCount);
-
-              return (
-                <Circle
-                  key={region.label}
-                  center={region.center}
-                  radius={getHeatRadius(region.count, maxCount)}
-                  pathOptions={{
-                    color,
-                    fillColor: color,
-                    fillOpacity: isSelected ? 0.52 : 0.28,
-                    opacity: isSelected ? 0.95 : 0.7,
-                    weight: isSelected ? 2 : 1,
-                  }}
-                  eventHandlers={{
-                    click: () => onSelect(region.label),
-                  }}
-                >
-                  <Tooltip direction="top" sticky>
-                    <div className="text-sm">
-                      <p className="font-semibold">{region.label}</p>
-                      <p>{region.count} species represented</p>
-                    </div>
-                  </Tooltip>
-                </Circle>
-              );
-            })}
-          </MapContainer>
+                    return (
+                      <Geography
+                        key={geography.rsmKey}
+                        geography={geography}
+                        aria-label={ariaLabel}
+                        onClick={() => {
+                          if (!isInteractive || !mappedRegion) return;
+                          onSelect(mappedRegion.label);
+                        }}
+                        style={{
+                          default: {
+                            fill: mappedRegion ? fillColor : COUNTRY_BASE_FILL,
+                            fillOpacity: mappedRegion ? (isSelected ? 0.98 : 0.9) : 1,
+                            stroke: mappedRegion && isSelected ? "#1f4e3c" : COUNTRY_BASE_STROKE,
+                            strokeWidth: mappedRegion && isSelected ? 1.25 : 0.65,
+                            outline: "none",
+                            cursor: isInteractive ? "pointer" : "default",
+                          },
+                          hover: {
+                            fill: mappedRegion ? fillColor : COUNTRY_BASE_FILL,
+                            fillOpacity: mappedRegion ? 1 : 1,
+                            stroke: mappedRegion ? "#1f4e3c" : COUNTRY_BASE_STROKE,
+                            strokeWidth: mappedRegion ? 1.25 : 0.65,
+                            outline: "none",
+                            cursor: isInteractive ? "pointer" : "default",
+                          },
+                          pressed: {
+                            fill: mappedRegion ? fillColor : COUNTRY_BASE_FILL,
+                            fillOpacity: mappedRegion ? 1 : 1,
+                            stroke: mappedRegion ? "#153a2e" : COUNTRY_BASE_STROKE,
+                            strokeWidth: mappedRegion ? 1.3 : 0.65,
+                            outline: "none",
+                            cursor: isInteractive ? "pointer" : "default",
+                          },
+                        }}
+                      />
+                    );
+                  })
+                }
+              </Geographies>
+            </ComposableMap>
+          </div>
         </div>
       </div>
 
@@ -202,6 +240,7 @@ export default function RegionHeatMap({
           mappedRegions={mappedRegions}
           selectedRegion={selectedRegion}
           unmappedRegions={unmappedRegions}
+          onSelect={onSelect}
         />
       )}
     </div>
