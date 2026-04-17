@@ -159,13 +159,13 @@ export default function RegionHeatMap({
             "bg-[linear-gradient(180deg,rgba(22,163,74,0.07),rgba(255,255,255,0.03)_30%,rgba(2,132,199,0.05))]",
           )}
         >
-          <div className="h-full w-full" aria-label="Global butterfly origin map" role="img">
+          <div className="h-full w-full">
             <ComposableMap
               projection="geoEqualEarth"
               projectionConfig={{ scale: mapScale }}
               className="h-full w-full"
               style={{ backgroundColor: OCEAN_COLOR }}
-              aria-hidden="true"
+              aria-label="Global butterfly origin map"
             >
               <Geographies geography={worldCountriesTopoJson}>
                 {({ geographies }) =>
@@ -195,9 +195,20 @@ export default function RegionHeatMap({
                         key={geography.rsmKey}
                         geography={geography}
                         aria-label={ariaLabel}
+                        role={isInteractive ? "button" : undefined}
+                        tabIndex={isInteractive ? 0 : -1}
+                        aria-pressed={isInteractive ? isSelected : undefined}
                         onClick={() => {
                           if (!isInteractive || !mappedRegion) return;
                           onSelect(mappedRegion.label);
+                        }}
+                        onKeyDown={(event) => {
+                          if (!isInteractive || !mappedRegion) return;
+
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            onSelect(mappedRegion.label);
+                          }
                         }}
                         style={{
                           default: {
@@ -205,7 +216,6 @@ export default function RegionHeatMap({
                             fillOpacity: mappedRegion ? (isSelected ? 0.98 : 0.9) : 1,
                             stroke: mappedRegion && isSelected ? "#1f4e3c" : COUNTRY_BASE_STROKE,
                             strokeWidth: mappedRegion && isSelected ? 1.25 : 0.65,
-                            outline: "none",
                             cursor: isInteractive ? "pointer" : "default",
                           },
                           hover: {
@@ -213,7 +223,6 @@ export default function RegionHeatMap({
                             fillOpacity: mappedRegion ? 1 : 1,
                             stroke: mappedRegion ? "#1f4e3c" : COUNTRY_BASE_STROKE,
                             strokeWidth: mappedRegion ? 1.25 : 0.65,
-                            outline: "none",
                             cursor: isInteractive ? "pointer" : "default",
                           },
                           pressed: {
@@ -221,7 +230,6 @@ export default function RegionHeatMap({
                             fillOpacity: mappedRegion ? 1 : 1,
                             stroke: mappedRegion ? "#153a2e" : COUNTRY_BASE_STROKE,
                             strokeWidth: mappedRegion ? 1.3 : 0.65,
-                            outline: "none",
                             cursor: isInteractive ? "pointer" : "default",
                           },
                         }}

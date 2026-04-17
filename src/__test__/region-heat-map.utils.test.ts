@@ -37,8 +37,8 @@ describe("region heat map utilities", () => {
   });
 
   it("scales heat styling from low to high intensity", () => {
-    expect(getHeatColor(1, 10)).toBe("#86efac");
-    expect(getHeatColor(10, 10)).toBe("#b91c1c");
+    expect(getHeatColor(1, 10)).toBe("#bad9ba");
+    expect(getHeatColor(10, 10)).toBe("#4a7f63");
     expect(getHeatRadius(10, 10)).toBeGreaterThan(getHeatRadius(1, 10));
   });
 
