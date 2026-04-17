@@ -51,12 +51,8 @@ src/
 │   │   ├── layout/         # PlatformSidebar, PlatformHeader, PlatformFooter, nav items
 │   │   │   └── tenant/     # TenantHeader, TenantSidebar, TenantFooter, TenantNavList, nav items
 │   │   ├── institutions/   # InstitutionsTable and related
-<<<<<<< HEAD
-│   │   └── detail/     # Institution detail tab components (DangerZone, FileDropZone, ImportResultsPanel, ShipmentViewer)
-│   │   ├── species/        # SpeciesTable, SpeciesGalleryCard, toolbar, row, utils
-=======
+│   │   └── detail/         # Institution detail tab components (DangerZone, FileDropZone, ImportResultsPanel, ShipmentViewer)
 │   │   ├── species/        # Platform species CRUD client, dialogs, table/cards, utilities
->>>>>>> 2a85b65 (feat: heatmap and manage butterflies implemented)
 │   │   └── suppliers/      # SuppliersTable, toolbar, row, utils
 │   ├── tenant/             # Tenant-facing feature components
 │   │   ├── shipments/      # SpeciesPickerDialog, ShipmentItemsTable, ShipmentStatusBadge, SupplierSelect, types

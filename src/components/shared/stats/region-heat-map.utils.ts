@@ -5,7 +5,6 @@ export type SpeciesDatum = StatsPageData["speciesBreakdown"][number];
 export type RegionKey =
   | "north-america"
   | "central-south-america"
-  | "south-america"
   | "europe"
   | "africa"
   | "asia"
@@ -34,17 +33,11 @@ export const REGION_DEFINITIONS: RegionDefinition[] = [
   },
   {
     key: "central-south-america",
-    aliases: ["Central America", "Central/South America"],
+    aliases: ["Central America", "Central/South America", "South America"],
     center: [3, -74],
-    label: "Central/South America",
-    description: "Species associated with Central American and northern South American habitats.",
-  },
-  {
-    key: "south-america",
-    aliases: ["South America"],
-    center: [-20, -60],
-    label: "South America",
-    description: "Species tied to South American tropical and subtropical ecosystems.",
+    label: "Central and South America",
+    description:
+      "Species associated with Central and South American tropical and subtropical habitats.",
   },
   {
     key: "europe",

@@ -26,7 +26,7 @@ function getRegionKeyForCountryMeta(
   if (normalizedRegion === "oceania") return "australia";
 
   if (normalizedRegion === "americas") {
-    if (normalizedSubregion === "south america") return "south-america";
+    if (normalizedSubregion === "south america") return "central-south-america";
     if (normalizedSubregion === "northern america") return "north-america";
     if (normalizedSubregion === "central america") return "central-south-america";
     if (normalizedSubregion === "caribbean") return "central-south-america";
@@ -61,7 +61,7 @@ COUNTRY_NAME_TO_REGION_KEY.set("bosnia and herz.", "europe");
 COUNTRY_NAME_TO_REGION_KEY.set("central african rep.", "africa");
 COUNTRY_NAME_TO_REGION_KEY.set("eq. guinea", "africa");
 COUNTRY_NAME_TO_REGION_KEY.set("solomon is.", "australia");
-COUNTRY_NAME_TO_REGION_KEY.set("falkland is.", "south-america");
+COUNTRY_NAME_TO_REGION_KEY.set("falkland is.", "central-south-america");
 
 export function getRegionKeyForCountry(
   countryId: string | number | undefined,
