@@ -31,6 +31,29 @@ export async function listSuppliersForTenant(institutionId: number) {
 }
 
 /**
+ * GLOBAL TRANSITION QUERY
+ *
+ * List all supplier rows by code. During the Phase 1 global suppliers
+ * migration, import preview should answer "does this code exist anywhere?"
+ * before the schema has fully dropped tenant ownership.
+ */
+export async function listSuppliersGlobal() {
+  return db
+    .select({
+      id: suppliers.id,
+      institutionId: suppliers.institution_id,
+      name: suppliers.name,
+      code: suppliers.code,
+      country: suppliers.country,
+      websiteUrl: suppliers.website_url,
+      isActive: suppliers.is_active,
+      createdAt: suppliers.created_at,
+    })
+    .from(suppliers)
+    .orderBy(desc(suppliers.created_at));
+}
+
+/**
  * PLATFORM QUERY
  *
  * List all suppliers, optionally filtered by institution.
@@ -248,4 +271,75 @@ export async function ensureSupplierExistsForTenant(
     });
 
   return created;
+}
+
+/**
+ * GLOBAL TRANSITION QUERY
+ *
+ * Ensure a supplier code exists for import commit using Phase 1 global
+ * semantics while the schema still requires a tenant-compatible supplier row
+ * for the shipment FK. Once suppliers are truly global in the schema, this
+ * helper can collapse to a simple global code lookup/create.
+ */
+export async function ensureSupplierExistsForGlobalImport(
+  tenantId: number,
+  code: string,
+  fallbackData?: {
+    name?: string;
+    country?: string;
+    websiteUrl?: string | null;
+  },
+) {
+  const normalizedCode = code.toUpperCase();
+
+  const [globalMatch] = await db
+    .select({
+      id: suppliers.id,
+      code: suppliers.code,
+      name: suppliers.name,
+      country: suppliers.country,
+      websiteUrl: suppliers.website_url,
+    })
+    .from(suppliers)
+    .where(eq(suppliers.code, normalizedCode))
+    .orderBy(desc(suppliers.created_at))
+    .limit(1);
+
+  const [tenantMatch] = await db
+    .select({
+      id: suppliers.id,
+      code: suppliers.code,
+    })
+    .from(suppliers)
+    .where(and(eq(suppliers.institution_id, tenantId), eq(suppliers.code, normalizedCode)))
+    .limit(1);
+
+  if (tenantMatch) {
+    return {
+      ...tenantMatch,
+      wasGloballyMissing: !globalMatch,
+      wasCompatibilityCreated: false,
+    };
+  }
+
+  const [created] = await db
+    .insert(suppliers)
+    .values({
+      institution_id: tenantId,
+      code: normalizedCode,
+      name: globalMatch?.name ?? fallbackData?.name ?? normalizedCode,
+      country: globalMatch?.country ?? fallbackData?.country ?? "Unknown",
+      website_url: globalMatch?.websiteUrl ?? fallbackData?.websiteUrl ?? null,
+      is_active: false,
+    })
+    .returning({
+      id: suppliers.id,
+      code: suppliers.code,
+    });
+
+  return {
+    ...created,
+    wasGloballyMissing: !globalMatch,
+    wasCompatibilityCreated: true,
+  };
 }

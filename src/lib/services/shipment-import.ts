@@ -12,7 +12,7 @@ import {
   ensureSpeciesLinksForInstitution,
   listSpeciesGlobal,
 } from "@/lib/queries/species";
-import { ensureSupplierExistsForTenant, listSuppliersForPlatform } from "@/lib/queries/suppliers";
+import { ensureSupplierExistsForGlobalImport, listSuppliersGlobal } from "@/lib/queries/suppliers";
 import {
   groupShipmentImportRows,
   normalizeScientificName,
@@ -140,7 +140,7 @@ export async function buildShipmentImportPreviewForInstitution({
 
   const [speciesRows, supplierRows] = await Promise.all([
     listSpeciesGlobal(),
-    listSuppliersForPlatform(institutionId),
+    listSuppliersGlobal(),
   ]);
 
   const knownSpecies = new Set(
@@ -208,18 +208,13 @@ export async function commitShipmentImportForInstitution({
   const allowSpeciesAutocreate = options?.allow_species_autocreate ?? false;
   const allowDuplicateHeaders = options?.allow_duplicate_headers ?? false;
 
-  const [speciesRows, tenantSupplierRows, globalSupplierRows] = await Promise.all([
+  const [speciesRows, globalSupplierRows] = await Promise.all([
     listSpeciesGlobal(),
-    listSuppliersForPlatform(institutionId),
-    listSuppliersForPlatform(),
+    listSuppliersGlobal(),
   ]);
 
   const speciesLookup = new Map(
     speciesRows.map((species) => [normalizeScientificName(species.scientificName), species.id]),
-  );
-
-  const tenantSuppliers = new Set(
-    tenantSupplierRows.map((supplier) => normalizeSupplierCode(supplier.code)),
   );
 
   const globalSuppliersByCode = new Map<string, (typeof globalSupplierRows)[number]>();
@@ -229,6 +224,7 @@ export async function commitShipmentImportForInstitution({
       globalSuppliersByCode.set(normalizedCode, supplier);
     }
   }
+  const ensuredSupplierCodes = new Set<string>();
 
   let created = 0;
   let failed = 0;
@@ -244,19 +240,33 @@ export async function commitShipmentImportForInstitution({
       const shipmentDate = new Date(shipment.shipment_date);
       const arrivalDate = new Date(shipment.arrival_date);
 
-      if (!tenantSuppliers.has(supplierCode)) {
+      if (!ensuredSupplierCodes.has(supplierCode)) {
         const globalMatch = globalSuppliersByCode.get(supplierCode);
 
-        await ensureSupplierExistsForTenant(institutionId, supplierCode, {
-          name: globalMatch?.name ?? supplierCode,
-          country: globalMatch?.country ?? "Unknown",
-          websiteUrl: globalMatch?.websiteUrl ?? null,
-        });
-
-        tenantSuppliers.add(supplierCode);
-        warnings.push(
-          `Supplier ${supplierCode} was auto-created as inactive for this institution.`,
+        const ensuredSupplier = await ensureSupplierExistsForGlobalImport(
+          institutionId,
+          supplierCode,
+          {
+            name: globalMatch?.name ?? supplierCode,
+            country: globalMatch?.country ?? "Unknown",
+            websiteUrl: globalMatch?.websiteUrl ?? null,
+          },
         );
+
+        ensuredSupplierCodes.add(supplierCode);
+        if (ensuredSupplier.wasGloballyMissing) {
+          globalSuppliersByCode.set(supplierCode, {
+            id: ensuredSupplier.id,
+            institutionId,
+            code: ensuredSupplier.code,
+            name: globalMatch?.name ?? supplierCode,
+            country: globalMatch?.country ?? "Unknown",
+            websiteUrl: globalMatch?.websiteUrl ?? null,
+            isActive: false,
+            createdAt: new Date(),
+          });
+          warnings.push(`Supplier ${supplierCode} was auto-created as inactive for global review.`);
+        }
       }
 
       const unresolvedSpecies: string[] = [];
