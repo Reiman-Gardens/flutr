@@ -257,7 +257,6 @@ export async function commitShipmentImportForInstitution({
         if (ensuredSupplier.wasGloballyMissing) {
           globalSuppliersByCode.set(supplierCode, {
             id: ensuredSupplier.id,
-            institutionId,
             code: ensuredSupplier.code,
             name: globalMatch?.name ?? supplierCode,
             country: globalMatch?.country ?? "Unknown",

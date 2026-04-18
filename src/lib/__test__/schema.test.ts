@@ -123,7 +123,6 @@ describe("schema", () => {
     it("has required columns", () => {
       const columns = Object.keys(suppliers);
       expect(columns).toContain("id");
-      expect(columns).toContain("institution_id");
       expect(columns).toContain("name");
       expect(columns).toContain("code");
       expect(columns).toContain("country");

@@ -1,6 +1,5 @@
 import { auth } from "@/auth";
 import { requireUser, canCrossTenant } from "@/lib/authz";
-import { resolveTenantId, ensureTenantExists } from "@/lib/tenant";
 import {
   listSuppliersForPlatform,
   createSupplier,
@@ -23,16 +22,9 @@ export async function getPlatformSuppliers(institutionId?: number) {
 export async function createPlatformSupplier(data: CreateSupplierBody) {
   const user = requireUser(await auth());
   if (!canCrossTenant(user)) throw new Error("FORBIDDEN");
-  let tenantId: number;
-  try {
-    tenantId = resolveTenantId(user, data.institutionId);
-  } catch {
-    throw new Error("FORBIDDEN");
-  }
-  await ensureTenantExists(tenantId);
-  const codeExists = await supplierCodeExistsForTenant(tenantId, data.code);
+  const codeExists = await supplierCodeExistsForTenant(0, data.code);
   if (codeExists) throw new Error("CONFLICT");
-  return createSupplier(tenantId, data);
+  return createSupplier(0, data);
 }
 
 export async function getPlatformSupplierById(id: number) {
@@ -47,7 +39,7 @@ export async function updatePlatformSupplier(id: number, data: UpdateSupplierBod
   const existing = await getSupplierById(id);
   if (!existing) throw new Error("NOT_FOUND");
   if (data.code !== undefined) {
-    const codeExists = await supplierCodeExistsForTenant(existing.institutionId, data.code, id);
+    const codeExists = await supplierCodeExistsForTenant(0, data.code, id);
     if (codeExists) throw new Error("CONFLICT");
   }
   const updated = await updateSupplier(id, data);
