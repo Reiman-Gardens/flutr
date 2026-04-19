@@ -32,7 +32,11 @@ import { ROUTES } from "@/lib/routes";
 
 import { DatePicker } from "@/components/shared/date-picker";
 import { SpeciesPickerDialog } from "@/components/tenant/shipments/species-picker-dialog";
-import { SupplierSelect, type SupplierOption } from "@/components/tenant/shipments/supplier-select";
+import {
+  SupplierSelect,
+  mapSupplierRowsToOptions,
+  type SupplierOption,
+} from "@/components/tenant/shipments/supplier-select";
 import type { SpeciesPickerOption } from "@/components/tenant/shipments/types";
 
 type ShipmentItemForm = {
@@ -149,20 +153,23 @@ export default function AddShipmentPage() {
           fetch("/api/tenant/suppliers", { headers: tenantHeaders, signal: ac.signal }),
           fetch("/api/tenant/species", { headers: tenantHeaders, signal: ac.signal }),
         ]);
+
+        if (!supRes.ok) {
+          throw new Error("Unable to load suppliers.");
+        }
+        if (!spRes.ok) {
+          throw new Error("Unable to load species.");
+        }
+
         const supJson = await supRes.json().catch(() => null);
         const spJson = await spRes.json().catch(() => null);
 
-        const supplierRows = Array.isArray(supJson?.suppliers) ? supJson.suppliers : [];
-        setSuppliers(
-          supplierRows
-            .filter((s: { code?: unknown }) => typeof s.code === "string")
-            .map((s: { id: number; code: string; name?: string; isActive?: boolean }) => ({
-              id: s.id,
-              code: s.code,
-              name: s.name ?? s.code,
-              isActive: s.isActive ?? true,
-            })),
-        );
+        const supplierRows = Array.isArray(supJson?.suppliers)
+          ? supJson.suppliers
+          : Array.isArray(supJson?.data?.suppliers)
+            ? supJson.data.suppliers
+            : [];
+        setSuppliers(mapSupplierRowsToOptions(supplierRows));
 
         const speciesRows = Array.isArray(spJson?.species) ? spJson.species : [];
         setSpecies(
@@ -195,7 +202,7 @@ export default function AddShipmentPage() {
       } catch (err) {
         if (ac.signal.aborted) return;
         if (err instanceof DOMException && err.name === "AbortError") return;
-        // Errors surface as empty dropdowns; the user can retry by reloading.
+        setErrorMessage(err instanceof Error ? err.message : "Unable to load shipment form data.");
       }
     })();
     return () => ac.abort();

@@ -20,32 +20,12 @@ const supplierSelect = {
 };
 
 /**
- * TENANT COMPATIBILITY QUERY
- *
- * Suppliers are global in Phase 1. Keep this function signature so tenant
- * callers can migrate gradually while receiving the global supplier list.
- */
-export async function listSuppliersForTenant(_institutionId: number) {
-  return db.select(supplierSelect).from(suppliers).orderBy(suppliers.name);
-}
-
-/**
  * GLOBAL QUERY
  *
  * List all global supplier rows by code.
  */
 export async function listSuppliersGlobal() {
   return db.select(supplierSelect).from(suppliers).orderBy(desc(suppliers.created_at));
-}
-
-/**
- * PLATFORM QUERY
- *
- * List all global suppliers. The optional institutionId parameter is accepted
- * temporarily for route compatibility and ignored.
- */
-export async function listSuppliersForPlatform(_institutionId?: number) {
-  return listSuppliersGlobal();
 }
 
 /**
@@ -65,11 +45,7 @@ export async function getSupplierById(supplierId: number) {
  * Check if a supplier code already exists globally.
  * Optionally exclude a supplier ID (for update uniqueness checks).
  */
-export async function supplierCodeExistsForTenant(
-  _institutionId: number,
-  code: string,
-  excludeId?: number,
-) {
+export async function supplierCodeExists(code: string, excludeId?: number) {
   const condition = excludeId
     ? and(eq(suppliers.code, code), ne(suppliers.id, excludeId))
     : eq(suppliers.code, code);
@@ -82,10 +58,9 @@ export async function supplierCodeExistsForTenant(
 /**
  * PLATFORM QUERY
  *
- * Create a new global supplier. The institutionId parameter is accepted
- * temporarily for route/service compatibility and ignored.
+ * Create a new global supplier.
  */
-export async function createSupplier(_institutionId: number, input: CreateSupplierBody) {
+export async function createSupplier(input: CreateSupplierBody) {
   const [row] = await db
     .insert(suppliers)
     .values({
@@ -165,60 +140,12 @@ function isForeignKeyViolation(error: unknown): boolean {
 }
 
 /**
- * IMPORT COMPATIBILITY QUERY
- *
- * Ensure a global supplier with the given code exists. Keep this old function
- * name temporarily so callers can migrate gradually.
- */
-export async function ensureSupplierExistsForTenant(
-  _tenantId: number,
-  code: string,
-  fallbackData?: {
-    name?: string;
-    country?: string;
-    websiteUrl?: string | null;
-  },
-) {
-  const normalizedCode = code.toUpperCase();
-
-  const [existing] = await db
-    .select({
-      id: suppliers.id,
-      code: suppliers.code,
-    })
-    .from(suppliers)
-    .where(eq(suppliers.code, normalizedCode))
-    .limit(1);
-
-  if (existing) {
-    return existing;
-  }
-
-  const [created] = await db
-    .insert(suppliers)
-    .values({
-      code: normalizedCode,
-      name: fallbackData?.name ?? normalizedCode,
-      country: fallbackData?.country ?? "Unknown",
-      website_url: fallbackData?.websiteUrl ?? null,
-      is_active: false,
-    })
-    .returning({
-      id: suppliers.id,
-      code: suppliers.code,
-    });
-
-  return created;
-}
-
-/**
  * GLOBAL QUERY
  *
  * Ensure a global supplier code exists for import commit, creating missing
  * codes as inactive for later platform review.
  */
 export async function ensureSupplierExistsForGlobalImport(
-  _tenantId: number,
   code: string,
   fallbackData?: {
     name?: string;

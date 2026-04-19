@@ -18,8 +18,6 @@ jest.mock("@/lib/queries/species", () => ({
 
 jest.mock("@/lib/queries/suppliers", () => ({
   ensureSupplierExistsForGlobalImport: jest.fn(),
-  ensureSupplierExistsForTenant: jest.fn(),
-  listSuppliersForPlatform: jest.fn(),
   listSuppliersGlobal: jest.fn(),
 }));
 
@@ -29,11 +27,7 @@ import {
 } from "@/lib/services/shipment-import";
 import { createShipment, shipmentHeaderExists } from "@/lib/queries/shipments";
 import { ensureSpeciesLinksForInstitution, listSpeciesGlobal } from "@/lib/queries/species";
-import {
-  ensureSupplierExistsForGlobalImport,
-  listSuppliersForPlatform,
-  listSuppliersGlobal,
-} from "@/lib/queries/suppliers";
+import { ensureSupplierExistsForGlobalImport, listSuppliersGlobal } from "@/lib/queries/suppliers";
 import type { ShipmentImportDraft } from "@/lib/validation/shipment-import";
 
 const mockCreateShipment = createShipment as jest.Mock;
@@ -41,7 +35,6 @@ const mockShipmentHeaderExists = shipmentHeaderExists as jest.Mock;
 const mockEnsureSpeciesLinksForInstitution = ensureSpeciesLinksForInstitution as jest.Mock;
 const mockListSpeciesGlobal = listSpeciesGlobal as jest.Mock;
 const mockEnsureSupplierExistsForGlobalImport = ensureSupplierExistsForGlobalImport as jest.Mock;
-const mockListSuppliersForPlatform = listSuppliersForPlatform as jest.Mock;
 const mockListSuppliersGlobal = listSuppliersGlobal as jest.Mock;
 
 function buildPreviewHash(institutionId: number, shipments: ShipmentImportDraft[]) {
@@ -90,7 +83,6 @@ describe("shipment import service", () => {
       });
 
       expect(mockListSuppliersGlobal).toHaveBeenCalledTimes(1);
-      expect(mockListSuppliersForPlatform).not.toHaveBeenCalled();
       expect(preview.summary.unknown_suppliers).toBe(0);
       expect(preview.unknown_suppliers).toEqual([]);
     });
@@ -118,8 +110,7 @@ describe("shipment import service", () => {
       });
 
       expect(mockListSuppliersGlobal).toHaveBeenCalledTimes(1);
-      expect(mockListSuppliersForPlatform).not.toHaveBeenCalled();
-      expect(mockEnsureSupplierExistsForGlobalImport).toHaveBeenCalledWith(1, "EBN", {
+      expect(mockEnsureSupplierExistsForGlobalImport).toHaveBeenCalledWith("EBN", {
         name: "EBN",
         country: "Unknown",
         websiteUrl: null,
@@ -151,7 +142,7 @@ describe("shipment import service", () => {
         shipments,
       });
 
-      expect(mockEnsureSupplierExistsForGlobalImport).toHaveBeenCalledWith(1, "NEW", {
+      expect(mockEnsureSupplierExistsForGlobalImport).toHaveBeenCalledWith("NEW", {
         name: "NEW",
         country: "Unknown",
         websiteUrl: null,

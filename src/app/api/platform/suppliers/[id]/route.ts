@@ -68,8 +68,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       if (error.message === "UNAUTHORIZED") return unauthorized();
       if (error.message === "FORBIDDEN") return forbidden();
       if (error.message === "NOT_FOUND") return notFound("Supplier not found");
-      if (error.message === "CONFLICT")
-        return conflict("Supplier code already exists for this institution");
+      if (error.message === "CONFLICT") return conflict("Supplier code already exists");
       if (error.message === SUPPLIER_ERRORS.REFERENCED_BY_SHIPMENTS) return conflict(error.message);
     }
 

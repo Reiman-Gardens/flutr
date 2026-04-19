@@ -1,6 +1,6 @@
+ALTER TABLE "shipments" DROP CONSTRAINT "fk_shipments_supplier_code";--> statement-breakpoint
 ALTER TABLE "suppliers" DROP CONSTRAINT "unique_supplier_per_institution";--> statement-breakpoint
 ALTER TABLE "suppliers" DROP CONSTRAINT "unique_supplier_id_per_institution";--> statement-breakpoint
-ALTER TABLE "shipments" DROP CONSTRAINT "fk_shipments_supplier_code";--> statement-breakpoint
 ALTER TABLE "suppliers" DROP CONSTRAINT "suppliers_institution_id_institutions_id_fk";--> statement-breakpoint
 WITH "missing_supplier_codes" AS (
 	SELECT

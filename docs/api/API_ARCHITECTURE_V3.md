@@ -92,7 +92,10 @@ SUPERUSER can resolve any valid slug. Non-SUPERUSER can only resolve their own i
 
 ### Query responsibility
 
-Queries receive the already-resolved `institutionId` (a number). They must never receive `slug` or perform slug lookups.
+Queries for tenant-owned data receive the already-resolved `institutionId` (a number). They must
+never receive `slug` or perform slug lookups. Global reference data can be exposed through tenant
+routes after the service layer resolves the slug for authorization; suppliers currently follow that
+pattern.
 
 ```typescript
 export async function listFooForTenant(institutionId: number, user: AuthenticatedUser) {

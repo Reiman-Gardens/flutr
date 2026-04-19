@@ -69,7 +69,7 @@ PostgreSQL 17 managed via Drizzle ORM:
 - **User** — An account scoped to an institution with a role
 - **Butterfly Species** — Global scientific reference data
 - **Butterfly Species Institution** — Institution-specific species details (common name, description, image)
-- **Supplier** — Butterfly vendor/supplier
+- **Supplier** — Global butterfly vendor/supplier code used by shipments and imports
 - **Shipment** — A butterfly shipment record with quality/damage tracking metrics
 
 ### Key Relationships
@@ -78,7 +78,7 @@ PostgreSQL 17 managed via Drizzle ORM:
 Institution ─┬─ Users
               ├─ Butterfly Species Institution ── Butterfly Species (global)
               └─ Shipments ─┬─ Butterfly Species (global)
-                            └─ Supplier
+                            └─ Supplier (global by code)
 ```
 
 ## API Routes

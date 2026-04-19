@@ -243,15 +243,11 @@ export async function commitShipmentImportForInstitution({
       if (!ensuredSupplierCodes.has(supplierCode)) {
         const globalMatch = globalSuppliersByCode.get(supplierCode);
 
-        const ensuredSupplier = await ensureSupplierExistsForGlobalImport(
-          institutionId,
-          supplierCode,
-          {
-            name: globalMatch?.name ?? supplierCode,
-            country: globalMatch?.country ?? "Unknown",
-            websiteUrl: globalMatch?.websiteUrl ?? null,
-          },
-        );
+        const ensuredSupplier = await ensureSupplierExistsForGlobalImport(supplierCode, {
+          name: globalMatch?.name ?? supplierCode,
+          country: globalMatch?.country ?? "Unknown",
+          websiteUrl: globalMatch?.websiteUrl ?? null,
+        });
 
         ensuredSupplierCodes.add(supplierCode);
         if (ensuredSupplier.wasGloballyMissing) {

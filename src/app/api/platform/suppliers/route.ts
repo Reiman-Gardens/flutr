@@ -1,8 +1,7 @@
 import { NextRequest } from "next/server";
 
 import { logger } from "@/lib/logger";
-import { conflict, forbidden, internalError, notFound, ok, unauthorized } from "@/lib/api-response";
-import { TENANT_ERRORS } from "@/lib/tenant";
+import { conflict, forbidden, internalError, ok, unauthorized } from "@/lib/api-response";
 import { requireValidBody } from "@/lib/validation/request";
 import { requireValidQuery } from "@/lib/validation/query";
 import { createSupplierBodySchema, listSuppliersQuerySchema } from "@/lib/validation/suppliers";
@@ -17,7 +16,7 @@ export async function GET(request: NextRequest) {
     );
     if ("error" in queryResult) return queryResult.error;
 
-    const suppliers = await getPlatformSuppliers(queryResult.data.institutionId);
+    const suppliers = await getPlatformSuppliers();
 
     return ok({ suppliers });
   } catch (error) {
@@ -43,10 +42,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error) {
       if (error.message === "UNAUTHORIZED") return unauthorized();
       if (error.message === "FORBIDDEN") return forbidden();
-      if (error.message === TENANT_ERRORS.INSTITUTION_NOT_FOUND)
-        return notFound("Institution not found");
-      if (error.message === "CONFLICT")
-        return conflict("Supplier code already exists for this institution");
+      if (error.message === "CONFLICT") return conflict("Supplier code already exists");
     }
 
     logger.error("Unexpected POST /platform/suppliers error:", error);
