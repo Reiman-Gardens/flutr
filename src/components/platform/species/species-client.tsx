@@ -1,7 +1,7 @@
 "use client";
 
 import { Bug } from "lucide-react";
-import { startTransition, useDeferredValue, useMemo, useState } from "react";
+import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -27,7 +27,7 @@ import {
   type PlatformSpeciesSummary,
 } from "./species.utils";
 
-const PAGE_SIZE = 12;
+const BATCH_SIZE = 12;
 
 interface SpeciesClientProps {
   species: PlatformSpeciesSummary[];
@@ -37,26 +37,39 @@ export default function SpeciesClient({ species: initialSpecies }: SpeciesClient
   const [species, setSpecies] = useState(initialSpecies);
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
   const [formOpen, setFormOpen] = useState(false);
   const [editingSpeciesId, setEditingSpeciesId] = useState<number | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<PlatformSpeciesSummary | null>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const filteredSpecies = useMemo(
     () => filterSpecies(species, deferredSearch),
     [deferredSearch, species],
   );
 
-  const totalPages = Math.max(1, Math.ceil(filteredSpecies.length / PAGE_SIZE));
-  const safePage = Math.min(currentPage, totalPages);
-  const start = (safePage - 1) * PAGE_SIZE;
-  const paginatedSpecies = filteredSpecies.slice(start, start + PAGE_SIZE);
-  const showingEnd = Math.min(start + PAGE_SIZE, filteredSpecies.length);
+  const visibleSpecies = filteredSpecies.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredSpecies.length;
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisibleCount((n) => Math.min(n + BATCH_SIZE, filteredSpecies.length));
+        }
+      },
+      { threshold: 0.1 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [filteredSpecies.length]);
 
   function handleSearchChange(value: string) {
     setSearch(value);
     startTransition(() => {
-      setCurrentPage(1);
+      setVisibleCount(BATCH_SIZE);
     });
   }
 
@@ -87,7 +100,7 @@ export default function SpeciesClient({ species: initialSpecies }: SpeciesClient
       });
 
       if (mode === "create") {
-        setCurrentPage(1);
+        setVisibleCount(BATCH_SIZE);
       }
     });
   }
@@ -95,7 +108,6 @@ export default function SpeciesClient({ species: initialSpecies }: SpeciesClient
   function handleSpeciesDeleted(speciesId: number) {
     startTransition(() => {
       setSpecies((current) => current.filter((item) => item.id !== speciesId));
-      setCurrentPage((page) => Math.max(1, page - (paginatedSpecies.length === 1 ? 1 : 0)));
     });
     setDeleteTarget(null);
   }
@@ -140,42 +152,21 @@ export default function SpeciesClient({ species: initialSpecies }: SpeciesClient
       ) : (
         <>
           <SpeciesCards
-            species={paginatedSpecies}
+            species={visibleSpecies}
             onEdit={handleEditSpecies}
             onDelete={handleDeleteIntent}
           />
           <SpeciesTable
-            species={paginatedSpecies}
+            species={visibleSpecies}
             onEdit={handleEditSpecies}
             onDelete={handleDeleteIntent}
           />
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-muted-foreground text-sm">
-              Showing {start + 1}-{showingEnd} of {filteredSpecies.length} species
-            </p>
+          <p className="text-muted-foreground text-sm">
+            Showing {visibleSpecies.length} of {filteredSpecies.length} species
+          </p>
 
-            {filteredSpecies.length > PAGE_SIZE ? (
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                  disabled={safePage === 1}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
-                  disabled={safePage === totalPages}
-                >
-                  Next
-                </Button>
-              </div>
-            ) : null}
-          </div>
+          {hasMore && <div ref={sentinelRef} className="h-8" aria-hidden="true" />}
         </>
       )}
 

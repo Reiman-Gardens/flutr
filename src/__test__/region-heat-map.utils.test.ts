@@ -3,6 +3,7 @@ import {
   findUnmappedRegions,
   getHeatColor,
   getHeatRadius,
+  getRegionKeyForLabel,
   getRegionLabelForRange,
   speciesBelongsToRegion,
 } from "@/components/shared/stats/region-heat-map.utils";
@@ -40,6 +41,14 @@ describe("region heat map utilities", () => {
     expect(getHeatColor(1, 10)).toBe("#bad9ba");
     expect(getHeatColor(10, 10)).toBe("#4a7f63");
     expect(getHeatRadius(10, 10)).toBeGreaterThan(getHeatRadius(1, 10));
+  });
+
+  it("resolves the canonical region label as well as its aliases", () => {
+    expect(getRegionKeyForLabel("Central and South America")).toBe("central-south-america");
+    expect(getRegionKeyForLabel("South America")).toBe("central-south-america");
+    expect(getRegionKeyForLabel("Central America")).toBe("central-south-america");
+    expect(getRegionKeyForLabel("North America")).toBe("north-america");
+    expect(getRegionKeyForLabel("unknown")).toBeNull();
   });
 
   it("maps species ranges back to the plotted region label", () => {

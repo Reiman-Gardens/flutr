@@ -63,6 +63,11 @@ COUNTRY_NAME_TO_REGION_KEY.set("eq. guinea", "africa");
 COUNTRY_NAME_TO_REGION_KEY.set("solomon is.", "australia");
 COUNTRY_NAME_TO_REGION_KEY.set("falkland is.", "central-south-america");
 
+// Mexico is classified as "Northern America" subregion in world-countries but is treated
+// as Central/South America per butterfly species geographic conventions.
+COUNTRY_ID_TO_REGION_KEY.set("484", "central-south-america");
+COUNTRY_NAME_TO_REGION_KEY.set("mexico", "central-south-america");
+
 export function getRegionKeyForCountry(
   countryId: string | number | undefined,
   countryName: string | undefined,

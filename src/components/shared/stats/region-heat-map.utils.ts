@@ -75,7 +75,9 @@ function normalizeRawLabel(label: string): string {
 
 const REGION_ALIAS_TO_KEY = new Map<string, RegionKey>(
   REGION_DEFINITIONS.flatMap((region) =>
-    region.aliases.map((alias) => [normalizeRawLabel(alias), region.key] as const),
+    [region.label, ...region.aliases].map(
+      (alias) => [normalizeRawLabel(alias), region.key] as const,
+    ),
   ),
 );
 

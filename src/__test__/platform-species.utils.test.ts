@@ -63,7 +63,7 @@ describe("platform species utils", () => {
       description: "Bright blue butterfly",
       host_plant: "Pea family plants",
       habitat: "Tropical forest",
-      fun_facts: "Reflective blue wings",
+      fun_facts: [{ title: "Wings", fact: "Reflective blue wings" }],
       img_wings_open: "https://example.com/open.jpg",
       img_wings_closed: "https://example.com/closed.jpg",
       extra_img_1: null,

@@ -1,3 +1,5 @@
+import type { SpeciesFunFact } from "@/types/butterfly";
+
 export interface PlatformSpeciesSummary {
   id: number;
   scientificName: string;
@@ -13,7 +15,7 @@ export interface PlatformSpeciesRecord extends PlatformSpeciesSummary {
   description: string | null;
   hostPlant: string | null;
   habitat: string | null;
-  funFacts: string | null;
+  funFacts: SpeciesFunFact[] | null;
   imgWingsOpen: string | null;
   imgWingsClosed: string | null;
   extraImg1: string | null;
@@ -32,7 +34,7 @@ type SpeciesApiRecord = {
   description: string | null;
   host_plant: string | null;
   habitat: string | null;
-  fun_facts: string | null;
+  fun_facts: SpeciesFunFact[] | null;
   img_wings_open: string | null;
   img_wings_closed: string | null;
   extra_img_1: string | null;

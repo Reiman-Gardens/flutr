@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useFieldArray, useForm } from "react-hook-form";
 import { z } from "zod";
 import { toast } from "sonner";
+import { Plus, Trash2 } from "lucide-react";
 
+import type { SpeciesFunFact } from "@/types/butterfly";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -47,7 +50,14 @@ const speciesFormSchema = z.object({
   description: z.string().max(5000).optional(),
   host_plant: z.string().max(500).optional(),
   habitat: z.string().max(500).optional(),
-  fun_facts: z.string().max(5000).optional(),
+  fun_facts: z
+    .array(
+      z.object({
+        title: z.string().min(1, "Title is required").max(120),
+        fact: z.string().min(1, "Fact is required").max(5000),
+      }),
+    )
+    .optional(),
   img_wings_open: z.string().url("Enter a valid URL").or(z.literal("")),
   img_wings_closed: z.string().url("Enter a valid URL").or(z.literal("")),
   extra_img_1: z.string().url("Enter a valid URL").or(z.literal("")),
@@ -80,7 +90,7 @@ const defaultValues: SpeciesFormInput = {
   description: "",
   host_plant: "",
   habitat: "",
-  fun_facts: "",
+  fun_facts: [],
   img_wings_open: "",
   img_wings_closed: "",
   extra_img_1: "",
@@ -100,6 +110,15 @@ export default function SpeciesFormDialog({
     resolver: zodResolver(speciesFormSchema),
     mode: "onBlur",
     defaultValues,
+  });
+
+  const {
+    fields: funFactFields,
+    append: appendFunFact,
+    remove: removeFunFact,
+  } = useFieldArray({
+    control: form.control,
+    name: "fun_facts",
   });
 
   useEffect(() => {
@@ -142,7 +161,7 @@ export default function SpeciesFormDialog({
           description: string | null;
           host_plant: string | null;
           habitat: string | null;
-          fun_facts: string | null;
+          fun_facts: SpeciesFunFact[] | null;
           img_wings_open: string | null;
           img_wings_closed: string | null;
           extra_img_1: string | null;
@@ -162,7 +181,7 @@ export default function SpeciesFormDialog({
         description: data.species.description ?? "",
         host_plant: data.species.host_plant ?? "",
         habitat: data.species.habitat ?? "",
-        fun_facts: data.species.fun_facts ?? "",
+        fun_facts: data.species.fun_facts ?? [],
         img_wings_open: data.species.img_wings_open ?? "",
         img_wings_closed: data.species.img_wings_closed ?? "",
         extra_img_1: data.species.extra_img_1 ?? "",
@@ -187,7 +206,7 @@ export default function SpeciesFormDialog({
       ...(values.description?.trim() ? { description: values.description } : {}),
       ...(values.host_plant?.trim() ? { host_plant: values.host_plant } : {}),
       ...(values.habitat?.trim() ? { habitat: values.habitat } : {}),
-      ...(values.fun_facts?.trim() ? { fun_facts: values.fun_facts } : {}),
+      ...(values.fun_facts && values.fun_facts.length > 0 ? { fun_facts: values.fun_facts } : {}),
       ...(values.img_wings_open ? { img_wings_open: values.img_wings_open } : {}),
       ...(values.img_wings_closed ? { img_wings_closed: values.img_wings_closed } : {}),
       ...(values.extra_img_1 ? { extra_img_1: values.extra_img_1 } : {}),
@@ -232,7 +251,7 @@ export default function SpeciesFormDialog({
         description: string | null;
         host_plant: string | null;
         habitat: string | null;
-        fun_facts: string | null;
+        fun_facts: SpeciesFunFact[] | null;
         img_wings_open: string | null;
         img_wings_closed: string | null;
         extra_img_1: string | null;
@@ -338,7 +357,7 @@ export default function SpeciesFormDialog({
                           name={field.name}
                           ref={field.ref}
                           onBlur={field.onBlur}
-                          value={typeof field.value === "number" ? field.value : ""}
+                          value={(field.value as string | number | undefined) ?? ""}
                           onChange={(event) => field.onChange(event.target.value)}
                         />
                       </FormControl>
@@ -413,23 +432,73 @@ export default function SpeciesFormDialog({
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="fun_facts"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fun facts</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Unique details for educators and guests..."
-                        rows={4}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm leading-none font-medium">Fun facts</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => appendFunFact({ title: "", fact: "" })}
+                  >
+                    <Plus className="mr-1 size-4" aria-hidden="true" />
+                    Add fun fact
+                  </Button>
+                </div>
+
+                {funFactFields.length === 0 && (
+                  <p className="text-muted-foreground text-sm">No fun facts added yet.</p>
                 )}
-              />
+
+                {funFactFields.map((funFactField, index) => (
+                  <Card key={funFactField.id} className="p-4">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-start gap-2">
+                        <FormField
+                          control={form.control}
+                          name={`fun_facts.${index}.title`}
+                          render={({ field }) => (
+                            <FormItem className="flex-1">
+                              <FormLabel className="text-xs">Title</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g. Wing span" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive mt-6 shrink-0"
+                          onClick={() => removeFunFact(index)}
+                          aria-label={`Remove fun fact ${index + 1}`}
+                        >
+                          <Trash2 className="size-4" aria-hidden="true" />
+                        </Button>
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name={`fun_facts.${index}.fact`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Fact</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Interesting detail for educators and guests..."
+                                rows={3}
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </Card>
+                ))}
+              </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <FormField

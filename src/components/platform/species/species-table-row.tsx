@@ -17,9 +17,11 @@ export default function SpeciesTableRow({ species, onEdit, onDelete }: SpeciesTa
     <TableRow>
       <TableCell className="max-w-[16rem]">
         <div className="flex flex-col">
-          <span className="font-medium break-words whitespace-normal">{species.commonName}</span>
-          <span className="text-muted-foreground text-xs break-words whitespace-normal italic">
+          <span className="font-medium break-words whitespace-normal">
             {species.scientificName}
+          </span>
+          <span className="text-muted-foreground text-xs break-words whitespace-normal italic">
+            {species.commonName}
           </span>
         </div>
       </TableCell>
