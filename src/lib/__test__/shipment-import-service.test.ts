@@ -115,7 +115,6 @@ describe("shipment import service", () => {
         id: 10,
         code: "EBN",
         wasGloballyMissing: false,
-        wasCompatibilityCreated: true,
       });
       mockEnsureSpeciesLinksForInstitution.mockResolvedValueOnce(undefined);
       mockShipmentHeaderExists.mockResolvedValueOnce(false);
@@ -148,7 +147,6 @@ describe("shipment import service", () => {
         id: 25,
         code: "NEW",
         wasGloballyMissing: true,
-        wasCompatibilityCreated: true,
       });
       mockEnsureSpeciesLinksForInstitution.mockResolvedValueOnce(undefined);
       mockShipmentHeaderExists.mockResolvedValueOnce(false);
@@ -184,7 +182,6 @@ describe("shipment import service", () => {
         id: 26,
         code: "lps historical",
         wasGloballyMissing: true,
-        wasCompatibilityCreated: false,
       });
       mockEnsureSpeciesLinksForInstitution.mockResolvedValueOnce(undefined);
       mockShipmentHeaderExists.mockResolvedValueOnce(false);

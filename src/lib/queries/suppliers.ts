@@ -1,4 +1,4 @@
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, asc, eq, ne } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { suppliers } from "@/lib/schema";
@@ -22,10 +22,10 @@ const supplierSelect = {
 /**
  * GLOBAL QUERY
  *
- * List all global supplier rows by code.
+ * List all global supplier rows ordered alphabetically by code.
  */
 export async function listSuppliersGlobal() {
-  return db.select(supplierSelect).from(suppliers).orderBy(desc(suppliers.created_at));
+  return db.select(supplierSelect).from(suppliers).orderBy(asc(suppliers.code));
 }
 
 /**
@@ -61,18 +61,23 @@ export async function supplierCodeExists(code: string, excludeId?: number) {
  * Create a new global supplier.
  */
 export async function createSupplier(input: CreateSupplierBody) {
-  const [row] = await db
-    .insert(suppliers)
-    .values({
-      name: input.name,
-      code: input.code,
-      country: input.country,
-      website_url: input.website_url ?? null,
-      is_active: input.is_active ?? true,
-    })
-    .returning(supplierSelect);
+  try {
+    const [row] = await db
+      .insert(suppliers)
+      .values({
+        name: input.name,
+        code: input.code,
+        country: input.country,
+        website_url: input.website_url ?? null,
+        is_active: input.is_active ?? true,
+      })
+      .returning(supplierSelect);
 
-  return row;
+    return row;
+  } catch (error: unknown) {
+    if (isUniqueViolation(error)) throw new Error("CONFLICT");
+    throw error;
+  }
 }
 
 /**
@@ -98,9 +103,8 @@ export async function updateSupplier(supplierId: number, input: UpdateSupplierBo
 
     return row ?? null;
   } catch (error: unknown) {
-    if (isForeignKeyViolation(error)) {
-      throw new Error(SUPPLIER_ERRORS.REFERENCED_BY_SHIPMENTS);
-    }
+    if (isUniqueViolation(error)) throw new Error("CONFLICT");
+    if (isForeignKeyViolation(error)) throw new Error(SUPPLIER_ERRORS.REFERENCED_BY_SHIPMENTS);
     throw error;
   }
 }
@@ -140,6 +144,18 @@ function isForeignKeyViolation(error: unknown): boolean {
 }
 
 /**
+ * Detect PostgreSQL unique constraint violation (error code 23505).
+ */
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    error !== null &&
+    typeof error === "object" &&
+    "code" in error &&
+    (error as { code: unknown }).code === "23505"
+  );
+}
+
+/**
  * GLOBAL QUERY
  *
  * Ensure a global supplier code exists for import commit, creating missing
@@ -168,7 +184,6 @@ export async function ensureSupplierExistsForGlobalImport(
     return {
       ...globalMatch,
       wasGloballyMissing: false,
-      wasCompatibilityCreated: false,
     };
   }
 
@@ -181,14 +196,22 @@ export async function ensureSupplierExistsForGlobalImport(
       website_url: fallbackData?.websiteUrl ?? null,
       is_active: false,
     })
+    .onConflictDoNothing()
     .returning({
       id: suppliers.id,
       code: suppliers.code,
     });
 
-  return {
-    ...created,
-    wasGloballyMissing: true,
-    wasCompatibilityCreated: false,
-  };
+  if (created) {
+    return { ...created, wasGloballyMissing: true };
+  }
+
+  // Race: another process inserted first — re-select the winning row.
+  const [existing] = await db
+    .select({ id: suppliers.id, code: suppliers.code })
+    .from(suppliers)
+    .where(eq(suppliers.code, supplierCode))
+    .limit(1);
+
+  return { ...existing!, wasGloballyMissing: true };
 }
