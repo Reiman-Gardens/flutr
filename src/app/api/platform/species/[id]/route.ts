@@ -89,6 +89,9 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
       if (error.message === "UNAUTHORIZED") return unauthorized();
       if (error.message === "FORBIDDEN") return forbidden();
       if (error.message === "NOT_FOUND") return notFound("Species not found");
+      if (error.message === "CONFLICT") {
+        return conflict("Species cannot be deleted because it is already in use");
+      }
     }
 
     logger.error("Unexpected DELETE /platform/species/[id] error:", error);

@@ -370,6 +370,14 @@ describe("Platform Species API", () => {
       expect((await response.json()).error.code).toBe("NOT_FOUND");
     });
 
+    it("returns 409 when species is already referenced", async () => {
+      mockDeletePlatformSpecies.mockRejectedValueOnce(new Error("CONFLICT"));
+
+      const response = (await deleteSpeciesById(makeDeleteRequest("10"), routeContext("10")))!;
+      expect(response.status).toBe(409);
+      expect((await response.json()).error.code).toBe("CONFLICT");
+    });
+
     it("returns 400 for invalid id parameter", async () => {
       const response = (await deleteSpeciesById(makeDeleteRequest("abc"), routeContext("abc")))!;
       expect(response.status).toBe(400);

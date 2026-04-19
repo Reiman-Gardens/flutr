@@ -84,7 +84,11 @@ export default async function StatsPage({ params }: StatsPageProps) {
         </div>
 
         <div className="order-4 lg:order-0 lg:col-span-2">
-          <RegionDistributionPanel data={stats.regionDistribution} />
+          <RegionDistributionPanel
+            data={stats.regionDistribution}
+            speciesData={stats.speciesBreakdown}
+            slug={slug}
+          />
         </div>
       </div>
     </div>

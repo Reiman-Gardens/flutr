@@ -59,6 +59,7 @@ PostgreSQL 17 managed via Drizzle ORM:
 - **Feature components**: Organized by domain (`admin/`, `auth/`, `public/`)
 - **Forms**: React Hook Form with Zod validation
 - **Charts**: Recharts for statistics dashboards
+- **Maps**: react-simple-maps with world-atlas/world-countries powers the public geographic origin heat map
 - **Theming**: next-themes for light/dark mode
 
 ## Data Model

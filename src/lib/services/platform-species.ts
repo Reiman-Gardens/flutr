@@ -26,6 +26,23 @@ function isUniqueViolation(error: unknown): boolean {
   return code === "23505" || causeCode === "23505";
 }
 
+function isForeignKeyViolation(error: unknown): boolean {
+  if (error === null || typeof error !== "object") {
+    return false;
+  }
+
+  const code = "code" in error ? (error as { code?: unknown }).code : undefined;
+  const causeCode =
+    "cause" in error &&
+    error.cause !== null &&
+    typeof error.cause === "object" &&
+    "code" in error.cause
+      ? (error.cause as { code?: unknown }).code
+      : undefined;
+
+  return code === "23503" || causeCode === "23503";
+}
+
 export async function getPlatformSpecies() {
   const user = requireUser(await auth());
   if (!canManageGlobalButterflies(user)) throw new Error("FORBIDDEN");
@@ -71,5 +88,10 @@ export async function deletePlatformSpecies(id: number) {
   if (!canManageGlobalButterflies(user)) throw new Error("FORBIDDEN");
   const existing = await getSpeciesById(id);
   if (!existing) throw new Error("NOT_FOUND");
-  await deleteSpecies(id);
+  try {
+    await deleteSpecies(id);
+  } catch (error) {
+    if (isForeignKeyViolation(error)) throw new Error("CONFLICT");
+    throw error;
+  }
 }
