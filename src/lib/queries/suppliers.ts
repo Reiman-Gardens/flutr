@@ -153,7 +153,7 @@ export async function ensureSupplierExistsForGlobalImport(
     websiteUrl?: string | null;
   },
 ) {
-  const normalizedCode = code.toUpperCase();
+  const supplierCode = code.trim();
 
   const [globalMatch] = await db
     .select({
@@ -161,7 +161,7 @@ export async function ensureSupplierExistsForGlobalImport(
       code: suppliers.code,
     })
     .from(suppliers)
-    .where(eq(suppliers.code, normalizedCode))
+    .where(eq(suppliers.code, supplierCode))
     .limit(1);
 
   if (globalMatch) {
@@ -175,8 +175,8 @@ export async function ensureSupplierExistsForGlobalImport(
   const [created] = await db
     .insert(suppliers)
     .values({
-      code: normalizedCode,
-      name: fallbackData?.name ?? normalizedCode,
+      code: supplierCode,
+      name: fallbackData?.name ?? supplierCode,
       country: fallbackData?.country ?? "Unknown",
       website_url: fallbackData?.websiteUrl ?? null,
       is_active: false,

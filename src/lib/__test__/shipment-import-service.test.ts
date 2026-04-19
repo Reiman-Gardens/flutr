@@ -86,6 +86,24 @@ describe("shipment import service", () => {
       expect(preview.summary.unknown_suppliers).toBe(0);
       expect(preview.unknown_suppliers).toEqual([]);
     });
+
+    it("preserves imported supplier casing and checks exact global code existence", async () => {
+      mockListSpeciesGlobal.mockResolvedValueOnce([{ id: 1, scientificName: "Caligo atreus" }]);
+      mockListSuppliersGlobal.mockResolvedValueOnce([{ id: 10, code: "EBN" }]);
+
+      const preview = await buildShipmentImportPreviewForInstitution({
+        institutionId: 1,
+        raw_text: [
+          "Species,No. rec,Supplier,Ship date,Arrival date",
+          "Caligo atreus,10, ebn legacy ,12/9/25,12/11/25",
+        ].join("\n"),
+        source: { kind: "paste" },
+      });
+
+      expect(preview.shipments[0]?.supplier_code).toBe("ebn legacy");
+      expect(preview.summary.unknown_suppliers).toBe(1);
+      expect(preview.unknown_suppliers).toEqual(["ebn legacy"]);
+    });
   });
 
   describe("commitShipmentImportForInstitution", () => {
@@ -155,6 +173,42 @@ describe("shipment import service", () => {
       expect(summary.failed).toBe(0);
       expect(summary.warnings).toEqual([
         "Supplier NEW was auto-created as inactive for global review.",
+      ]);
+    });
+
+    it("creates and stores missing import suppliers with the exact trimmed imported value", async () => {
+      const shipments = [shipmentDraft(" lps historical ")];
+      mockListSpeciesGlobal.mockResolvedValueOnce([{ id: 1, scientificName: "Caligo atreus" }]);
+      mockListSuppliersGlobal.mockResolvedValueOnce([]);
+      mockEnsureSupplierExistsForGlobalImport.mockResolvedValueOnce({
+        id: 26,
+        code: "lps historical",
+        wasGloballyMissing: true,
+        wasCompatibilityCreated: false,
+      });
+      mockEnsureSpeciesLinksForInstitution.mockResolvedValueOnce(undefined);
+      mockShipmentHeaderExists.mockResolvedValueOnce(false);
+      mockCreateShipment.mockResolvedValueOnce(123);
+
+      const summary = await commitShipmentImportForInstitution({
+        institutionId: 1,
+        preview_hash: buildPreviewHash(1, shipments),
+        shipments,
+      });
+
+      expect(mockEnsureSupplierExistsForGlobalImport).toHaveBeenCalledWith("lps historical", {
+        name: "lps historical",
+        country: "Unknown",
+        websiteUrl: null,
+      });
+      expect(mockCreateShipment).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ supplier_code: "lps historical" }),
+      );
+      expect(summary.created).toBe(1);
+      expect(summary.failed).toBe(0);
+      expect(summary.warnings).toEqual([
+        "Supplier lps historical was auto-created as inactive for global review.",
       ]);
     });
   });
