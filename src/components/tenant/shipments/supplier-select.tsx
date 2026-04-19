@@ -13,14 +13,13 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { type SupplierOption } from "@/components/tenant/shipments/supplier-options";
 import { cn } from "@/lib/utils";
 
-export type SupplierOption = {
-  id: number;
-  code: string;
-  name: string;
-  isActive: boolean;
-};
+export {
+  mapSupplierRowsToOptions,
+  type SupplierOption,
+} from "@/components/tenant/shipments/supplier-options";
 
 interface SupplierSelectProps {
   /** Supplier list, typically loaded from /api/tenant/suppliers. */

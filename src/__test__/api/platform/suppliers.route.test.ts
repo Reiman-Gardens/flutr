@@ -73,13 +73,11 @@ function validCreatePayload() {
     name: "Costa Rica Butterflies",
     code: "CRB",
     country: "CR",
-    institutionId: 1,
   };
 }
 
 const sampleSupplier = {
   id: 1,
-  institutionId: 1,
   name: "Costa Rica Butterflies",
   code: "CRB",
   country: "CR",
@@ -123,19 +121,12 @@ describe("Platform Suppliers API", () => {
       const body = await response.json();
       expect(body.suppliers).toHaveLength(1);
       expect(body.suppliers[0].code).toBe("CRB");
-      expect(mockGetPlatformSuppliers).toHaveBeenCalledWith(undefined);
+      expect(mockGetPlatformSuppliers).toHaveBeenCalledTimes(1);
+      expect(mockGetPlatformSuppliers).toHaveBeenCalledWith();
     });
 
-    it("filters by institutionId when provided", async () => {
-      mockGetPlatformSuppliers.mockResolvedValueOnce([]);
-
+    it("returns 400 when institutionId query is provided", async () => {
       const response = (await getSuppliers(makeGetRequest({ institutionId: "2" })))!;
-      expect(response.status).toBe(200);
-      expect(mockGetPlatformSuppliers).toHaveBeenCalledWith(2);
-    });
-
-    it("returns 400 for invalid institutionId query", async () => {
-      const response = (await getSuppliers(makeGetRequest({ institutionId: "abc" })))!;
       expect(response.status).toBe(400);
       expect((await response.json()).error.code).toBe("INVALID_REQUEST");
     });
@@ -181,27 +172,18 @@ describe("Platform Suppliers API", () => {
       expect((await response.json()).error.code).toBe("CONFLICT");
     });
 
-    it("returns 404 when institutionId does not exist", async () => {
-      mockCreatePlatformSupplier.mockRejectedValueOnce(new Error("Institution not found"));
-
-      const response = (await postSupplier(makePostRequest(validCreatePayload())))!;
-      expect(response.status).toBe(404);
-      expect((await response.json()).error.code).toBe("NOT_FOUND");
-    });
-
     it("returns 400 for missing required fields", async () => {
       const response = (await postSupplier(makePostRequest({ name: "Only name" })))!;
       expect(response.status).toBe(400);
       expect((await response.json()).error.code).toBe("INVALID_REQUEST");
     });
 
-    it("returns 403 when SUPERUSER omits institutionId", async () => {
-      mockCreatePlatformSupplier.mockRejectedValueOnce(new Error("FORBIDDEN"));
-
-      const payload = { name: "Test", code: "TST", country: "US" };
-      const response = (await postSupplier(makePostRequest(payload)))!;
-      expect(response.status).toBe(403);
-      expect((await response.json()).error.code).toBe("FORBIDDEN");
+    it("returns 400 when institutionId is provided in create body", async () => {
+      const response = (await postSupplier(
+        makePostRequest({ ...validCreatePayload(), institutionId: 1 }),
+      ))!;
+      expect(response.status).toBe(400);
+      expect((await response.json()).error.code).toBe("INVALID_REQUEST");
     });
   });
 

@@ -1,4 +1,4 @@
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, asc, eq, ne } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { suppliers } from "@/lib/schema";
@@ -9,49 +9,23 @@ export const SUPPLIER_ERRORS = {
   REFERENCED_BY_SHIPMENTS: "Supplier is referenced by existing shipments",
 } as const;
 
-/**
- * TENANT QUERY
- *
- * List all suppliers for a tenant.
- */
-export async function listSuppliersForTenant(institutionId: number) {
-  return db
-    .select({
-      id: suppliers.id,
-      name: suppliers.name,
-      code: suppliers.code,
-      country: suppliers.country,
-      websiteUrl: suppliers.website_url,
-      isActive: suppliers.is_active,
-      createdAt: suppliers.created_at,
-    })
-    .from(suppliers)
-    .where(eq(suppliers.institution_id, institutionId))
-    .orderBy(suppliers.name);
-}
+const supplierSelect = {
+  id: suppliers.id,
+  name: suppliers.name,
+  code: suppliers.code,
+  country: suppliers.country,
+  websiteUrl: suppliers.website_url,
+  isActive: suppliers.is_active,
+  createdAt: suppliers.created_at,
+};
 
 /**
- * PLATFORM QUERY
+ * GLOBAL QUERY
  *
- * List all suppliers, optionally filtered by institution.
+ * List all global supplier rows ordered alphabetically by code.
  */
-export async function listSuppliersForPlatform(institutionId?: number) {
-  const condition = institutionId ? eq(suppliers.institution_id, institutionId) : undefined;
-
-  return db
-    .select({
-      id: suppliers.id,
-      institutionId: suppliers.institution_id,
-      name: suppliers.name,
-      code: suppliers.code,
-      country: suppliers.country,
-      websiteUrl: suppliers.website_url,
-      isActive: suppliers.is_active,
-      createdAt: suppliers.created_at,
-    })
-    .from(suppliers)
-    .where(condition)
-    .orderBy(desc(suppliers.created_at));
+export async function listSuppliersGlobal() {
+  return db.select(supplierSelect).from(suppliers).orderBy(asc(suppliers.code));
 }
 
 /**
@@ -59,16 +33,7 @@ export async function listSuppliersForPlatform(institutionId?: number) {
  */
 export async function getSupplierById(supplierId: number) {
   const [row] = await db
-    .select({
-      id: suppliers.id,
-      institutionId: suppliers.institution_id,
-      name: suppliers.name,
-      code: suppliers.code,
-      country: suppliers.country,
-      websiteUrl: suppliers.website_url,
-      isActive: suppliers.is_active,
-      createdAt: suppliers.created_at,
-    })
+    .select(supplierSelect)
     .from(suppliers)
     .where(eq(suppliers.id, supplierId))
     .limit(1);
@@ -77,23 +42,15 @@ export async function getSupplierById(supplierId: number) {
 }
 
 /**
- * Check if a supplier code already exists for a given institution.
+ * Check if a supplier code already exists globally.
  * Optionally exclude a supplier ID (for update uniqueness checks).
  */
-export async function supplierCodeExistsForTenant(
-  institutionId: number,
-  code: string,
-  excludeId?: number,
-) {
-  const conditions = excludeId
-    ? and(
-        eq(suppliers.institution_id, institutionId),
-        eq(suppliers.code, code),
-        ne(suppliers.id, excludeId),
-      )
-    : and(eq(suppliers.institution_id, institutionId), eq(suppliers.code, code));
+export async function supplierCodeExists(code: string, excludeId?: number) {
+  const condition = excludeId
+    ? and(eq(suppliers.code, code), ne(suppliers.id, excludeId))
+    : eq(suppliers.code, code);
 
-  const [row] = await db.select({ id: suppliers.id }).from(suppliers).where(conditions).limit(1);
+  const [row] = await db.select({ id: suppliers.id }).from(suppliers).where(condition).limit(1);
 
   return !!row;
 }
@@ -101,31 +58,26 @@ export async function supplierCodeExistsForTenant(
 /**
  * PLATFORM QUERY
  *
- * Create a new supplier for a given institution.
+ * Create a new global supplier.
  */
-export async function createSupplier(institutionId: number, input: CreateSupplierBody) {
-  const [row] = await db
-    .insert(suppliers)
-    .values({
-      institution_id: institutionId,
-      name: input.name,
-      code: input.code,
-      country: input.country,
-      website_url: input.website_url ?? null,
-      is_active: input.is_active ?? true,
-    })
-    .returning({
-      id: suppliers.id,
-      institutionId: suppliers.institution_id,
-      name: suppliers.name,
-      code: suppliers.code,
-      country: suppliers.country,
-      websiteUrl: suppliers.website_url,
-      isActive: suppliers.is_active,
-      createdAt: suppliers.created_at,
-    });
+export async function createSupplier(input: CreateSupplierBody) {
+  try {
+    const [row] = await db
+      .insert(suppliers)
+      .values({
+        name: input.name,
+        code: input.code,
+        country: input.country,
+        website_url: input.website_url ?? null,
+        is_active: input.is_active ?? true,
+      })
+      .returning(supplierSelect);
 
-  return row;
+    return row;
+  } catch (error: unknown) {
+    if (isUniqueViolation(error)) throw new Error("CONFLICT");
+    throw error;
+  }
 }
 
 /**
@@ -147,22 +99,12 @@ export async function updateSupplier(supplierId: number, input: UpdateSupplierBo
       .update(suppliers)
       .set(updateData)
       .where(eq(suppliers.id, supplierId))
-      .returning({
-        id: suppliers.id,
-        institutionId: suppliers.institution_id,
-        name: suppliers.name,
-        code: suppliers.code,
-        country: suppliers.country,
-        websiteUrl: suppliers.website_url,
-        isActive: suppliers.is_active,
-        createdAt: suppliers.created_at,
-      });
+      .returning(supplierSelect);
 
     return row ?? null;
   } catch (error: unknown) {
-    if (isForeignKeyViolation(error)) {
-      throw new Error(SUPPLIER_ERRORS.REFERENCED_BY_SHIPMENTS);
-    }
+    if (isUniqueViolation(error)) throw new Error("CONFLICT");
+    if (isForeignKeyViolation(error)) throw new Error(SUPPLIER_ERRORS.REFERENCED_BY_SHIPMENTS);
     throw error;
   }
 }
@@ -202,14 +144,24 @@ function isForeignKeyViolation(error: unknown): boolean {
 }
 
 /**
- * PLATFORM QUERY
- *
- * Ensure a supplier with the given code exists for the tenant, creating it if necessary.
- * Used by the importer to link shipments to suppliers without requiring pre-creation.
- * Returns the existing or newly created supplier's ID and code.
+ * Detect PostgreSQL unique constraint violation (error code 23505).
  */
-export async function ensureSupplierExistsForTenant(
-  tenantId: number,
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    error !== null &&
+    typeof error === "object" &&
+    "code" in error &&
+    (error as { code: unknown }).code === "23505"
+  );
+}
+
+/**
+ * GLOBAL QUERY
+ *
+ * Ensure a global supplier code exists for import commit, creating missing
+ * codes as inactive for later platform review.
+ */
+export async function ensureSupplierExistsForGlobalImport(
   code: string,
   fallbackData?: {
     name?: string;
@@ -217,35 +169,49 @@ export async function ensureSupplierExistsForTenant(
     websiteUrl?: string | null;
   },
 ) {
-  const normalizedCode = code.toUpperCase();
+  const supplierCode = code.trim();
 
-  const [existing] = await db
+  const [globalMatch] = await db
     .select({
       id: suppliers.id,
       code: suppliers.code,
     })
     .from(suppliers)
-    .where(and(eq(suppliers.institution_id, tenantId), eq(suppliers.code, normalizedCode)))
+    .where(eq(suppliers.code, supplierCode))
     .limit(1);
 
-  if (existing) {
-    return existing;
+  if (globalMatch) {
+    return {
+      ...globalMatch,
+      wasGloballyMissing: false,
+    };
   }
 
   const [created] = await db
     .insert(suppliers)
     .values({
-      institution_id: tenantId,
-      code: normalizedCode,
-      name: fallbackData?.name ?? normalizedCode,
+      code: supplierCode,
+      name: fallbackData?.name ?? supplierCode,
       country: fallbackData?.country ?? "Unknown",
       website_url: fallbackData?.websiteUrl ?? null,
-      is_active: false, // important for importer
+      is_active: false,
     })
+    .onConflictDoNothing()
     .returning({
       id: suppliers.id,
       code: suppliers.code,
     });
 
-  return created;
+  if (created) {
+    return { ...created, wasGloballyMissing: true };
+  }
+
+  // Race: another process inserted first — re-select the winning row.
+  const [existing] = await db
+    .select({ id: suppliers.id, code: suppliers.code })
+    .from(suppliers)
+    .where(eq(suppliers.code, supplierCode))
+    .limit(1);
+
+  return { ...existing!, wasGloballyMissing: true };
 }

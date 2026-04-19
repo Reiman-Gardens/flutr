@@ -53,7 +53,7 @@ describe("Tenant Suppliers API", () => {
       expect((await response.json()).error.code).toBe("NOT_FOUND");
     });
 
-    it("returns 200 with suppliers list and calls service with slug", async () => {
+    it("returns 200 with global suppliers list and calls service with slug", async () => {
       mockGetTenantSuppliers.mockResolvedValueOnce([
         { id: 1, name: "Supplier One", code: "SUP-1", country: "CR", isActive: true },
       ]);

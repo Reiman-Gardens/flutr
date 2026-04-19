@@ -73,7 +73,8 @@ export function normalizeScientificName(value: string) {
 }
 
 export function normalizeSupplierCode(value: string) {
-  return value.trim().toUpperCase();
+  // Preserve historical supplier values exactly except for accidental outer whitespace.
+  return value.trim();
 }
 
 export function normalizeHeader(value: string) {

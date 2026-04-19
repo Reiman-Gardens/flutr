@@ -22,11 +22,7 @@ export const supplierIdParamsSchema = z
  * ---------------------------
  */
 
-export const listSuppliersQuerySchema = z
-  .object({
-    institutionId: z.coerce.number().int().positive().optional(),
-  })
-  .strict();
+export const listSuppliersQuerySchema = z.object({}).strict();
 
 /**
  * ---------------------------
@@ -47,7 +43,6 @@ export const createSupplierBodySchema = z
       .transform((v) => sanitizeText(v))
       .optional(),
     is_active: z.boolean().optional(),
-    institutionId: z.coerce.number().int().positive().optional(),
   })
   .strict();
 

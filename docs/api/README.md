@@ -111,7 +111,7 @@ All tenant routes use `x-tenant-slug` for tenant context:
 - `POST /api/tenant/releases/[releaseId]/in-flight` — add one in-flight row to an existing release event
 - `PATCH/DELETE /api/tenant/in-flight/[id]` — update or remove an in-flight row
 - `GET/PATCH/DELETE /api/tenant/releases/[releaseId]` — release detail, quantity updates, and delete
-- `GET /api/tenant/suppliers` — list suppliers for tenant
+- `GET /api/tenant/suppliers` — list global suppliers available to tenant shipment forms
 - `GET/POST /api/tenant/users` — list and create users for a tenant
 - `GET/PATCH/DELETE /api/tenant/users/[id]` — user detail, update, delete
 - `GET/PATCH /api/tenant/institution` — tenant institution profile
@@ -125,8 +125,8 @@ All tenant routes use `x-tenant-slug` for tenant context:
 - `GET/PATCH/DELETE /api/platform/institutions/[id]` — institution detail, update, delete
 - `GET/POST /api/platform/species` — list and create global species
 - `GET/PATCH/DELETE /api/platform/species/[id]` — species detail, update, delete
-- `GET/POST /api/platform/suppliers` — list & create suppliers (cross-tenant)
-- `GET/PATCH/DELETE /api/platform/suppliers/[id]` — supplier detail, update, delete
+- `GET/POST /api/platform/suppliers` — list & create global suppliers
+- `GET/PATCH/DELETE /api/platform/suppliers/[id]` — global supplier detail, update, delete
 
 ### Platform species create/update contract
 
@@ -426,6 +426,10 @@ All tenant routes use the `x-tenant-slug` header for tenant context. Missing hea
 | `/tenant/in-flight/[id]`                 | PATCH, DELETE      | `x-tenant-slug` header |
 
 ### Tenant suppliers contract
+
+Tenant supplier reads return the global supplier list. The `x-tenant-slug` header is still required
+for authentication, authorization, and tenant-route consistency, but suppliers are not owned by that
+institution.
 
 Response shape:
 

@@ -27,14 +27,15 @@ import type { SpeciesFunFact } from "@/types/butterfly";
  *
  * Tenant model:
  * - Global (shared): butterfly_species
- * - Tenant-scoped (owned by institution): everything else
+ * - Global supplier codes: suppliers
+ * - Tenant-scoped (owned by institution): operational records such as shipments and releases
  *
  * Key safety guarantees:
  * - Global species cannot be deleted if referenced in tenant data (RESTRICT)
  * - Deleting an institution cascades all tenant-owned rows (CASCADE)
  * - Suppliers are soft-deletable via is_active (do not hard delete if referenced)
  * - Shipments store supplier abbreviation (supplier_code) as the USDA/Excel value
- * - DB-level tenant enforcement: a shipment’s supplier_code must exist for the SAME institution
+ * - DB-level supplier enforcement: a shipment’s supplier_code must exist globally
  * - DB-level tenant enforcement: a release_event’s shipment must belong to the SAME institution
  */
 
@@ -224,9 +225,9 @@ export const butterfly_species_institution = pgTable(
 );
 
 /**
- * Suppliers (tenant-scoped)
+ * Suppliers (global)
  *
- * Managed supplier list for the institution.
+ * Shared supplier code list used across institutions.
  * "Delete" in UI should generally mean is_active=false (soft delete).
  *
  * For historical imports:
@@ -236,10 +237,6 @@ export const suppliers = pgTable(
   "suppliers",
   {
     id: serial("id").primaryKey(),
-
-    institution_id: integer("institution_id")
-      .notNull()
-      .references(() => institutions.id, { onDelete: "cascade" }),
 
     name: text("name").notNull(),
     code: text("code").notNull(), // Supplier abbreviation/code used in USDA/Excel imports (e.g., "LPS", "EBN")
@@ -253,17 +250,7 @@ export const suppliers = pgTable(
     updated_at: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => ({
-    // Two institutions can share the same code without collision; uniqueness is tenant-scoped
-    unique_supplier_per_institution: unique("unique_supplier_per_institution").on(
-      table.institution_id,
-      table.code,
-    ),
-
-    // Needed for composite foreign keys that reference (institution_id, id)
-    unique_supplier_id_per_institution: unique("unique_supplier_id_per_institution").on(
-      table.institution_id,
-      table.id,
-    ),
+    unique_supplier_code: unique("unique_supplier_code").on(table.code),
   }),
 );
 
@@ -271,7 +258,7 @@ export const suppliers = pgTable(
  * Shipments (Header)
  *
  * Shipments store supplier_code in the same USDA/Excel format.
- * DB-level tenant enforcement ensures supplier_code exists for the SAME institution.
+ * DB-level supplier enforcement ensures supplier_code exists globally.
  */
 export const shipments = pgTable(
   "shipments",
@@ -291,10 +278,10 @@ export const shipments = pgTable(
     updated_at: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => ({
-    // Tenant enforcement: supplier_code must exist for the same institution.
+    // Supplier enforcement: supplier_code must exist globally.
     fk_shipments_supplier_code: foreignKey({
-      columns: [table.institution_id, table.supplier_code],
-      foreignColumns: [suppliers.institution_id, suppliers.code],
+      columns: [table.supplier_code],
+      foreignColumns: [suppliers.code],
       name: "fk_shipments_supplier_code",
     }).onDelete("restrict"),
 

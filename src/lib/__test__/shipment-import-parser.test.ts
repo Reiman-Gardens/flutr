@@ -69,6 +69,18 @@ describe("shipment-import-parser", () => {
       ).toBe(true);
     });
 
+    it("preserves imported supplier value case while trimming outer whitespace", () => {
+      const input = [
+        "Species,No. rec,Supplier,Ship date,Arrival date",
+        "Caligo atreus,10, lps historical ,12/11/25,12/11/25",
+      ].join("\n");
+
+      const result = parseShipmentImportRows(input);
+
+      expect(result.rowErrors).toHaveLength(0);
+      expect(result.rows[0]?.supplierCode).toBe("lps historical");
+    });
+
     it("treats blank No. rec as 0 for legacy compatibility", () => {
       const input = [
         "Species,No. rec,Supplier,Ship date,Arrival date,Emerg. in tr,Damag in tr,No. disea,No. parasit,No emerg,Poor emerg",
