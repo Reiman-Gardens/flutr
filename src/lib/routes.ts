@@ -35,6 +35,9 @@ export const ROUTES = {
       `/${slug}/shipments/${id}/release/new`,
     shipmentReleaseEdit: (slug: string, id: string | number, releaseId: string | number) =>
       `/${slug}/shipments/${id}/release/${releaseId}/edit`,
+    news: (slug: string) => `/${slug}/news`,
+    newsApi: "/api/tenant/news",
+    newsEntryApi: (id: number | string) => `/api/tenant/news/${id}`,
     shipmentsApi: "/api/tenant/shipments",
     shipmentSummaryApi: "/api/tenant/shipments/summary",
     shipmentImportPreviewApi: "/api/tenant/shipments/import/preview",

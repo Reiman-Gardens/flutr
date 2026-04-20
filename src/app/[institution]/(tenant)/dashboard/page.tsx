@@ -1,4 +1,4 @@
-import { Building2, Package } from "lucide-react";
+import { Building2, Newspaper, Package } from "lucide-react";
 
 import NavCard from "@/components/shared/nav-card";
 import { ROUTES } from "@/lib/routes";
@@ -32,6 +32,13 @@ export default async function DashboardPage({
           title="Shipments"
           description="Track shipments and record releases"
           icon={Package}
+        />
+
+        <NavCard
+          href={ROUTES.tenant.news(institution)}
+          title="News"
+          description="Manage news entries on the public home page"
+          icon={Newspaper}
         />
       </div>
     </div>
