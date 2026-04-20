@@ -220,5 +220,27 @@ describe("Tenant Institution API", () => {
         expect.objectContaining({ time_zone: "America/Chicago" }),
       );
     });
+
+    it("accepts donation_url and volunteer_url as strings", async () => {
+      mockUpdateTenantInstitutionService.mockResolvedValueOnce(sampleInstitution);
+
+      const response = (await PATCH(
+        makePatchRequest(
+          {
+            donation_url: "https://example.org/donate",
+            volunteer_url: "https://example.org/volunteer",
+          },
+          SLUG,
+        ),
+      ))!;
+      expect(response.status).toBe(200);
+      expect(mockUpdateTenantInstitutionService).toHaveBeenCalledWith(
+        SLUG,
+        expect.objectContaining({
+          donation_url: "https://example.org/donate",
+          volunteer_url: "https://example.org/volunteer",
+        }),
+      );
+    });
   });
 });

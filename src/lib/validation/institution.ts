@@ -43,6 +43,8 @@ const baseInstitutionFields = {
   phone_number: z.string().max(50).transform(sanitizeText).optional(),
   email_address: z.string().trim().email().transform(sanitizeText).optional(),
   website_url: z.string().trim().url().transform(sanitizeText).optional(),
+  volunteer_url: z.string().trim().url().transform(sanitizeText).optional(),
+  donation_url: z.string().trim().url().transform(sanitizeText).optional(),
   facility_image_url: z.string().trim().url().transform(sanitizeText).optional(),
   logo_url: z.string().trim().url().transform(sanitizeText).optional(),
   description: z.string().max(2000).transform(sanitizeText).optional(),

@@ -28,7 +28,7 @@ export function ExploreLinks({ basePath }: ExploreLinksProps) {
       description: "Browse our local residents",
     },
     {
-      href: `${basePath}/contact#volunteer`,
+      href: `${basePath}/contact`,
       icon: Heart,
       title: "Volunteer",
       description: "Help support our butterfly house",

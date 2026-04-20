@@ -74,6 +74,8 @@ function validCreatePayload() {
     state_province: "TX",
     postal_code: "78701",
     country: "US",
+    volunteer_url: "https://example.org/volunteer",
+    donation_url: "https://example.org/donate",
   };
 }
 
@@ -264,7 +266,11 @@ describe("Platform Institutions API", () => {
       });
 
       const response = (await patchInstitutionById(
-        makePatchRequest("1", { name: "Updated Name" }),
+        makePatchRequest("1", {
+          name: "Updated Name",
+          volunteer_url: "https://example.org/volunteer",
+          donation_url: "https://example.org/donate",
+        }),
         routeContext("1"),
       ))!;
       expect(response.status).toBe(200);
@@ -273,7 +279,11 @@ describe("Platform Institutions API", () => {
       expect(body.institution.name).toBe("Updated Name");
       expect(mockUpdatePlatformInstitution).toHaveBeenCalledWith(
         1,
-        expect.objectContaining({ name: "Updated Name" }),
+        expect.objectContaining({
+          name: "Updated Name",
+          volunteer_url: "https://example.org/volunteer",
+          donation_url: "https://example.org/donate",
+        }),
       );
     });
 
