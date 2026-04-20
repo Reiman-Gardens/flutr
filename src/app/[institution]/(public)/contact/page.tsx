@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import { Mail, Phone, MapPin, Globe, Heart, HandHelping, ExternalLink } from "lucide-react";
 
 import { getPublicInstitution } from "@/lib/queries/institution";
+import {
+  normalizeExternalHttpUrl,
+  resolveInstitutionInvolvementLinks,
+} from "@/lib/institution-links";
 import { SOCIAL_ICONS } from "@/lib/social-icons";
 import type { PublicInstitution } from "@/types/institution";
 
@@ -22,6 +26,9 @@ export default async function ContactPage({ params }: ContactPageProps) {
   const inst = (await getPublicInstitution(slug))!;
 
   const socials = inst.social_links as PublicInstitution["social_links"];
+  const websiteUrl = normalizeExternalHttpUrl(inst.website_url);
+  const { donationUrl, volunteerUrl, hasDonationUrl, hasVolunteerUrl } =
+    resolveInstitutionInvolvementLinks(inst);
   const activeSocials = SOCIAL_ICONS.filter((s) => {
     const url = socials?.[s.key];
     return url && /^https?:\/\//i.test(url);
@@ -92,16 +99,16 @@ export default async function ContactPage({ params }: ContactPageProps) {
             )}
 
             {/* Website */}
-            {inst.website_url && (
+            {websiteUrl && (
               <div className="flex items-center gap-3">
                 <Globe className="text-muted-foreground size-5 shrink-0" aria-hidden="true" />
                 <a
-                  href={inst.website_url}
+                  href={websiteUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-sm font-medium underline-offset-4 hover:underline"
                 >
-                  {inst.website_url.replace(/^https?:\/\/(www\.)?/, "")}
+                  {websiteUrl.replace(/^https?:\/\/(www\.)?/, "")}
                   <ExternalLink className="size-3.5" aria-hidden="true" />
                   <span className="sr-only">(opens in new tab)</span>
                 </a>
@@ -138,111 +145,64 @@ export default async function ContactPage({ params }: ContactPageProps) {
         </section>
 
         {/* Donations card */}
-        <section
-          id="donate"
-          aria-labelledby="donate-heading"
-          className="bg-card order-3 rounded-2xl border p-6 shadow-sm lg:order-2"
-        >
-          <div className="mb-4 flex items-center gap-2">
-            <Heart className="text-muted-foreground size-5" aria-hidden="true" />
-            <h2 id="donate-heading" className="text-foreground text-xl font-semibold">
-              Support {inst.name}
-            </h2>
-          </div>
-          <p className="text-muted-foreground text-sm leading-relaxed">
-            Your generous donations help us care for our butterfly collection, fund conservation
-            research, and maintain our educational programs. Every contribution makes a difference
-            in preserving these remarkable species.
-          </p>
-          <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
-            To make a donation or learn about sponsorship opportunities, please contact us
-            {inst.email_address ? (
-              <>
-                {" "}
-                at{" "}
-                <a
-                  href={`mailto:${inst.email_address}?subject=${encodeURIComponent("Donation Inquiry")}`}
-                  className="text-foreground font-medium underline-offset-4 hover:underline"
-                >
-                  {inst.email_address}
-                </a>
-              </>
-            ) : inst.phone_number ? (
-              <>
-                {" "}
-                at{" "}
-                <a
-                  href={`tel:${inst.phone_number}`}
-                  className="text-foreground font-medium underline-offset-4 hover:underline"
-                >
-                  {inst.phone_number}
-                </a>
-              </>
-            ) : null}
-            .
-          </p>
-        </section>
+        {hasDonationUrl && (
+          <section
+            id="donate"
+            aria-labelledby="donate-heading"
+            className="bg-card order-3 rounded-2xl border p-6 shadow-sm lg:order-2"
+          >
+            <div className="mb-4 flex items-center gap-2">
+              <Heart className="text-muted-foreground size-5" aria-hidden="true" />
+              <h2 id="donate-heading" className="text-foreground text-xl font-semibold">
+                Support {inst.name}
+              </h2>
+            </div>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              Your generous donations help us care for our butterfly collection, fund conservation
+              research, and maintain our educational programs.
+            </p>
+            <a
+              href={donationUrl ?? undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-foreground mt-4 inline-flex items-center gap-1 text-sm font-medium underline-offset-4 hover:underline"
+            >
+              Donate to {inst.name}
+              <ExternalLink className="size-3.5" aria-hidden="true" />
+              <span className="sr-only">(opens in new tab)</span>
+            </a>
+          </section>
+        )}
 
         {/* Volunteering card */}
-        <section
-          id="volunteer"
-          aria-labelledby="volunteer-heading"
-          className="bg-card order-2 rounded-2xl border p-6 shadow-sm lg:order-3 lg:col-span-2"
-        >
-          <div className="mb-4 flex items-center gap-2">
-            <HandHelping className="text-muted-foreground size-5" aria-hidden="true" />
-            <h2 id="volunteer-heading" className="text-foreground text-xl font-semibold">
-              Volunteer With Us
-            </h2>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                Volunteers are the heart of {inst.name}. Whether you&apos;re passionate about
-                butterflies, conservation, or education, there are many ways to contribute your time
-                and skills.
-              </p>
-              <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
-                Opportunities include guided tour support, butterfly garden maintenance, educational
-                program assistance, and special event help.
-              </p>
+        {hasVolunteerUrl && (
+          <section
+            id="volunteer"
+            aria-labelledby="volunteer-heading"
+            className="bg-card order-2 rounded-2xl border p-6 shadow-sm lg:order-3 lg:col-span-2"
+          >
+            <div className="mb-4 flex items-center gap-2">
+              <HandHelping className="text-muted-foreground size-5" aria-hidden="true" />
+              <h2 id="volunteer-heading" className="text-foreground text-xl font-semibold">
+                Volunteer With Us
+              </h2>
             </div>
-            <div>
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                To learn more about current volunteer opportunities or to sign up, please reach out
-                to us
-                {inst.email_address ? (
-                  <>
-                    {" "}
-                    at{" "}
-                    <a
-                      href={`mailto:${inst.email_address}?subject=${encodeURIComponent("Volunteer Inquiry")}`}
-                      className="text-foreground font-medium underline-offset-4 hover:underline"
-                    >
-                      {inst.email_address}
-                    </a>
-                  </>
-                ) : inst.phone_number ? (
-                  <>
-                    {" "}
-                    at{" "}
-                    <a
-                      href={`tel:${inst.phone_number}`}
-                      className="text-foreground font-medium underline-offset-4 hover:underline"
-                    >
-                      {inst.phone_number}
-                    </a>
-                  </>
-                ) : null}
-                .
-              </p>
-              <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
-                No prior experience is necessary — just enthusiasm and a willingness to learn. We
-                provide all training on-site.
-              </p>
-            </div>
-          </div>
-        </section>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              Volunteers are the heart of {inst.name}. Learn about current opportunities and how to
+              get involved.
+            </p>
+            <a
+              href={volunteerUrl ?? undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-foreground mt-4 inline-flex items-center gap-1 text-sm font-medium underline-offset-4 hover:underline"
+            >
+              View volunteer opportunities
+              <ExternalLink className="size-3.5" aria-hidden="true" />
+              <span className="sr-only">(opens in new tab)</span>
+            </a>
+          </section>
+        )}
       </div>
     </div>
   );

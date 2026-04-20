@@ -65,6 +65,8 @@ export const institutions = pgTable("institutions", {
   theme_colors: text("theme_colors").array(),
 
   website_url: text("website_url"),
+  volunteer_url: text("volunteer_url"),
+  donation_url: text("donation_url"),
   facility_image_url: text("facility_image_url"),
   logo_url: text("logo_url"),
   description: text("description"),

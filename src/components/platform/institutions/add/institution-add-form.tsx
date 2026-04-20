@@ -30,6 +30,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { ROUTES } from "@/lib/routes";
 import { institutionSlugSchema } from "@/lib/validation/slug";
+import { pickInstitutionUrlFields } from "@/lib/institution-form-url-fields";
 
 const TIMEZONE_OPTIONS = [
   // North America
@@ -71,6 +72,8 @@ const addFormSchema = z.object({
   email_address: z.string().email("Invalid email address").or(z.literal("")).optional(),
   phone_number: z.string().optional(),
   website_url: z.string().url("Invalid URL").or(z.literal("")).optional(),
+  volunteer_url: z.string().url("Invalid URL").or(z.literal("")).optional(),
+  donation_url: z.string().url("Invalid URL").or(z.literal("")).optional(),
 
   // Platform flags
   iabes_member: z.boolean(),
@@ -99,6 +102,8 @@ export default function InstitutionAddForm() {
       email_address: "",
       phone_number: "",
       website_url: "",
+      volunteer_url: "",
+      donation_url: "",
       iabes_member: false,
     },
   });
@@ -106,6 +111,11 @@ export default function InstitutionAddForm() {
   const slugValue = form.watch("slug");
 
   async function onSubmit(values: AddFormValues) {
+    const urlFields = pickInstitutionUrlFields({
+      volunteer_url: values.volunteer_url,
+      donation_url: values.donation_url,
+    });
+
     const body = {
       name: values.name,
       slug: values.slug,
@@ -120,6 +130,7 @@ export default function InstitutionAddForm() {
       ...(values.email_address ? { email_address: values.email_address } : {}),
       ...(values.phone_number ? { phone_number: values.phone_number } : {}),
       ...(values.website_url ? { website_url: values.website_url } : {}),
+      ...urlFields,
       iabes_member: values.iabes_member,
     };
 
@@ -379,6 +390,40 @@ export default function InstitutionAddForm() {
                     </FormLabel>
                     <FormControl>
                       <Input type="url" placeholder="https://butterfly-haven.org" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="volunteer_url"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Volunteer URL{" "}
+                      <span className="text-muted-foreground font-normal">(optional)</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input type="url" placeholder="https://example.org/volunteer" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="donation_url"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Donation URL{" "}
+                      <span className="text-muted-foreground font-normal">(optional)</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input type="url" placeholder="https://example.org/donate" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
