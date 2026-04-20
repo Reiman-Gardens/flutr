@@ -1,4 +1,23 @@
-import { resolveInstitutionInvolvementLinks } from "@/lib/institution-links";
+import {
+  normalizeExternalHttpUrl,
+  resolveInstitutionInvolvementLinks,
+} from "@/lib/institution-links";
+
+describe("normalizeExternalHttpUrl", () => {
+  it("returns null for blank and non-http(s) URLs", () => {
+    expect(normalizeExternalHttpUrl("")).toBeNull();
+    expect(normalizeExternalHttpUrl("   ")).toBeNull();
+    expect(normalizeExternalHttpUrl("javascript:alert(1)")).toBeNull();
+    expect(normalizeExternalHttpUrl("ftp://example.org")).toBeNull();
+  });
+
+  it("trims and returns valid http(s) URLs", () => {
+    expect(normalizeExternalHttpUrl("  https://example.org/path ")).toBe(
+      "https://example.org/path",
+    );
+    expect(normalizeExternalHttpUrl("http://example.org")).toBe("http://example.org");
+  });
+});
 
 describe("institution involvement link resolution", () => {
   it("does not produce actionable links for blank or whitespace values", () => {

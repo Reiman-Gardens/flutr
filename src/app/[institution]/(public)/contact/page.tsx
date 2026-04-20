@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import { Mail, Phone, MapPin, Globe, Heart, HandHelping, ExternalLink } from "lucide-react";
 
 import { getPublicInstitution } from "@/lib/queries/institution";
-import { resolveInstitutionInvolvementLinks } from "@/lib/institution-links";
+import {
+  normalizeExternalHttpUrl,
+  resolveInstitutionInvolvementLinks,
+} from "@/lib/institution-links";
 import { SOCIAL_ICONS } from "@/lib/social-icons";
 import type { PublicInstitution } from "@/types/institution";
 
@@ -23,6 +26,7 @@ export default async function ContactPage({ params }: ContactPageProps) {
   const inst = (await getPublicInstitution(slug))!;
 
   const socials = inst.social_links as PublicInstitution["social_links"];
+  const websiteUrl = normalizeExternalHttpUrl(inst.website_url);
   const { donationUrl, volunteerUrl, hasDonationUrl, hasVolunteerUrl } =
     resolveInstitutionInvolvementLinks(inst);
   const activeSocials = SOCIAL_ICONS.filter((s) => {
@@ -95,16 +99,16 @@ export default async function ContactPage({ params }: ContactPageProps) {
             )}
 
             {/* Website */}
-            {inst.website_url && (
+            {websiteUrl && (
               <div className="flex items-center gap-3">
                 <Globe className="text-muted-foreground size-5 shrink-0" aria-hidden="true" />
                 <a
-                  href={inst.website_url}
+                  href={websiteUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-sm font-medium underline-offset-4 hover:underline"
                 >
-                  {inst.website_url.replace(/^https?:\/\/(www\.)?/, "")}
+                  {websiteUrl.replace(/^https?:\/\/(www\.)?/, "")}
                   <ExternalLink className="size-3.5" aria-hidden="true" />
                   <span className="sr-only">(opens in new tab)</span>
                 </a>

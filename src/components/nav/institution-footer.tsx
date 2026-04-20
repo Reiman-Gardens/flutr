@@ -1,13 +1,17 @@
 import { Link } from "@/components/ui/link";
 import { Globe, Mail, Phone } from "lucide-react";
 import { useInstitution } from "@/hooks/use-institution";
-import { resolveInstitutionInvolvementLinks } from "@/lib/institution-links";
+import {
+  normalizeExternalHttpUrl,
+  resolveInstitutionInvolvementLinks,
+} from "@/lib/institution-links";
 import { PUBLIC_LINKS } from "@/components/nav/nav-links";
 import { SOCIAL_ICONS } from "@/lib/social-icons";
 import type { PublicInstitution } from "@/types/institution";
 
 export function InstitutionFooter({ institution }: { institution: PublicInstitution }) {
   const { basePath } = useInstitution();
+  const websiteUrl = normalizeExternalHttpUrl(institution.website_url);
   const { donationUrl, volunteerUrl, hasDonationUrl, hasVolunteerUrl } =
     resolveInstitutionInvolvementLinks(institution);
 
@@ -48,15 +52,15 @@ export function InstitutionFooter({ institution }: { institution: PublicInstitut
               {institution.phone_number}
             </a>
           )}
-          {institution.website_url && (
+          {websiteUrl && (
             <a
-              href={institution.website_url}
+              href={websiteUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-foreground flex items-center gap-2 transition-colors"
             >
               <Globe className="size-4" aria-hidden="true" />
-              {institution.website_url.replace(/^https?:\/\/(www\.)?/, "")}
+              {websiteUrl.replace(/^https?:\/\/(www\.)?/, "")}
               <span className="sr-only">(opens in new tab)</span>
             </a>
           )}

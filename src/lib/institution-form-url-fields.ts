@@ -4,23 +4,43 @@ interface InstitutionUrlFieldInput {
 }
 
 interface InstitutionUrlFieldPayload {
-  volunteer_url?: string;
-  donation_url?: string;
+  volunteer_url?: string | null;
+  donation_url?: string | null;
 }
 
-function normalizeOptionalUrlInput(value: string | null | undefined): string | undefined {
-  const normalized = value?.trim();
-  return normalized ? normalized : undefined;
+interface PickInstitutionUrlFieldsOptions {
+  blankAsNull?: boolean;
+}
+
+function normalizeOptionalUrlInput(
+  value: string | null | undefined,
+  options: PickInstitutionUrlFieldsOptions,
+): string | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (value === null) {
+    return null;
+  }
+
+  const normalized = value.trim();
+  if (normalized) {
+    return normalized;
+  }
+
+  return options.blankAsNull ? null : undefined;
 }
 
 export function pickInstitutionUrlFields(
   input: InstitutionUrlFieldInput,
+  options: PickInstitutionUrlFieldsOptions = {},
 ): InstitutionUrlFieldPayload {
-  const volunteerUrl = normalizeOptionalUrlInput(input.volunteer_url);
-  const donationUrl = normalizeOptionalUrlInput(input.donation_url);
+  const volunteerUrl = normalizeOptionalUrlInput(input.volunteer_url, options);
+  const donationUrl = normalizeOptionalUrlInput(input.donation_url, options);
 
   return {
-    ...(volunteerUrl ? { volunteer_url: volunteerUrl } : {}),
-    ...(donationUrl ? { donation_url: donationUrl } : {}),
+    ...(volunteerUrl !== undefined ? { volunteer_url: volunteerUrl } : {}),
+    ...(donationUrl !== undefined ? { donation_url: donationUrl } : {}),
   };
 }

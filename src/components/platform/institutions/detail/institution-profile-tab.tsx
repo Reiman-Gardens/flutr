@@ -145,10 +145,13 @@ export default function InstitutionProfileTab({
 
   async function onSubmit(values: ProfileFormValues) {
     const socialLinks: Record<string, string> = {};
-    const urlFields = pickInstitutionUrlFields({
-      volunteer_url: values.volunteer_url,
-      donation_url: values.donation_url,
-    });
+    const urlFields = pickInstitutionUrlFields(
+      {
+        volunteer_url: values.volunteer_url,
+        donation_url: values.donation_url,
+      },
+      { blankAsNull: true },
+    );
 
     if (values.social_twitter) socialLinks.twitter = values.social_twitter;
     if (values.social_instagram) socialLinks.instagram = values.social_instagram;

@@ -242,5 +242,27 @@ describe("Tenant Institution API", () => {
         }),
       );
     });
+
+    it("accepts null donation_url and volunteer_url to clear links", async () => {
+      mockUpdateTenantInstitutionService.mockResolvedValueOnce(sampleInstitution);
+
+      const response = (await PATCH(
+        makePatchRequest(
+          {
+            donation_url: null,
+            volunteer_url: null,
+          },
+          SLUG,
+        ),
+      ))!;
+      expect(response.status).toBe(200);
+      expect(mockUpdateTenantInstitutionService).toHaveBeenCalledWith(
+        SLUG,
+        expect.objectContaining({
+          donation_url: null,
+          volunteer_url: null,
+        }),
+      );
+    });
   });
 });
