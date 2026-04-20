@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import { getPublicInstitution } from "@/lib/queries/institution";
-import { getInstitutionHomeData } from "@/lib/queries/home";
+import { getInstitutionHomeData, getPublicNewsPreview } from "@/lib/queries/home";
 import { dayIndex } from "@/lib/utils";
 import { HeroSection } from "@/components/public/home/hero-section";
 import { FeaturedButterfly } from "@/components/public/home/featured-butterfly";
 import { ExploreLinks } from "@/components/public/home/explore-links";
+import { NewsSection } from "@/components/public/home/news-section";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,10 @@ export default async function InstitutionPage({ params }: InstitutionPageProps) 
 
   const basePath = `/${slug}`;
 
-  const { totalButterflies, totalSpecies, speciesRows } = await getInstitutionHomeData(inst.id);
+  const [{ totalButterflies, totalSpecies, speciesRows }, news] = await Promise.all([
+    getInstitutionHomeData(inst.id),
+    getPublicNewsPreview(inst.id),
+  ]);
 
   // Pick a deterministic "Butterfly of the Day" based on the current UTC date
   const featured = speciesRows.length > 0 ? speciesRows[dayIndex(speciesRows.length)] : null;
@@ -52,7 +56,10 @@ export default async function InstitutionPage({ params }: InstitutionPageProps) 
             />
           )}
 
-          <ExploreLinks basePath={basePath} />
+          <div className="flex flex-col gap-8">
+            {news && <NewsSection {...news} />}
+            <ExploreLinks basePath={basePath} />
+          </div>
         </div>
       </div>
     </div>

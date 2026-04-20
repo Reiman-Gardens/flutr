@@ -25,6 +25,7 @@ export type PublicInstitution = Pick<
   | "website_url"
   | "logo_url"
   | "facility_image_url"
+  | "theme_colors"
 > & {
   social_links?: SocialLinks | null;
 };

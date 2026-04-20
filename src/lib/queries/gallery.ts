@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { eq, sql } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { butterfly_species, butterfly_species_institution } from "@/lib/schema";
@@ -80,6 +80,31 @@ export const getGalleryData = cache(async (institutionId: number) => {
     in_flight_count: item.in_flight_count,
   }));
   return { species };
+});
+
+/** All global species for the gallery's "Show all species" toggle (cached per request). */
+export const getGalleryGlobalSpecies = cache(async (): Promise<GallerySpecies[]> => {
+  const rows = await db
+    .select({
+      id: butterfly_species.id,
+      scientific_name: butterfly_species.scientific_name,
+      common_name: butterfly_species.common_name,
+      family: butterfly_species.family,
+      range: butterfly_species.range,
+      img_wings_open: butterfly_species.img_wings_open,
+    })
+    .from(butterfly_species)
+    .orderBy(asc(butterfly_species.common_name));
+
+  return rows.map((row) => ({
+    id: row.id,
+    scientific_name: row.scientific_name,
+    common_name: row.common_name,
+    family: row.family,
+    range: row.range,
+    img_wings_open: row.img_wings_open,
+    in_flight_count: 0,
+  }));
 });
 
 /** Gallery species with all image columns (API route). */

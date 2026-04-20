@@ -29,9 +29,21 @@ export function HeroSection({
             priority
           />
         ) : (
-          <div className="bg-muted absolute inset-0">
+          <div className="absolute inset-0 overflow-hidden bg-gradient-to-br from-emerald-950 via-teal-900 to-green-950">
             <Bug
-              className="text-muted-foreground/20 absolute bottom-1/3 left-1/4 size-24"
+              className="absolute top-6 left-8 size-20 rotate-12 text-white/10"
+              aria-hidden="true"
+            />
+            <Bug
+              className="absolute top-1/3 right-16 size-32 -rotate-6 text-white/[0.07]"
+              aria-hidden="true"
+            />
+            <Bug
+              className="absolute bottom-10 left-1/3 size-16 rotate-45 text-white/10"
+              aria-hidden="true"
+            />
+            <Bug
+              className="absolute right-8 -bottom-2 size-28 -rotate-12 text-white/[0.06]"
               aria-hidden="true"
             />
           </div>
@@ -57,7 +69,7 @@ export function HeroSection({
 
       {/* Live Stats — overlaps bottom of hero, right-aligned on desktop */}
       <div className="mx-auto flex max-w-7xl justify-end px-4 sm:px-6 lg:px-8">
-        <div className="-mt-12 w-full sm:-mt-16 lg:w-auto">
+        <div className="w-full sm:-mt-16 lg:w-auto">
           <LiveStats totalButterflies={totalButterflies} totalSpecies={totalSpecies} />
         </div>
       </div>

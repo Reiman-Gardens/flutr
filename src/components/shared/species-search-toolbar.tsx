@@ -6,6 +6,8 @@ import { RotateCcw, Search, SlidersHorizontal, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -49,6 +51,9 @@ interface SpeciesSearchToolbarProps {
   onSortChange: (field: SortField, direction: SortDirection) => void;
   onFiltersChange: (filters: SpeciesFilters) => void;
   onReset: () => void;
+  /** When provided, renders a "Show all species" toggle in the filters modal. */
+  showGlobal?: boolean;
+  onShowGlobalChange?: (show: boolean) => void;
 }
 
 const DEFAULT_SORT_OPTIONS: SortOption[] = [
@@ -90,6 +95,8 @@ export function SpeciesSearchToolbar({
   onSortChange,
   onFiltersChange,
   onReset,
+  showGlobal,
+  onShowGlobalChange,
 }: SpeciesSearchToolbarProps) {
   // Debounced search input
   const [localQuery, setLocalQuery] = useState(query);
@@ -143,10 +150,11 @@ export function SpeciesSearchToolbar({
     const cleared: SpeciesFilters = { families: [] };
     setDraftFilters(cleared);
     onFiltersChange(cleared);
+    onShowGlobalChange?.(false);
     setModalOpen(false);
-  }, [onFiltersChange]);
+  }, [onFiltersChange, onShowGlobalChange]);
 
-  const activeFilterCount = filters.families.length;
+  const activeFilterCount = filters.families.length + (showGlobal ? 1 : 0);
   const isNonDefault =
     query.length > 0 ||
     sortField !== defaultSortField ||
@@ -246,6 +254,30 @@ export function SpeciesSearchToolbar({
               </div>
             </fieldset>
 
+            {/* Global species toggle — only rendered when the parent opts in */}
+            {onShowGlobalChange !== undefined && (
+              <div className="flex items-center gap-3 border-t pt-4">
+                <Switch
+                  id="toolbar-show-global"
+                  checked={showGlobal ?? false}
+                  onCheckedChange={onShowGlobalChange}
+                  aria-describedby="toolbar-show-global-desc"
+                />
+                <div>
+                  <Label
+                    htmlFor="toolbar-show-global"
+                    className="cursor-pointer text-sm font-semibold"
+                  >
+                    Show all species
+                  </Label>
+                  <p id="toolbar-show-global-desc" className="text-muted-foreground text-xs">
+                    Display every species in the global catalog, not just this institution&apos;s
+                    list.
+                  </p>
+                </div>
+              </div>
+            )}
+
             <DialogFooter>
               <Button variant="outline" onClick={handleClearFilters}>
                 Clear All
@@ -261,6 +293,19 @@ export function SpeciesSearchToolbar({
       {/* Active filter badges + Reset */}
       {isNonDefault && (
         <div className="flex flex-wrap items-center gap-2">
+          {showGlobal && onShowGlobalChange && (
+            <span className="bg-secondary text-secondary-foreground inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium">
+              All species
+              <button
+                type="button"
+                onClick={() => onShowGlobalChange(false)}
+                className="hover:text-foreground focus-visible:ring-ring ml-0.5 inline-flex min-h-6 min-w-6 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                aria-label="Remove all species filter"
+              >
+                <X className="size-3" aria-hidden="true" />
+              </button>
+            </span>
+          )}
           {filters.families.map((family) => (
             <span
               key={family}

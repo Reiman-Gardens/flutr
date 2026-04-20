@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { getPublicInstitution } from "@/lib/queries/institution";
 import { getStatsData, transformStatsData } from "@/lib/queries/stats";
+import { getInstitutionHomeData } from "@/lib/queries/home";
 import { dayIndex } from "@/lib/utils";
 import { StatsHeader } from "@/components/shared/stats/stats-header";
 import { StatsOverviewCards } from "@/components/shared/stats/stats-overview-cards";
@@ -9,6 +10,7 @@ import { StatsHighlightCards } from "@/components/shared/stats/stats-highlight-c
 import { SpeciesBreakdownChart } from "@/components/shared/stats/species-breakdown-chart";
 import { FamilyDistributionChart } from "@/components/shared/stats/family-distribution-chart";
 import { RegionDistributionPanel } from "@/components/shared/stats/region-distribution-panel";
+import { FeaturedButterfly } from "@/components/public/home/featured-butterfly";
 
 export const dynamic = "force-dynamic";
 
@@ -29,8 +31,12 @@ export default async function StatsPage({ params }: StatsPageProps) {
 
   const inst = (await getPublicInstitution(slug))!;
 
-  const rows = await getStatsData(inst.id);
+  const [rows, { speciesRows }] = await Promise.all([
+    getStatsData(inst.id),
+    getInstitutionHomeData(inst.id),
+  ]);
   const stats = transformStatsData(rows);
+  const featured = speciesRows.length > 0 ? speciesRows[dayIndex(speciesRows.length)] : null;
 
   if (stats.totalButterflies === 0) {
     return (
@@ -48,6 +54,21 @@ export default async function StatsPage({ params }: StatsPageProps) {
   return (
     <div className="mx-auto max-w-7xl min-w-0 overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
       <StatsHeader />
+
+      {featured && (
+        <div className="mb-6">
+          <FeaturedButterfly
+            slug={slug}
+            scientific_name={featured.scientific_name}
+            common_name={featured.common_name}
+            img_wings_open={featured.img_wings_open}
+            range={featured.range}
+            lifespan_days={featured.lifespan_days}
+            host_plant={featured.host_plant}
+            in_flight_count={Number(featured.in_flight_count)}
+          />
+        </div>
+      )}
 
       {/*
         Mobile: stats, species, treemap, distro, geo (single column, ordered)
