@@ -19,6 +19,13 @@ export const scientificNameParamsSchema = z
 
 export const publicEmptyQuerySchema = z.object({}).strict();
 
+export const publicInstitutionsQuerySchema = z
+  .object({
+    page: z.coerce.number().int().positive().default(1),
+    limit: z.coerce.number().int().positive().max(100).default(50),
+  })
+  .strict();
+
 export const publicTextFilterSchema = z
   .object({
     q: sanitizedNonEmpty(200).optional(),

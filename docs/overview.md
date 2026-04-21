@@ -86,7 +86,7 @@ Institution ─┬─ Users
 
 ### Public (`/api/public/*`)
 
-- `/api/public/institutions` — List public institutions.
+- `/api/public/institutions` — List public institutions (paginated; `page`/`limit` query params, default page 1 limit 50, max 100). Returns `institutions` array + `pagination` metadata.
 - `/api/public/institutions/[slug]` — Public institution details.
 - `/api/public/institutions/[slug]/gallery` — Public gallery data for an institution.
 - `/api/public/institutions/[slug]/in-flight` — Current in-flight data for an institution.

@@ -38,6 +38,23 @@ Composite tenant keys prevent cross-tenant references even if a raw numeric ID e
 institution. The supplier relationship is intentionally global by code so historical imports can
 reuse shared supplier codes across institutions.
 
+## Performance Indexes
+
+Composite indexes are added when a query has a confirmed hot path with a filter + sort on the same table. Single-column indexes on `institution_id` alone are not added — they are generally redundant given the composite FK unique constraints.
+
+Current composite performance indexes:
+
+| Index                                                  | Table                           | Columns                                       | Query                                           |
+| ------------------------------------------------------ | ------------------------------- | --------------------------------------------- | ----------------------------------------------- |
+| `idx_shipment_items_institution_species`               | `shipment_items`                | `(institution_id, butterfly_species_id)`      | Gallery/home aggregation                        |
+| `idx_in_flight_institution_shipment_item`              | `in_flight`                     | `(institution_id, shipment_item_id)`          | In-flight sum aggregation                       |
+| `idx_bsi_institution_id`                               | `butterfly_species_institution` | `(institution_id)`                            | Species list per institution                    |
+| `idx_users_institution_id`                             | `users`                         | `(institution_id)`                            | User lookups per institution                    |
+| `idx_institution_news_institution_id`                  | `institution_news`              | `(institution_id)`                            | News list per institution                       |
+| `idx_shipments_institution_shipment_date`              | `shipments`                     | `(institution_id, shipment_date)`             | Paginated shipment list (filter + sort)         |
+| `idx_release_events_institution_release_date`          | `release_events`                | `(institution_id, release_date)`              | Paginated release list (filter + sort)          |
+| `idx_release_events_institution_shipment_release_date` | `release_events`                | `(institution_id, shipment_id, release_date)` | Shipment-scoped release history (filter + sort) |
+
 ## Docker
 
 - PostgreSQL 17 via `docker-compose.yml`

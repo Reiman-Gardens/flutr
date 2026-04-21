@@ -1,0 +1,3 @@
+CREATE INDEX "idx_release_events_institution_release_date" ON "release_events" USING btree ("institution_id","release_date");--> statement-breakpoint
+CREATE INDEX "idx_release_events_institution_shipment_release_date" ON "release_events" USING btree ("institution_id","shipment_id","release_date");--> statement-breakpoint
+CREATE INDEX "idx_shipments_institution_shipment_date" ON "shipments" USING btree ("institution_id","shipment_date");

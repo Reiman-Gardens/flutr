@@ -178,6 +178,44 @@ Notes:
 - `PATCH` replaces the full `fun_facts` array; it does not append a single fact item.
 - The legacy string format for `fun_facts` is no longer accepted.
 
+### Public institutions list contract
+
+`GET /api/public/institutions` supports optional pagination via query params:
+
+- `page` (number, default `1`)
+- `limit` (number, default `50`, max `100`)
+
+Response shape:
+
+```json
+{
+  "institutions": [
+    {
+      "id": 1,
+      "slug": "butterfly-house",
+      "name": "Butterfly House",
+      "city": "Springfield",
+      "state_province": "IL",
+      "country": "US",
+      "website_url": null,
+      "facility_image_url": "https://example.com/img.jpg",
+      "logo_url": null,
+      "stats_active": true
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 50,
+    "total": 1,
+    "totalPages": 1
+  }
+}
+```
+
+- Results are ordered alphabetically by institution name.
+- Only institutions with `stats_active = true` are returned.
+- Returns `400 INVALID_REQUEST` for non-numeric, zero, negative, or above-max `page`/`limit` values.
+
 ### Public species detail contract
 
 `GET /api/public/institutions/[slug]/species/[scientific_name]` response shape:
