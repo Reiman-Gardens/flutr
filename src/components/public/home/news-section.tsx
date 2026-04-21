@@ -24,7 +24,13 @@ export function NewsSection({ title, content, image_url, created_at }: NewsSecti
       <Card className="overflow-hidden py-0">
         {image_url && (
           <div className="relative aspect-video w-full">
-            <Image src={image_url} alt="" fill className="object-cover" />
+            <Image
+              src={image_url}
+              alt=""
+              fill
+              sizes="(min-width: 1024px) 66vw, (min-width: 768px) 80vw, 100vw"
+              className="object-cover"
+            />
           </div>
         )}
         <CardHeader className="pt-6 pb-2">

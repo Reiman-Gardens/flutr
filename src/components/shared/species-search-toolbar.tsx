@@ -51,8 +51,9 @@ interface SpeciesSearchToolbarProps {
   onSortChange: (field: SortField, direction: SortDirection) => void;
   onFiltersChange: (filters: SpeciesFilters) => void;
   onReset: () => void;
-  /** When provided, renders a "Show all species" toggle in the filters modal. */
+  /** Current "Show all species" toggle state. Only used if onShowGlobalChange is provided. */
   showGlobal?: boolean;
+  /** When provided, renders a "Show all species" toggle in the filters modal and enables scope switching. */
   onShowGlobalChange?: (show: boolean) => void;
 }
 

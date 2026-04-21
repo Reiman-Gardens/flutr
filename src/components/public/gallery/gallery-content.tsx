@@ -117,11 +117,12 @@ export function GalleryContent({ slug, species, globalSpecies }: GalleryContentP
 
   const handleShowGlobalChange = useCallback(
     (show: boolean) => {
+      if (show === showGlobal) return;
       setShowGlobal(show);
       // Reset search state when switching scopes so stale filters don't carry over.
       search.resetAll();
     },
-    [search],
+    [search, showGlobal],
   );
 
   const handleReset = useCallback(() => {
