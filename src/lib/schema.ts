@@ -292,6 +292,12 @@ export const shipments = pgTable(
       table.institution_id,
       table.id,
     ),
+
+    // Tenant-scoped shipment list ordered by shipment_date (listShipments)
+    idx_shipments_institution_shipment_date: index("idx_shipments_institution_shipment_date").on(
+      table.institution_id,
+      table.shipment_date,
+    ),
   }),
 );
 
@@ -397,6 +403,16 @@ export const release_events = pgTable(
       table.institution_id,
       table.id,
     ),
+
+    // Tenant-scoped release list ordered by release_date (listInstitutionReleases)
+    idx_release_events_institution_release_date: index(
+      "idx_release_events_institution_release_date",
+    ).on(table.institution_id, table.release_date),
+
+    // Shipment-scoped release history ordered by release_date (listReleaseEventsForShipment)
+    idx_release_events_institution_shipment_release_date: index(
+      "idx_release_events_institution_shipment_release_date",
+    ).on(table.institution_id, table.shipment_id, table.release_date),
   }),
 );
 

@@ -4,6 +4,7 @@ import { sanitizedNonEmpty } from "@/lib/validation/sanitize";
 import { institutionSlugSchema } from "@/lib/validation/slug";
 
 const scientificNameRegex = /^[A-Za-z0-9_.-]+$/;
+const PUBLIC_INSTITUTIONS_MAX_LIMIT = 100;
 
 export const institutionSlugParamsSchema = z
   .object({
@@ -18,6 +19,18 @@ export const scientificNameParamsSchema = z
   .strict();
 
 export const publicEmptyQuerySchema = z.object({}).strict();
+
+export const publicInstitutionsQuerySchema = z
+  .object({
+    page: z.coerce.number().int().positive().default(1),
+    limit: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(50)
+      .transform((value) => Math.min(value, PUBLIC_INSTITUTIONS_MAX_LIMIT)),
+  })
+  .strict();
 
 export const publicTextFilterSchema = z
   .object({

@@ -21,8 +21,8 @@ export interface GallerySpeciesDetail extends GallerySpecies {
   extra_img_2: string | null;
 }
 
-/** Base gallery query selecting all species columns for an institution. */
-async function queryGallerySpecies(institutionId: number) {
+/** Base gallery query selecting all species columns for an institution (cached per request). */
+const queryGallerySpecies = cache(async (institutionId: number) => {
   const ifc = inFlightCountSubquery(institutionId);
 
   return db
@@ -47,7 +47,7 @@ async function queryGallerySpecies(institutionId: number) {
     .leftJoin(ifc, eq(ifc.butterfly_species_id, butterfly_species.id))
     .where(eq(butterfly_species_institution.institution_id, institutionId))
     .orderBy(butterfly_species.common_name);
-}
+});
 
 /** Resolve overrides and return gallery-ready species list. */
 function resolveOverrides(
@@ -67,8 +67,8 @@ function resolveOverrides(
   }));
 }
 
-/** Gallery species for an institution (page-level, cached per request). */
-export const getGalleryData = cache(async (institutionId: number) => {
+/** Gallery species for an institution (page-level). */
+export async function getGalleryData(institutionId: number) {
   const rows = await queryGallerySpecies(institutionId);
   const species: GallerySpecies[] = resolveOverrides(rows).map((item) => ({
     id: item.id,
@@ -80,7 +80,7 @@ export const getGalleryData = cache(async (institutionId: number) => {
     in_flight_count: item.in_flight_count,
   }));
   return { species };
-});
+}
 
 /** Gallery species with all image columns (API route). */
 export async function getGalleryDetailData(institutionId: number) {

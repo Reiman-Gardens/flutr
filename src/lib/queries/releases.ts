@@ -74,7 +74,35 @@ function assertInFlightQuantity(quantity: UpdateInFlightQuantityBody["quantity"]
   }
 }
 
-function calculateRemaining(item: LockedShipmentItem, alreadyReleased: number) {
+type DrizzleTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * Sum all in-flight quantities for a single shipment item, optionally
+ * excluding one specific in_flight row (used when updating an existing row).
+ */
+async function sumReleasedForItem(
+  tx: DrizzleTx,
+  institutionId: number,
+  shipmentItemId: number,
+  excludeInFlightId?: number,
+): Promise<number> {
+  const conditions = [
+    eq(in_flight.institution_id, institutionId),
+    eq(in_flight.shipment_item_id, shipmentItemId),
+  ];
+  if (excludeInFlightId !== undefined) {
+    conditions.push(ne(in_flight.id, excludeInFlightId));
+  }
+  const [row] = await tx
+    .select({
+      quantity: sql<number>`coalesce(sum(${in_flight.quantity}), 0)::int`.as("quantity"),
+    })
+    .from(in_flight)
+    .where(and(...conditions));
+  return Number(row?.quantity ?? 0);
+}
+
+export function calculateRemaining(item: LockedShipmentItem, alreadyReleased: number) {
   const availableBeforeReleases =
     item.number_received -
     item.damaged_in_transit -
@@ -263,6 +291,7 @@ export async function updateReleaseEventItems(
       .select({
         id: in_flight.id,
         shipmentItemId: in_flight.shipment_item_id,
+        quantity: in_flight.quantity,
       })
       .from(in_flight)
       .where(
@@ -310,6 +339,26 @@ export async function updateReleaseEventItems(
 
     const lockedItemById = new Map(lockedItems.map((row) => [row.id, row]));
 
+    // Bulk-fetch total released per shipment item in one query, then subtract
+    // each item's own current quantity in JS — eliminates the per-item N+1.
+    const releasedTotalsRows = await tx
+      .select({
+        shipment_item_id: in_flight.shipment_item_id,
+        total: sql<number>`coalesce(sum(${in_flight.quantity}), 0)::int`.as("total"),
+      })
+      .from(in_flight)
+      .where(
+        and(
+          eq(in_flight.institution_id, institutionId),
+          inArray(in_flight.shipment_item_id, shipmentItemIds),
+        ),
+      )
+      .groupBy(in_flight.shipment_item_id);
+
+    const releasedTotalByShipmentItemId = new Map(
+      releasedTotalsRows.map((row) => [row.shipment_item_id, Number(row.total)]),
+    );
+
     for (const item of payload.items) {
       const existing = existingByShipmentItemId.get(item.shipment_item_id);
       const locked = lockedItemById.get(item.shipment_item_id);
@@ -318,20 +367,10 @@ export async function updateReleaseEventItems(
         throw new Error(RELEASE_ERRORS.SHIPMENT_ITEM_NOT_FOUND);
       }
 
-      const [released] = await tx
-        .select({
-          quantity: sql<number>`coalesce(sum(${in_flight.quantity}), 0)::int`.as("quantity"),
-        })
-        .from(in_flight)
-        .where(
-          and(
-            eq(in_flight.institution_id, institutionId),
-            eq(in_flight.shipment_item_id, item.shipment_item_id),
-            ne(in_flight.id, existing.id),
-          ),
-        );
-
-      const remaining = calculateRemaining(locked, Number(released?.quantity ?? 0));
+      // Total released minus the current row's quantity = released by other rows
+      const totalReleased = releasedTotalByShipmentItemId.get(item.shipment_item_id) ?? 0;
+      const alreadyReleased = totalReleased - existing.quantity;
+      const remaining = calculateRemaining(locked, alreadyReleased);
 
       if (item.quantity > remaining) {
         throw new Error(RELEASE_ERRORS.QUANTITY_EXCEEDS_REMAINING);
@@ -610,19 +649,8 @@ export async function createInFlightForRelease(
       throw new Error(RELEASE_ERRORS.IN_FLIGHT_ALREADY_EXISTS);
     }
 
-    const [released] = await tx
-      .select({
-        quantity: sql<number>`coalesce(sum(${in_flight.quantity}), 0)::int`.as("quantity"),
-      })
-      .from(in_flight)
-      .where(
-        and(
-          eq(in_flight.institution_id, institutionId),
-          eq(in_flight.shipment_item_id, payload.shipment_item_id),
-        ),
-      );
-
-    const remaining = calculateRemaining(lockedItem, Number(released?.quantity ?? 0));
+    const alreadyReleased = await sumReleasedForItem(tx, institutionId, payload.shipment_item_id);
+    const remaining = calculateRemaining(lockedItem, alreadyReleased);
 
     if (payload.quantity > remaining) {
       throw new Error(RELEASE_ERRORS.QUANTITY_EXCEEDS_REMAINING);
@@ -695,20 +723,13 @@ export async function updateInFlightQuantity(
       throw new Error(RELEASE_ERRORS.SHIPMENT_ITEM_NOT_FOUND);
     }
 
-    const [released] = await tx
-      .select({
-        quantity: sql<number>`coalesce(sum(${in_flight.quantity}), 0)::int`.as("quantity"),
-      })
-      .from(in_flight)
-      .where(
-        and(
-          eq(in_flight.institution_id, institutionId),
-          eq(in_flight.shipment_item_id, target.shipmentItemId),
-          ne(in_flight.id, inFlightId),
-        ),
-      );
-
-    const remaining = calculateRemaining(lockedItem, Number(released?.quantity ?? 0));
+    const alreadyReleased = await sumReleasedForItem(
+      tx,
+      institutionId,
+      target.shipmentItemId,
+      inFlightId,
+    );
+    const remaining = calculateRemaining(lockedItem, alreadyReleased);
 
     if (payload.quantity > remaining) {
       throw new Error(RELEASE_ERRORS.QUANTITY_EXCEEDS_REMAINING);
