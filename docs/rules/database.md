@@ -40,9 +40,9 @@ reuse shared supplier codes across institutions.
 
 ## Performance Indexes
 
-Composite indexes are added when a query has a confirmed hot path with a filter + sort on the same table. Single-column indexes on `institution_id` alone are not added — they are generally redundant given the composite FK unique constraints.
+Composite indexes are added when a query has a confirmed hot path with a filter + sort on the same table. Single-column indexes on `institution_id` alone are generally avoided because they are often redundant when another useful index already starts with `institution_id` or when composite FK/unique constraints cover the access pattern. They are still added for documented tenant-only list/look-up hot paths where no more specific `institution_id`-prefixed index already serves the query.
 
-Current composite performance indexes:
+Current performance indexes:
 
 | Index                                                  | Table                           | Columns                                       | Query                                           |
 | ------------------------------------------------------ | ------------------------------- | --------------------------------------------- | ----------------------------------------------- |

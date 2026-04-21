@@ -106,9 +106,15 @@ describe("GET /api/public/institutions", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 400 when limit exceeds max (100)", async () => {
+  it("caps limit at max (100) when limit exceeds max", async () => {
+    mockDb.db.select
+      .mockReturnValueOnce(createThenableQuery([]))
+      .mockReturnValueOnce(createThenableQuery([{ total: 0 }]));
+
     const res = await GET(makeRequest({ limit: "101" }));
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.pagination.limit).toBe(100);
   });
 
   it("returns 400 when limit is zero", async () => {
