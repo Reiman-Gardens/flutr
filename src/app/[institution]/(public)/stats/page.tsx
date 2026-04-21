@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { getPublicInstitution } from "@/lib/queries/institution";
 import { getStatsData, transformStatsData } from "@/lib/queries/stats";
-import { getInstitutionHomeData } from "@/lib/queries/home";
+import { getFeaturedSpeciesList } from "@/lib/queries/home";
 import { dayIndex } from "@/lib/utils";
 import { StatsHeader } from "@/components/shared/stats/stats-header";
 import { StatsOverviewCards } from "@/components/shared/stats/stats-overview-cards";
@@ -31,9 +31,9 @@ export default async function StatsPage({ params }: StatsPageProps) {
 
   const inst = (await getPublicInstitution(slug))!;
 
-  const [rows, { speciesRows }] = await Promise.all([
+  const [rows, speciesRows] = await Promise.all([
     getStatsData(inst.id),
-    getInstitutionHomeData(inst.id),
+    getFeaturedSpeciesList(inst.id),
   ]);
   const stats = transformStatsData(rows);
   const featured = speciesRows.length > 0 ? speciesRows[dayIndex(speciesRows.length)] : null;

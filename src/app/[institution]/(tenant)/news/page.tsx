@@ -141,29 +141,37 @@ function NewsFormDialog({
       content: values.content,
       is_active: values.is_active,
     };
-    if (values.image_url && values.image_url.trim() !== "") {
-      body.image_url = values.image_url.trim();
+    const trimmedImageUrl = values.image_url?.trim() ?? "";
+    if (trimmedImageUrl !== "") {
+      body.image_url = trimmedImageUrl;
+    } else if (isEditing) {
+      body.image_url = null;
     }
 
     const url = isEditing ? ROUTES.tenant.newsEntryApi(entry!.id) : ROUTES.tenant.newsApi;
     const method = isEditing ? "PATCH" : "POST";
 
-    const res = await fetch(url, {
-      method,
-      headers: { ...tenantHeaders, "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { ...tenantHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
 
-    if (res.ok) {
-      const data = await res.json().catch(() => ({}));
-      toast.success(isEditing ? "News entry updated." : "News entry created.");
-      onSuccess(data.news as NewsEntry);
-      onOpenChange(false);
-    } else {
-      const data = await res.json().catch(() => ({}));
-      toast.error(
-        data?.error?.message ?? (isEditing ? "Failed to update entry." : "Failed to create entry."),
-      );
+      if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.success(isEditing ? "News entry updated." : "News entry created.");
+        onSuccess(data.news as NewsEntry);
+        onOpenChange(false);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(
+          data?.error?.message ??
+            (isEditing ? "Failed to update entry." : "Failed to create entry."),
+        );
+      }
+    } catch {
+      toast.error(isEditing ? "Failed to update entry." : "Failed to create entry.");
     }
   }
 
@@ -352,6 +360,8 @@ export default function NewsPage() {
       const data = await res.json().catch(() => ({}));
       setEntries((prev) => prev.map((e) => (e.id === entry.id ? (data.news as NewsEntry) : e)));
       toast.success(entry.is_active ? "Entry hidden from public site." : "Entry is now visible.");
+    } catch {
+      toast.error("Failed to update entry.");
     } finally {
       setBusyId(null);
     }
@@ -373,6 +383,8 @@ export default function NewsPage() {
       }
       setEntries((prev) => prev.filter((e) => e.id !== id));
       toast.success("News entry deleted.");
+    } catch {
+      toast.error("Unable to delete entry.");
     } finally {
       setBusyId(null);
       setDeleteTargetId(null);

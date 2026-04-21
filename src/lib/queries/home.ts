@@ -11,6 +11,37 @@ import {
 } from "@/lib/schema";
 import { inFlightCountSubquery } from "@/lib/queries/subqueries";
 
+/** Featured species list for rendering Butterfly of the Day (lighter than getInstitutionHomeData). */
+export const getFeaturedSpeciesList = cache(async (institutionId: number) => {
+  const ifc = inFlightCountSubquery(institutionId);
+
+  const speciesRows = await db
+    .select({
+      scientific_name: butterfly_species.scientific_name,
+      common_name: butterfly_species.common_name,
+      img_wings_open: butterfly_species.img_wings_open,
+      range: butterfly_species.range,
+      lifespan_days: butterfly_species.lifespan_days,
+      host_plant: butterfly_species.host_plant,
+      in_flight_count: sql<number>`coalesce(${ifc.total}, 0)`.as("in_flight_count"),
+    })
+    .from(butterfly_species_institution)
+    .innerJoin(
+      butterfly_species,
+      eq(butterfly_species_institution.butterfly_species_id, butterfly_species.id),
+    )
+    .leftJoin(ifc, eq(ifc.butterfly_species_id, butterfly_species.id))
+    .where(
+      and(
+        eq(butterfly_species_institution.institution_id, institutionId),
+        isNotNull(butterfly_species.img_wings_open),
+      ),
+    )
+    .orderBy(butterfly_species.scientific_name);
+
+  return speciesRows;
+});
+
 /** In-flight stats and featured-species data for the institution home page. */
 export const getInstitutionHomeData = cache(async (institutionId: number) => {
   const ifc = inFlightCountSubquery(institutionId);

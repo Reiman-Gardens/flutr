@@ -42,7 +42,7 @@ export default async function InstitutionPage({ params }: InstitutionPageProps) 
 
       {/* Below hero: 2-column on desktop, stacked on mobile */}
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+        <div className={`grid gap-8 ${featured ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1"}`}>
           {featured && (
             <FeaturedButterfly
               slug={slug}
