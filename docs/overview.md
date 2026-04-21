@@ -66,7 +66,7 @@ PostgreSQL 17 managed via Drizzle ORM:
 
 ### Core Entities
 
-- **Institution** — A butterfly house organization (address, contact, branding)
+- **Institution** — A butterfly house organization (address, contact, branding, optional volunteer/donation links)
 - **User** — An account scoped to an institution with a role
 - **Butterfly Species** — Global scientific reference data
 - **Butterfly Species Institution** — Institution-specific species details (common name, description, image)

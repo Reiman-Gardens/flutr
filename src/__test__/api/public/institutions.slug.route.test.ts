@@ -35,13 +35,25 @@ describe("GET /api/public/institutions/[slug]", () => {
 
   it("returns 200 when institution found", async () => {
     mockDb.db.select.mockReturnValueOnce(
-      createThenableQuery([{ id: 1, slug: "some-slug", name: "Test" }]),
+      createThenableQuery([
+        {
+          id: 1,
+          slug: "some-slug",
+          name: "Test",
+          donation_url: "https://example.org/donate",
+          volunteer_url: "https://example.org/volunteer",
+        },
+      ]),
     );
 
     const res = await GET({} as NextRequest, {
       params: Promise.resolve({ slug: "some-slug" }),
     });
     expect(res.status).toBe(200);
+
+    const body = await res.json();
+    expect(body.institution.donation_url).toBe("https://example.org/donate");
+    expect(body.institution.volunteer_url).toBe("https://example.org/volunteer");
   });
 
   it("returns 500 on internal error", async () => {

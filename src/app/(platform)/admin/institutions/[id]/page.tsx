@@ -64,6 +64,8 @@ export default async function PlatformInstitutionPage({ params, searchParams }: 
     email_address: row.email_address ?? null,
     phone_number: row.phone_number ?? null,
     website_url: row.website_url ?? null,
+    volunteer_url: row.volunteer_url ?? null,
+    donation_url: row.donation_url ?? null,
     logo_url: row.logo_url ?? null,
     facility_image_url: row.facility_image_url ?? null,
     social_links: (row.social_links as Record<string, string> | null) ?? null,

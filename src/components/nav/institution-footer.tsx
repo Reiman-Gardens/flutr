@@ -1,12 +1,19 @@
 import { Link } from "@/components/ui/link";
 import { Globe, Mail, Phone } from "lucide-react";
 import { useInstitution } from "@/hooks/use-institution";
+import {
+  normalizeExternalHttpUrl,
+  resolveInstitutionInvolvementLinks,
+} from "@/lib/institution-links";
 import { PUBLIC_LINKS } from "@/components/nav/nav-links";
 import { SOCIAL_ICONS } from "@/lib/social-icons";
 import type { PublicInstitution } from "@/types/institution";
 
 export function InstitutionFooter({ institution }: { institution: PublicInstitution }) {
   const { basePath } = useInstitution();
+  const websiteUrl = normalizeExternalHttpUrl(institution.website_url);
+  const { donationUrl, volunteerUrl, hasDonationUrl, hasVolunteerUrl } =
+    resolveInstitutionInvolvementLinks(institution);
 
   const activeSocials = SOCIAL_ICONS.filter((s) => {
     const url = institution.social_links?.[s.key];
@@ -45,15 +52,15 @@ export function InstitutionFooter({ institution }: { institution: PublicInstitut
               {institution.phone_number}
             </a>
           )}
-          {institution.website_url && (
+          {websiteUrl && (
             <a
-              href={institution.website_url}
+              href={websiteUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-foreground flex items-center gap-2 transition-colors"
             >
               <Globe className="size-4" aria-hidden="true" />
-              {institution.website_url.replace(/^https?:\/\/(www\.)?/, "")}
+              {websiteUrl.replace(/^https?:\/\/(www\.)?/, "")}
               <span className="sr-only">(opens in new tab)</span>
             </a>
           )}
@@ -100,18 +107,28 @@ export function InstitutionFooter({ institution }: { institution: PublicInstitut
       <div className="space-y-3">
         <h3 className="text-lg font-semibold">Get Involved</h3>
         <nav aria-label="Get involved links" className="flex flex-col gap-2">
-          <Link
-            href={`${basePath}/contact#donate`}
-            className="text-muted-foreground hover:text-foreground w-fit text-sm transition-colors"
-          >
-            Donate
-          </Link>
-          <Link
-            href={`${basePath}/contact#volunteer`}
-            className="text-muted-foreground hover:text-foreground w-fit text-sm transition-colors"
-          >
-            Volunteer
-          </Link>
+          {hasDonationUrl && (
+            <a
+              href={donationUrl ?? undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-foreground w-fit text-sm transition-colors"
+            >
+              Donate
+              <span className="sr-only"> (opens in new tab)</span>
+            </a>
+          )}
+          {hasVolunteerUrl && (
+            <a
+              href={volunteerUrl ?? undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-foreground w-fit text-sm transition-colors"
+            >
+              Volunteer
+              <span className="sr-only"> (opens in new tab)</span>
+            </a>
+          )}
           <Link
             href={`${basePath}/contact`}
             className="text-muted-foreground hover:text-foreground w-fit text-sm transition-colors"

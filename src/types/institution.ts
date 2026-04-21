@@ -23,6 +23,8 @@ export type PublicInstitution = Pick<
   | "email_address"
   | "phone_number"
   | "website_url"
+  | "volunteer_url"
+  | "donation_url"
   | "logo_url"
   | "facility_image_url"
   | "theme_colors"

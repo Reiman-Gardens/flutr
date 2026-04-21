@@ -41,6 +41,8 @@ export interface InstitutionDetail {
   email_address: string | null;
   phone_number: string | null;
   website_url: string | null;
+  volunteer_url: string | null;
+  donation_url: string | null;
   logo_url: string | null;
   facility_image_url: string | null;
   social_links: Record<string, string> | null;

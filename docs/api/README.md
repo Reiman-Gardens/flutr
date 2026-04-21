@@ -341,7 +341,7 @@ Returns `400 INVALID_REQUEST` for non-numeric `page` / `limit` values or
 `PATCH /api/tenant/institution` accepts any subset of the following fields:
 
 - `name`, `street_address`, `extended_address`, `city`, `state_province`, `postal_code`, `country` — address fields
-- `phone_number`, `email_address`, `website_url`, `facility_image_url`, `logo_url` — contact/media
+- `phone_number`, `email_address`, `website_url`, `volunteer_url`, `donation_url`, `facility_image_url`, `logo_url` — contact/media
 - `description` — text (max 2000 chars)
 - `time_zone` — text (max 100 chars)
 - `theme_colors` — array of strings
