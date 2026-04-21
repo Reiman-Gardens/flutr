@@ -10,3 +10,6 @@ out
 *.pem
 .idea
 .pnpm-debug.log*
+docker-compose*.yml
+Dockerfile*
+README.md
