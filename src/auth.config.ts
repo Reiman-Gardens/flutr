@@ -1,74 +1,22 @@
 import type { NextAuthConfig } from "next-auth";
-import Credentials from "next-auth/providers/credentials";
-import bcrypt from "bcrypt";
-import { db } from "@/lib/db";
-import { users, institutions } from "@/lib/schema";
-import { eq } from "drizzle-orm";
-import { normalizeRole } from "@/lib/authz";
 import { authSecret } from "@/lib/auth-secret";
 
-// NextAuth configuration: Credentials provider using bcrypt-hashed passwords
-// Important behavior:
-// - `authorize` verifies the provided email/password against the DB using bcrypt.compare
-// - On success we return a minimal `user` object. The `jwt` callback persists important
-//   fields (role, institutionId, institutionSlug) into the token so they are available in
-//   middlewares and server-side code without extra DB lookups.
-// - The `session` callback copies those token fields onto `session.user` so client
-//   code can easily access `role`, `institutionId`, and `institutionSlug` (read-only).
+// Edge-safe base config (no providers, no DB, no bcrypt).
+//
+// - `src/middleware.ts` imports this directly so it can run on Edge runtime.
+// - `src/auth.ts` extends this with the Credentials provider for Node runtime.
+//
+// Keeping providers out of this file prevents bcrypt/Drizzle from leaking into
+// the Edge bundle. The `jwt` and `session` callbacks only touch the token/session
+// objects, so they are safe on Edge.
 
 export default {
   secret: authSecret,
-  providers: [
-    Credentials({
-      // We accept `email` + `password` form fields
-      // We accept `email` + `password` form fields
-      credentials: {
-        email: {},
-        password: {},
-      },
-      async authorize(credentials) {
-        const email = credentials.email as string;
-        const password = credentials.password as string;
-        if (!email || !password) return null;
-
-        // Look up user by email with institution slug in a single join query.
-        const [row] = await db
-          .select({
-            id: users.id,
-            name: users.name,
-            email: users.email,
-            password_hash: users.password_hash,
-            role: users.role,
-            institution_id: users.institution_id,
-            institution_slug: institutions.slug,
-          })
-          .from(users)
-          .leftJoin(institutions, eq(users.institution_id, institutions.id))
-          .where(eq(users.email, email))
-          .limit(1);
-
-        if (!row) return null;
-
-        // Verify bcrypt password hash
-        const valid = await bcrypt.compare(password, row.password_hash);
-        if (!valid) return null;
-
-        // Return the public session user object. We include `role`, `institutionId`,
-        // and `institutionSlug` so they can be propagated into the JWT in the `jwt` callback.
-        return {
-          id: String(row.id),
-          name: row.name,
-          email: row.email,
-          role: normalizeRole(row.role),
-          institutionId: row.institution_id,
-          institutionSlug: row.institution_slug ?? undefined,
-        };
-      },
-    }),
-  ],
+  // Providers are added in `src/auth.ts`. Required here by the `NextAuthConfig` type,
+  // but intentionally empty so this config stays Edge-safe.
+  providers: [],
   callbacks: {
-    // Persist role + institutionId + institutionSlug into the JWT token when the user signs in.
-    // This keeps authorization decisions fast and avoids repeated DB reads.
+    // Persist role + institutionId + institutionSlug into the JWT when the user signs in.
     jwt({ token, user }) {
       if (user) {
         token.role = user.role;
@@ -78,7 +26,7 @@ export default {
       return token;
     },
 
-    // Make sure session.user contains id, role, institutionId, and institutionSlug for client use.
+    // Surface id, role, institutionId, and institutionSlug on session.user for client use.
     session({ session, token }) {
       session.user.id = token.sub!;
       session.user.role = token.role;
@@ -87,8 +35,6 @@ export default {
       return session;
     },
   },
-  // Redirect users to our custom login page
-  // Redirect users to our custom login page
   pages: {
     signIn: "/login",
   },
