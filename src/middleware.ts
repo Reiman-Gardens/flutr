@@ -28,8 +28,11 @@ const SUBSECTION_PERMISSION_MAP: Record<string, Permission> = {
 export default async function middleware(req: NextRequest) {
   const url = req.nextUrl.clone();
 
-  // Read token server-side. Requires NEXTAUTH_SECRET to be set.
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  // Read token server-side. Requires AUTH_SECRET (or NEXTAUTH_SECRET fallback) to be set.
+  const token = await getToken({
+    req,
+    secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
+  });
 
   // Not authenticated -> redirect to login
   if (!token) {

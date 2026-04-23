@@ -17,8 +17,8 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flutr-db
-      NEXTAUTH_SECRET: ci-dummy-secret
-      NEXTAUTH_URL: http://localhost:3000
+      AUTH_SECRET: ci-dummy-secret
+      AUTH_URL: http://localhost:3000
 
     steps:
       - name: Checkout

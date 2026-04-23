@@ -210,8 +210,8 @@ Each Docker service can be restarted independently with `docker compose restart 
 
 ### Environment Variables
 
-| Variable          | Description                  |
-| ----------------- | ---------------------------- |
-| `DATABASE_URL`    | PostgreSQL connection string |
-| `NEXTAUTH_SECRET` | NextAuth encryption secret   |
-| `NEXTAUTH_URL`    | Application base URL         |
+| Variable       | Description                                                                  |
+| -------------- | ---------------------------------------------------------------------------- |
+| `DATABASE_URL` | PostgreSQL connection string                                                 |
+| `AUTH_SECRET`  | NextAuth encryption secret (primary; `NEXTAUTH_SECRET` accepted as fallback) |
+| `AUTH_URL`     | Application base URL (primary; `NEXTAUTH_URL` accepted as fallback)          |
