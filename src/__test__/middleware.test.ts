@@ -1,39 +1,44 @@
 // src/__test__/middleware.test.ts
-import type { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
-import middleware, { config } from "@/middleware";
+//
+// The middleware imports `next-auth` (ESM) at module load. Jest can't parse that,
+// so we mock it to return a pass-through `auth` wrapper. Tests exercise
+// `handleAuthorizedRequest` directly with a pre-populated `req.auth`.
+jest.mock("next-auth", () => {
+  type ReqHandler = (req: unknown) => unknown;
+  const NextAuth = () => ({
+    auth: (handler: ReqHandler) => handler,
+  });
+  return { __esModule: true, default: NextAuth };
+});
 
-jest.mock("next-auth/jwt", () => ({
-  getToken: jest.fn(),
-}));
+import type { NextAuthRequest } from "next-auth";
+import { handleAuthorizedRequest, config } from "@/middleware";
 
-const mockGetToken = getToken as jest.MockedFunction<typeof getToken>;
-type MiddlewareToken = NonNullable<Awaited<ReturnType<typeof getToken>>>;
+type SessionUser = {
+  role: "EMPLOYEE" | "ADMIN" | "SUPERUSER";
+  institutionSlug?: string;
+  id: string;
+};
 
-function makeToken(
-  role: "EMPLOYEE" | "ADMIN" | "SUPERUSER",
-  institutionSlug?: string,
-): MiddlewareToken {
-  return {
-    role,
-    ...(institutionSlug !== undefined ? { institutionSlug } : {}),
-  } as unknown as MiddlewareToken;
-}
-
-function makeRequest(pathname: string): NextRequest {
+function makeRequest(pathname: string, user?: SessionUser): NextAuthRequest {
   return {
     nextUrl: {
       pathname,
       clone: () => new URL(pathname, "http://localhost"),
     },
-  } as unknown as NextRequest;
+    auth: user ? ({ user } as NextAuthRequest["auth"]) : null,
+  } as unknown as NextAuthRequest;
+}
+
+function makeUser(role: "EMPLOYEE" | "ADMIN" | "SUPERUSER", institutionSlug?: string): SessionUser {
+  return {
+    id: "1",
+    role,
+    ...(institutionSlug !== undefined ? { institutionSlug } : {}),
+  };
 }
 
 describe("middleware", () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
   describe("config.matcher", () => {
     it("is defined", () => {
       expect(config.matcher).toBeDefined();
@@ -45,74 +50,72 @@ describe("middleware", () => {
     });
   });
 
-  it("redirects unauthenticated users to /login", async () => {
-    mockGetToken.mockResolvedValue(null);
-
-    const response = await middleware(makeRequest("/monarch-house/dashboard"));
+  it("redirects unauthenticated users to /login", () => {
+    const response = handleAuthorizedRequest(makeRequest("/monarch-house/dashboard"));
 
     expect(response.headers.get("location")).toContain("/login");
   });
 
-  it("allows EMPLOYEE users on permitted routes in their own institution", async () => {
-    mockGetToken.mockResolvedValue(makeToken("EMPLOYEE", "monarch-house"));
-
-    const response = await middleware(makeRequest("/monarch-house/shipments"));
-
-    expect(response.headers.get("location")).toBeNull();
-  });
-
-  it("allows EMPLOYEE users on organization route (view only)", async () => {
-    mockGetToken.mockResolvedValue(makeToken("EMPLOYEE", "monarch-house"));
-
-    const response = await middleware(makeRequest("/monarch-house/organization"));
+  it("allows EMPLOYEE users on permitted routes in their own institution", () => {
+    const response = handleAuthorizedRequest(
+      makeRequest("/monarch-house/shipments", makeUser("EMPLOYEE", "monarch-house")),
+    );
 
     expect(response.headers.get("location")).toBeNull();
   });
 
-  it("allows ADMIN users on shipments route in their own institution", async () => {
-    mockGetToken.mockResolvedValue(makeToken("ADMIN", "monarch-house"));
-
-    const response = await middleware(makeRequest("/monarch-house/shipments"));
-
-    expect(response.headers.get("location")).toBeNull();
-  });
-
-  it("allows ADMIN users on organization route", async () => {
-    mockGetToken.mockResolvedValue(makeToken("ADMIN", "monarch-house"));
-
-    const response = await middleware(makeRequest("/monarch-house/organization"));
+  it("allows EMPLOYEE users on organization route (view only)", () => {
+    const response = handleAuthorizedRequest(
+      makeRequest("/monarch-house/organization", makeUser("EMPLOYEE", "monarch-house")),
+    );
 
     expect(response.headers.get("location")).toBeNull();
   });
 
-  it("allows EMPLOYEE to access shipments/add (has CREATE_SHIPMENT)", async () => {
-    mockGetToken.mockResolvedValue(makeToken("EMPLOYEE", "monarch-house"));
-
-    const response = await middleware(makeRequest("/monarch-house/shipments/add"));
+  it("allows ADMIN users on shipments route in their own institution", () => {
+    const response = handleAuthorizedRequest(
+      makeRequest("/monarch-house/shipments", makeUser("ADMIN", "monarch-house")),
+    );
 
     expect(response.headers.get("location")).toBeNull();
   });
 
-  it("blocks users from accessing another institution", async () => {
-    mockGetToken.mockResolvedValue(makeToken("EMPLOYEE", "other-house"));
+  it("allows ADMIN users on organization route", () => {
+    const response = handleAuthorizedRequest(
+      makeRequest("/monarch-house/organization", makeUser("ADMIN", "monarch-house")),
+    );
 
-    const response = await middleware(makeRequest("/monarch-house/dashboard"));
+    expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("allows EMPLOYEE to access shipments/add (has CREATE_SHIPMENT)", () => {
+    const response = handleAuthorizedRequest(
+      makeRequest("/monarch-house/shipments/add", makeUser("EMPLOYEE", "monarch-house")),
+    );
+
+    expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("blocks users from accessing another institution", () => {
+    const response = handleAuthorizedRequest(
+      makeRequest("/monarch-house/dashboard", makeUser("EMPLOYEE", "other-house")),
+    );
 
     expect(response.headers.get("location")).toContain("/unauthorized");
   });
 
-  it("allows SUPERUSER across institutions", async () => {
-    mockGetToken.mockResolvedValue(makeToken("SUPERUSER", "other-house"));
-
-    const response = await middleware(makeRequest("/monarch-house/dashboard"));
+  it("allows SUPERUSER across institutions", () => {
+    const response = handleAuthorizedRequest(
+      makeRequest("/monarch-house/dashboard", makeUser("SUPERUSER", "other-house")),
+    );
 
     expect(response.headers.get("location")).toBeNull();
   });
 
-  it("redirects to /unauthorized when non-superuser has no institution slug", async () => {
-    mockGetToken.mockResolvedValue(makeToken("EMPLOYEE"));
-
-    const response = await middleware(makeRequest("/monarch-house/dashboard"));
+  it("redirects to /unauthorized when non-superuser has no institution slug", () => {
+    const response = handleAuthorizedRequest(
+      makeRequest("/monarch-house/dashboard", makeUser("EMPLOYEE")),
+    );
 
     expect(response.headers.get("location")).toContain("/unauthorized");
   });

@@ -9,6 +9,15 @@ jest.mock("next-auth", () => {
   }));
 });
 
+jest.mock("next-auth/providers/credentials", () => ({
+  __esModule: true,
+  default: jest.fn(() => ({ id: "credentials", type: "credentials" })),
+}));
+
+jest.mock("bcrypt", () => ({ compare: jest.fn() }));
+
+jest.mock("@/lib/db", () => ({ db: {} }));
+
 jest.mock("@/auth.config", () => ({
   default: { providers: [] },
 }));

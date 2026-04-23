@@ -1,9 +1,13 @@
-import { getToken } from "next-auth/jwt";
+import NextAuth, { type NextAuthRequest } from "next-auth";
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { authSecret } from "@/lib/auth-secret";
+import authConfig from "@/auth.config";
 import type { Role, Permission } from "@/lib/permissions";
 import { hasPermission } from "@/lib/permissions";
+
+// Build an Edge-safe NextAuth instance from the shared base config.
+// Using `auth()` as the middleware wrapper avoids the v4-era `getToken()` pitfalls
+// around JWE salt + cookie-name derivation in NextAuth v5.
+const { auth } = NextAuth(authConfig);
 
 // Middleware matcher: protects institution-scoped admin routes.
 // Route groups like (tenant) do not appear in the URL; actual paths are
@@ -26,15 +30,16 @@ const SUBSECTION_PERMISSION_MAP: Record<string, Permission> = {
   "shipments/add": "CREATE_SHIPMENT",
 };
 
-export default async function middleware(req: NextRequest) {
+/**
+ * Core authorization logic. Exported for unit tests (which construct `req` with a
+ * pre-populated `req.auth` instead of exercising the NextAuth wrapper).
+ */
+export function handleAuthorizedRequest(req: NextAuthRequest): NextResponse {
   const url = req.nextUrl.clone();
-
-  // Read token server-side. Shares a single resolved secret with NextAuth itself
-  // (see @/lib/auth-secret) so signing and verifying always agree.
-  const token = await getToken({ req, secret: authSecret });
+  const session = req.auth;
 
   // Not authenticated -> redirect to login
-  if (!token) {
+  if (!session?.user) {
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
@@ -45,7 +50,7 @@ export default async function middleware(req: NextRequest) {
   const section = parts[1] || "";
   const subsection = parts[2] || "";
 
-  const role = String(token.role || "").toUpperCase();
+  const role = String(session.user.role || "").toUpperCase();
 
   // Superuser has unrestricted access regardless of path or institution.
   if (role === "SUPERUSER") {
@@ -53,13 +58,13 @@ export default async function middleware(req: NextRequest) {
   }
 
   // Non-superusers must be scoped to a tenant.
-  if (!token.institutionSlug) {
+  if (!session.user.institutionSlug) {
     url.pathname = "/unauthorized";
     return NextResponse.redirect(url);
   }
 
   // Enforce institution scoping: users may only access their own tenant.
-  if (token.institutionSlug !== institutionParam) {
+  if (session.user.institutionSlug !== institutionParam) {
     url.pathname = "/unauthorized";
     return NextResponse.redirect(url);
   }
@@ -92,3 +97,5 @@ export default async function middleware(req: NextRequest) {
 
   return NextResponse.next();
 }
+
+export default auth(handleAuthorizedRequest);
