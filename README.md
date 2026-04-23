@@ -50,7 +50,7 @@ pnpm install
 
 # Copy environment variables
 cp .env.example .env
-# Edit .env and set NEXTAUTH_SECRET (generate one with: openssl rand -base64 32)
+# Edit .env and set AUTH_SECRET (generate one with: openssl rand -base64 32)
 
 # Start Docker services (PostgreSQL + Drizzle Studio)
 docker compose up -d
@@ -139,11 +139,11 @@ Notes:
 
 ## Environment Variables
 
-| Variable          | Description                  | Default                                                  |
-| ----------------- | ---------------------------- | -------------------------------------------------------- |
-| `DATABASE_URL`    | PostgreSQL connection string | `postgresql://postgres:postgres@localhost:5432/flutr-db` |
-| `NEXTAUTH_SECRET` | NextAuth encryption secret   | _(required, generate your own)_                          |
-| `NEXTAUTH_URL`    | Application base URL         | `http://localhost:3000`                                  |
+| Variable       | Description                                                         | Default                                                  |
+| -------------- | ------------------------------------------------------------------- | -------------------------------------------------------- |
+| `DATABASE_URL` | PostgreSQL connection string                                        | `postgresql://postgres:postgres@localhost:5432/flutr-db` |
+| `AUTH_SECRET`  | NextAuth encryption secret (`NEXTAUTH_SECRET` accepted as fallback) | _(required, generate your own)_                          |
+| `AUTH_URL`     | Application base URL                                                | `http://localhost:3000`                                  |
 
 ## Commands
 
