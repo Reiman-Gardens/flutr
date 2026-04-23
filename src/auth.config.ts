@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { users, institutions } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { normalizeRole } from "@/lib/authz";
+import { authSecret } from "@/lib/auth-secret";
 
 // NextAuth configuration: Credentials provider using bcrypt-hashed passwords
 // Important behavior:
@@ -16,6 +17,7 @@ import { normalizeRole } from "@/lib/authz";
 //   code can easily access `role`, `institutionId`, and `institutionSlug` (read-only).
 
 export default {
+  secret: authSecret,
   providers: [
     Credentials({
       // We accept `email` + `password` form fields

@@ -139,11 +139,11 @@ Notes:
 
 ## Environment Variables
 
-| Variable       | Description                                                                  | Default                                                  |
-| -------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------- |
-| `DATABASE_URL` | PostgreSQL connection string                                                 | `postgresql://postgres:postgres@localhost:5432/flutr-db` |
-| `AUTH_SECRET`  | NextAuth encryption secret (primary; `NEXTAUTH_SECRET` accepted as fallback) | _(required, generate your own)_                          |
-| `AUTH_URL`     | Application base URL (primary; `NEXTAUTH_URL` accepted as fallback)          | `http://localhost:3000`                                  |
+| Variable       | Description                                                         | Default                                                  |
+| -------------- | ------------------------------------------------------------------- | -------------------------------------------------------- |
+| `DATABASE_URL` | PostgreSQL connection string                                        | `postgresql://postgres:postgres@localhost:5432/flutr-db` |
+| `AUTH_SECRET`  | NextAuth encryption secret (`NEXTAUTH_SECRET` accepted as fallback) | _(required, generate your own)_                          |
+| `AUTH_URL`     | Application base URL                                                | `http://localhost:3000`                                  |
 
 ## Commands
 

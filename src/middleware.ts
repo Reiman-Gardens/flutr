@@ -1,6 +1,7 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { authSecret } from "@/lib/auth-secret";
 import type { Role, Permission } from "@/lib/permissions";
 import { hasPermission } from "@/lib/permissions";
 
@@ -28,11 +29,9 @@ const SUBSECTION_PERMISSION_MAP: Record<string, Permission> = {
 export default async function middleware(req: NextRequest) {
   const url = req.nextUrl.clone();
 
-  // Read token server-side. Requires AUTH_SECRET (or NEXTAUTH_SECRET fallback) to be set.
-  const token = await getToken({
-    req,
-    secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
-  });
+  // Read token server-side. Shares a single resolved secret with NextAuth itself
+  // (see @/lib/auth-secret) so signing and verifying always agree.
+  const token = await getToken({ req, secret: authSecret });
 
   // Not authenticated -> redirect to login
   if (!token) {
