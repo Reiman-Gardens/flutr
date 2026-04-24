@@ -771,9 +771,23 @@ describe("Shipments API", () => {
 
       const body = await response.json();
       expect(body.releaseEvents).toHaveLength(2);
-      expect(body.releaseEvents[0].id).toBe(3);
-      expect(body.releaseEvents[0].totalReleased).toBe(12);
-      expect(body.releaseEvents[0].totalLosses).toBe(4);
+      expect(body.releaseEvents[0]).toEqual({
+        id: 3,
+        releaseDate: "2025-03-10T00:00:00.000Z",
+        releasedBy: "Alice",
+        totalReleased: 12,
+        totalLosses: 4,
+      });
+      expect(body.releaseEvents[1]).toEqual({
+        id: 1,
+        releaseDate: "2025-03-01T00:00:00.000Z",
+        releasedBy: "Bob",
+        totalReleased: 5,
+        totalLosses: 0,
+      });
+      expect(new Date(body.releaseEvents[0].releaseDate).getTime()).toBeGreaterThan(
+        new Date(body.releaseEvents[1].releaseDate).getTime(),
+      );
       expect(mockGetTenantShipmentReleases).toHaveBeenCalledWith({ slug: SLUG, id: 5 });
     });
   });

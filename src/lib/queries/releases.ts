@@ -223,13 +223,34 @@ export function calculateRemaining(item: LockedShipmentItem, alreadyReleased: nu
 export async function listInstitutionReleases(institutionId: number, page: number, limit: number) {
   const offset = (page - 1) * limit;
 
+  const pagedReleaseEvents = db
+    .select({
+      id: release_events.id,
+      institutionId: release_events.institution_id,
+      shipmentId: release_events.shipment_id,
+      releaseDate: release_events.release_date,
+      releasedBy: release_events.released_by,
+    })
+    .from(release_events)
+    .where(eq(release_events.institution_id, institutionId))
+    .orderBy(desc(release_events.release_date))
+    .limit(limit)
+    .offset(offset)
+    .as("paged_release_events");
+
   const inFlightTotals = db
     .select({
       releaseEventId: in_flight.release_event_id,
       totalReleased: sql<number>`coalesce(sum(${in_flight.quantity}), 0)::int`.as("total_released"),
     })
     .from(in_flight)
-    .where(eq(in_flight.institution_id, institutionId))
+    .innerJoin(
+      pagedReleaseEvents,
+      and(
+        eq(pagedReleaseEvents.id, in_flight.release_event_id),
+        eq(pagedReleaseEvents.institutionId, in_flight.institution_id),
+      ),
+    )
     .groupBy(in_flight.release_event_id)
     .as("in_flight_totals");
 
@@ -245,17 +266,23 @@ export async function listInstitutionReleases(institutionId: number, page: numbe
       ), 0)::int`.as("total_losses"),
     })
     .from(release_event_losses)
-    .where(eq(release_event_losses.institution_id, institutionId))
+    .innerJoin(
+      pagedReleaseEvents,
+      and(
+        eq(pagedReleaseEvents.id, release_event_losses.release_event_id),
+        eq(pagedReleaseEvents.institutionId, release_event_losses.institution_id),
+      ),
+    )
     .groupBy(release_event_losses.release_event_id)
     .as("loss_totals");
 
   const [rows, totalResult] = await Promise.all([
     db
       .select({
-        id: release_events.id,
-        shipmentId: release_events.shipment_id,
-        releaseDate: release_events.release_date,
-        releasedBy: release_events.released_by,
+        id: pagedReleaseEvents.id,
+        shipmentId: pagedReleaseEvents.shipmentId,
+        releaseDate: pagedReleaseEvents.releaseDate,
+        releasedBy: pagedReleaseEvents.releasedBy,
         supplierCode: shipments.supplier_code,
         shipmentDate: shipments.shipment_date,
         totalReleased: sql<number>`coalesce(${inFlightTotals.totalReleased}, 0)::int`.as(
@@ -263,20 +290,17 @@ export async function listInstitutionReleases(institutionId: number, page: numbe
         ),
         totalLosses: sql<number>`coalesce(${lossTotals.totalLosses}, 0)::int`.as("total_losses"),
       })
-      .from(release_events)
+      .from(pagedReleaseEvents)
       .innerJoin(
         shipments,
         and(
-          eq(shipments.id, release_events.shipment_id),
-          eq(shipments.institution_id, release_events.institution_id),
+          eq(shipments.id, pagedReleaseEvents.shipmentId),
+          eq(shipments.institution_id, pagedReleaseEvents.institutionId),
         ),
       )
-      .leftJoin(inFlightTotals, eq(inFlightTotals.releaseEventId, release_events.id))
-      .leftJoin(lossTotals, eq(lossTotals.releaseEventId, release_events.id))
-      .where(eq(release_events.institution_id, institutionId))
-      .orderBy(desc(release_events.release_date))
-      .limit(limit)
-      .offset(offset),
+      .leftJoin(inFlightTotals, eq(inFlightTotals.releaseEventId, pagedReleaseEvents.id))
+      .leftJoin(lossTotals, eq(lossTotals.releaseEventId, pagedReleaseEvents.id))
+      .orderBy(desc(pagedReleaseEvents.releaseDate)),
 
     db
       .select({ total: count() })
@@ -303,13 +327,35 @@ export async function listInstitutionReleases(institutionId: number, page: numbe
  * render a meaningful "Released" column without an extra round-trip.
  */
 export async function listReleaseEventsForShipment(institutionId: number, shipmentId: number) {
+  const shipmentReleaseEvents = db
+    .select({
+      id: release_events.id,
+      institutionId: release_events.institution_id,
+      releaseDate: release_events.release_date,
+      releasedBy: release_events.released_by,
+    })
+    .from(release_events)
+    .where(
+      and(
+        eq(release_events.institution_id, institutionId),
+        eq(release_events.shipment_id, shipmentId),
+      ),
+    )
+    .as("shipment_release_events");
+
   const inFlightTotals = db
     .select({
       releaseEventId: in_flight.release_event_id,
       totalReleased: sql<number>`coalesce(sum(${in_flight.quantity}), 0)::int`.as("total_released"),
     })
     .from(in_flight)
-    .where(eq(in_flight.institution_id, institutionId))
+    .innerJoin(
+      shipmentReleaseEvents,
+      and(
+        eq(shipmentReleaseEvents.id, in_flight.release_event_id),
+        eq(shipmentReleaseEvents.institutionId, in_flight.institution_id),
+      ),
+    )
     .groupBy(in_flight.release_event_id)
     .as("in_flight_totals");
 
@@ -325,30 +371,30 @@ export async function listReleaseEventsForShipment(institutionId: number, shipme
       ), 0)::int`.as("total_losses"),
     })
     .from(release_event_losses)
-    .where(eq(release_event_losses.institution_id, institutionId))
+    .innerJoin(
+      shipmentReleaseEvents,
+      and(
+        eq(shipmentReleaseEvents.id, release_event_losses.release_event_id),
+        eq(shipmentReleaseEvents.institutionId, release_event_losses.institution_id),
+      ),
+    )
     .groupBy(release_event_losses.release_event_id)
     .as("loss_totals");
 
   return db
     .select({
-      id: release_events.id,
-      releaseDate: release_events.release_date,
-      releasedBy: release_events.released_by,
+      id: shipmentReleaseEvents.id,
+      releaseDate: shipmentReleaseEvents.releaseDate,
+      releasedBy: shipmentReleaseEvents.releasedBy,
       totalReleased: sql<number>`coalesce(${inFlightTotals.totalReleased}, 0)::int`.as(
         "total_released",
       ),
       totalLosses: sql<number>`coalesce(${lossTotals.totalLosses}, 0)::int`.as("total_losses"),
     })
-    .from(release_events)
-    .leftJoin(inFlightTotals, eq(inFlightTotals.releaseEventId, release_events.id))
-    .leftJoin(lossTotals, eq(lossTotals.releaseEventId, release_events.id))
-    .where(
-      and(
-        eq(release_events.institution_id, institutionId),
-        eq(release_events.shipment_id, shipmentId),
-      ),
-    )
-    .orderBy(desc(release_events.release_date));
+    .from(shipmentReleaseEvents)
+    .leftJoin(inFlightTotals, eq(inFlightTotals.releaseEventId, shipmentReleaseEvents.id))
+    .leftJoin(lossTotals, eq(lossTotals.releaseEventId, shipmentReleaseEvents.id))
+    .orderBy(desc(shipmentReleaseEvents.releaseDate));
 }
 
 /**

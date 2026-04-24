@@ -228,8 +228,16 @@ describe("Tenant Releases API", () => {
       const body = await response.json();
       expect(Array.isArray(body.releases)).toBe(true);
       expect(body.releases).toHaveLength(1);
-      expect(body.releases[0].id).toBe(9);
-      expect(body.releases[0].totalLosses).toBe(4);
+      expect(body.releases[0]).toEqual({
+        id: 9,
+        shipmentId: 55,
+        supplierCode: "SUP-1",
+        shipmentDate: "2026-03-01",
+        releaseDate: "2026-03-13",
+        releasedBy: "Alice",
+        totalReleased: 25,
+        totalLosses: 4,
+      });
       expect(body.pagination).toEqual({ page: 1, limit: 50, total: 1, totalPages: 1 });
       expect(mockGetTenantReleases).toHaveBeenCalledWith({ slug: SLUG, page: 1, limit: 50 });
     });
