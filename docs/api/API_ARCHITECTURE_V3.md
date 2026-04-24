@@ -172,14 +172,14 @@ All errors use a consistent JSON envelope:
 
 ### Status codes
 
-| Code  | Meaning                                                                                     |
-| ----- | ------------------------------------------------------------------------------------------- |
-| `400` | Invalid input (validation failure, missing slug header)                                     |
-| `401` | Not authenticated                                                                           |
-| `403` | Permission denied or wrong-tenant slug (slug exists but belongs to a different institution) |
-| `404` | Resource does not exist                                                                     |
-| `409` | Conflict (unique constraint violation)                                                      |
-| `500` | Unexpected internal error                                                                   |
+| Code  | Meaning                                                                                       |
+| ----- | --------------------------------------------------------------------------------------------- |
+| `400` | Invalid input (validation failure, missing slug header)                                       |
+| `401` | Not authenticated                                                                             |
+| `403` | Permission denied or wrong-tenant slug (slug exists but belongs to a different institution)   |
+| `404` | Resource does not exist                                                                       |
+| `409` | Conflict (unique constraint violation or domain-state conflict, e.g. quantity/rollback guard) |
+| `500` | Unexpected internal error                                                                     |
 
 ### Sentinel error → HTTP mapping (route catch blocks)
 

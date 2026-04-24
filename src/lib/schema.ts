@@ -1,4 +1,5 @@
 import {
+  check,
   integer,
   pgTable,
   serial,
@@ -11,6 +12,7 @@ import {
   foreignKey,
   unique,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import type { SpeciesFunFact } from "@/types/butterfly";
 
 /**
@@ -466,5 +468,81 @@ export const in_flight = pgTable(
       foreignColumns: [shipment_items.institution_id, shipment_items.id],
       name: "fk_in_flight_shipment_item_institution",
     }).onDelete("restrict"),
+  }),
+);
+
+/**
+ * Release Event Loss Attribution
+ *
+ * Stores event-level loss quantities attributed during a specific release.
+ * `shipment_items` remains the source of truth for current totals; this table
+ * is workflow/history attribution only.
+ */
+export const release_event_losses = pgTable(
+  "release_event_losses",
+  {
+    id: serial("id").primaryKey(),
+
+    institution_id: integer("institution_id")
+      .notNull()
+      .references(() => institutions.id, { onDelete: "cascade" }),
+
+    release_event_id: integer("release_event_id").notNull(),
+    shipment_item_id: integer("shipment_item_id").notNull(),
+
+    damaged_in_transit: integer("damaged_in_transit").notNull().default(0),
+    diseased_in_transit: integer("diseased_in_transit").notNull().default(0),
+    parasite: integer("parasite").notNull().default(0),
+    non_emergence: integer("non_emergence").notNull().default(0),
+    poor_emergence: integer("poor_emergence").notNull().default(0),
+
+    created_at: timestamp("created_at").defaultNow().notNull(),
+    updated_at: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    unique_release_event_losses_shipment_item: uniqueIndex(
+      "unique_release_event_losses_shipment_item",
+    ).on(table.release_event_id, table.shipment_item_id),
+
+    idx_release_event_losses_institution_event: index(
+      "idx_release_event_losses_institution_event",
+    ).on(table.institution_id, table.release_event_id),
+
+    idx_release_event_losses_institution_shipment_item: index(
+      "idx_release_event_losses_institution_shipment_item",
+    ).on(table.institution_id, table.shipment_item_id),
+
+    fk_release_event_losses_event_institution: foreignKey({
+      columns: [table.institution_id, table.release_event_id],
+      foreignColumns: [release_events.institution_id, release_events.id],
+      name: "fk_release_event_losses_event_institution",
+    }).onDelete("cascade"),
+
+    fk_release_event_losses_shipment_item_institution: foreignKey({
+      columns: [table.institution_id, table.shipment_item_id],
+      foreignColumns: [shipment_items.institution_id, shipment_items.id],
+      name: "fk_release_event_losses_shipment_item_institution",
+    }).onDelete("restrict"),
+
+    ck_release_event_losses_damaged_nonnegative: check(
+      "ck_release_event_losses_damaged_nonnegative",
+      sql`${table.damaged_in_transit} >= 0`,
+    ),
+    ck_release_event_losses_diseased_nonnegative: check(
+      "ck_release_event_losses_diseased_nonnegative",
+      sql`${table.diseased_in_transit} >= 0`,
+    ),
+    ck_release_event_losses_parasite_nonnegative: check(
+      "ck_release_event_losses_parasite_nonnegative",
+      sql`${table.parasite} >= 0`,
+    ),
+    ck_release_event_losses_non_emergence_nonnegative: check(
+      "ck_release_event_losses_non_emergence_nonnegative",
+      sql`${table.non_emergence} >= 0`,
+    ),
+    ck_release_event_losses_poor_emergence_nonnegative: check(
+      "ck_release_event_losses_poor_emergence_nonnegative",
+      sql`${table.poor_emergence} >= 0`,
+    ),
   }),
 );

@@ -36,8 +36,24 @@ describe("createReleaseFromShipmentSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("rejects an empty items array", () => {
+  it("rejects a payload with no release items and no loss updates", () => {
     const result = createReleaseFromShipmentSchema.safeParse({ items: [] });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts a losses-only payload with empty items", () => {
+    const result = createReleaseFromShipmentSchema.safeParse({
+      items: [],
+      loss_updates: [{ shipment_item_id: 1, poor_emergence: 2 }],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a losses-only payload when loss_updates rows are no-op", () => {
+    const result = createReleaseFromShipmentSchema.safeParse({
+      items: [],
+      loss_updates: [{ shipment_item_id: 1 }],
+    });
     expect(result.success).toBe(false);
   });
 
@@ -177,7 +193,31 @@ describe("updateReleaseEventItemsSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("rejects an empty items array", () => {
+  it("accepts event-level losses payload", () => {
+    const result = updateReleaseEventItemsSchema.safeParse({
+      items: [],
+      losses: [
+        {
+          shipment_item_id: 1,
+          damaged_in_transit: 0,
+          diseased_in_transit: 0,
+          parasite: 0,
+          non_emergence: 0,
+          poor_emergence: 2,
+        },
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("allows zero quantities in items (edit can clear rows)", () => {
+    const result = updateReleaseEventItemsSchema.safeParse({
+      items: [{ shipment_item_id: 1, quantity: 0 }],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects payloads with no items and no losses", () => {
     expect(updateReleaseEventItemsSchema.safeParse({ items: [] }).success).toBe(false);
   });
 
@@ -186,6 +226,49 @@ describe("updateReleaseEventItemsSchema", () => {
       items: [
         { shipment_item_id: 1, quantity: 1 },
         { shipment_item_id: 1, quantity: 2 },
+      ],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects duplicate shipment_item_id values in losses", () => {
+    const result = updateReleaseEventItemsSchema.safeParse({
+      items: [{ shipment_item_id: 1, quantity: 1 }],
+      losses: [
+        {
+          shipment_item_id: 2,
+          damaged_in_transit: 0,
+          diseased_in_transit: 0,
+          parasite: 0,
+          non_emergence: 0,
+          poor_emergence: 1,
+        },
+        {
+          shipment_item_id: 2,
+          damaged_in_transit: 1,
+          diseased_in_transit: 0,
+          parasite: 0,
+          non_emergence: 0,
+          poor_emergence: 0,
+        },
+      ],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects unknown keys inside losses rows", () => {
+    const result = updateReleaseEventItemsSchema.safeParse({
+      items: [{ shipment_item_id: 1, quantity: 1 }],
+      losses: [
+        {
+          shipment_item_id: 2,
+          damaged_in_transit: 0,
+          diseased_in_transit: 0,
+          parasite: 0,
+          non_emergence: 0,
+          poor_emergence: 1,
+          extra: 1,
+        },
       ],
     });
     expect(result.success).toBe(false);

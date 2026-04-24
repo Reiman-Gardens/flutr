@@ -747,8 +747,20 @@ describe("Shipments API", () => {
 
     it("returns 200 with release events list", async () => {
       mockGetTenantShipmentReleases.mockResolvedValueOnce([
-        { id: 3, releaseDate: new Date("2025-03-10"), releasedBy: "Alice" },
-        { id: 1, releaseDate: new Date("2025-03-01"), releasedBy: "Bob" },
+        {
+          id: 3,
+          releaseDate: new Date("2025-03-10"),
+          releasedBy: "Alice",
+          totalReleased: 12,
+          totalLosses: 4,
+        },
+        {
+          id: 1,
+          releaseDate: new Date("2025-03-01"),
+          releasedBy: "Bob",
+          totalReleased: 5,
+          totalLosses: 0,
+        },
       ]);
 
       const response = (await getShipmentReleases(
@@ -760,6 +772,8 @@ describe("Shipments API", () => {
       const body = await response.json();
       expect(body.releaseEvents).toHaveLength(2);
       expect(body.releaseEvents[0].id).toBe(3);
+      expect(body.releaseEvents[0].totalReleased).toBe(12);
+      expect(body.releaseEvents[0].totalLosses).toBe(4);
       expect(mockGetTenantShipmentReleases).toHaveBeenCalledWith({ slug: SLUG, id: 5 });
     });
   });

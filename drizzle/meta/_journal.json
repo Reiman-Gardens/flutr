@@ -36,6 +36,13 @@
       "when": 1776791250075,
       "tag": "0004_odd_reaper",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1777043238117,
+      "tag": "0005_pale_chimera",
+      "breakpoints": true
     }
   ]
 }

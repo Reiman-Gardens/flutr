@@ -1,7 +1,13 @@
 import { and, count, desc, eq, inArray, ne, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { in_flight, release_events, shipment_items, shipments } from "@/lib/schema";
+import {
+  in_flight,
+  release_event_losses,
+  release_events,
+  shipment_items,
+  shipments,
+} from "@/lib/schema";
 
 import type {
   CreateInFlightBody,
@@ -20,8 +26,12 @@ export const RELEASE_ERRORS = {
   INVALID_QUANTITY: "Quantity must be a positive integer",
   SHIPMENT_ITEM_RELEASE_MISMATCH: "Shipment item does not belong to the release shipment",
   QUANTITY_EXCEEDS_REMAINING: "Quantity exceeds remaining available butterflies",
-  RELEASE_ITEMS_MUST_MATCH:
-    "Release update must include every existing in-flight row for the release event",
+  NEGATIVE_LOSS_DELTA:
+    "Create release loss_updates cannot decrease shipment loss totals; use shipment edit for corrections",
+  LOSS_TOTAL_UNDERFLOW:
+    "Release edit would reduce shipment loss totals below zero; adjust shipment totals first",
+  EMPTY_RELEASE_EVENT:
+    "Release must include at least one in-flight or loss quantity; delete release instead",
 } as const;
 
 type LockedShipmentItem = {
@@ -42,11 +52,62 @@ const LOSS_COLUMNS = [
   "non_emergence",
   "poor_emergence",
 ] as const;
+type LossColumn = (typeof LOSS_COLUMNS)[number];
+type LossValues = Record<LossColumn, number>;
 
 type ReleaseItemInput = {
   shipment_item_id: number;
   quantity: number;
 };
+
+type ReleaseLossRowInput = {
+  shipment_item_id: number;
+} & LossValues;
+
+/**
+ * Create-flow loss_updates are absolute shipment_item totals. Convert those to
+ * positive event attribution deltas and reject any decrease attempts.
+ */
+export function computeCreateLossDelta(
+  existing: LossValues,
+  update: Partial<Record<LossColumn, number>>,
+) {
+  const absolutePatch: Partial<Record<LossColumn, number>> = {};
+  const attributionDelta: Partial<Record<LossColumn, number>> = {};
+
+  for (const column of LOSS_COLUMNS) {
+    const next = update[column];
+    if (typeof next !== "number") continue;
+
+    const delta = next - existing[column];
+    if (delta < 0) {
+      throw new Error(RELEASE_ERRORS.NEGATIVE_LOSS_DELTA);
+    }
+
+    absolutePatch[column] = next;
+    if (delta > 0) {
+      attributionDelta[column] = delta;
+    }
+  }
+
+  return { absolutePatch, attributionDelta };
+}
+
+/**
+ * Delete-flow rollback: subtract event-level loss attribution from current
+ * shipment loss totals. Throws when subtraction would underflow.
+ */
+export function computeDeleteLossRollbackPatch(existing: LossValues, eventLoss: LossValues) {
+  const next = { ...existing };
+  for (const column of LOSS_COLUMNS) {
+    const rolledBack = next[column] - eventLoss[column];
+    if (rolledBack < 0) {
+      throw new Error(RELEASE_ERRORS.LOSS_TOTAL_UNDERFLOW);
+    }
+    next[column] = rolledBack;
+  }
+  return next;
+}
 
 function isPositiveInteger(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value > 0;
@@ -66,6 +127,46 @@ function assertReleaseItems(items: ReleaseItemInput[]) {
 
     seen.add(item.shipment_item_id);
   }
+}
+
+function assertUpdateReleaseItems(items: ReleaseItemInput[]) {
+  const seen = new Set<number>();
+
+  for (const item of items) {
+    if (
+      typeof item.quantity !== "number" ||
+      !Number.isInteger(item.quantity) ||
+      item.quantity < 0
+    ) {
+      throw new Error(RELEASE_ERRORS.INVALID_QUANTITY);
+    }
+
+    if (seen.has(item.shipment_item_id)) {
+      throw new Error(RELEASE_ERRORS.DUPLICATE_SHIPMENT_ITEM);
+    }
+
+    seen.add(item.shipment_item_id);
+  }
+}
+
+function toLossValues(row?: Partial<LossValues>): LossValues {
+  return {
+    damaged_in_transit: row?.damaged_in_transit ?? 0,
+    diseased_in_transit: row?.diseased_in_transit ?? 0,
+    parasite: row?.parasite ?? 0,
+    non_emergence: row?.non_emergence ?? 0,
+    poor_emergence: row?.poor_emergence ?? 0,
+  };
+}
+
+function sumLossValues(values: LossValues) {
+  return (
+    values.damaged_in_transit +
+    values.diseased_in_transit +
+    values.parasite +
+    values.non_emergence +
+    values.poor_emergence
+  );
 }
 
 function assertInFlightQuantity(quantity: UpdateInFlightQuantityBody["quantity"]) {
@@ -122,6 +223,32 @@ export function calculateRemaining(item: LockedShipmentItem, alreadyReleased: nu
 export async function listInstitutionReleases(institutionId: number, page: number, limit: number) {
   const offset = (page - 1) * limit;
 
+  const inFlightTotals = db
+    .select({
+      releaseEventId: in_flight.release_event_id,
+      totalReleased: sql<number>`coalesce(sum(${in_flight.quantity}), 0)::int`.as("total_released"),
+    })
+    .from(in_flight)
+    .where(eq(in_flight.institution_id, institutionId))
+    .groupBy(in_flight.release_event_id)
+    .as("in_flight_totals");
+
+  const lossTotals = db
+    .select({
+      releaseEventId: release_event_losses.release_event_id,
+      totalLosses: sql<number>`coalesce(sum(
+        ${release_event_losses.damaged_in_transit}
+        + ${release_event_losses.diseased_in_transit}
+        + ${release_event_losses.parasite}
+        + ${release_event_losses.non_emergence}
+        + ${release_event_losses.poor_emergence}
+      ), 0)::int`.as("total_losses"),
+    })
+    .from(release_event_losses)
+    .where(eq(release_event_losses.institution_id, institutionId))
+    .groupBy(release_event_losses.release_event_id)
+    .as("loss_totals");
+
   const [rows, totalResult] = await Promise.all([
     db
       .select({
@@ -131,9 +258,10 @@ export async function listInstitutionReleases(institutionId: number, page: numbe
         releasedBy: release_events.released_by,
         supplierCode: shipments.supplier_code,
         shipmentDate: shipments.shipment_date,
-        totalReleased: sql<number>`coalesce(sum(${in_flight.quantity}), 0)::int`.as(
+        totalReleased: sql<number>`coalesce(${inFlightTotals.totalReleased}, 0)::int`.as(
           "total_released",
         ),
+        totalLosses: sql<number>`coalesce(${lossTotals.totalLosses}, 0)::int`.as("total_losses"),
       })
       .from(release_events)
       .innerJoin(
@@ -143,22 +271,9 @@ export async function listInstitutionReleases(institutionId: number, page: numbe
           eq(shipments.institution_id, release_events.institution_id),
         ),
       )
-      .leftJoin(
-        in_flight,
-        and(
-          eq(in_flight.release_event_id, release_events.id),
-          eq(in_flight.institution_id, release_events.institution_id),
-        ),
-      )
+      .leftJoin(inFlightTotals, eq(inFlightTotals.releaseEventId, release_events.id))
+      .leftJoin(lossTotals, eq(lossTotals.releaseEventId, release_events.id))
       .where(eq(release_events.institution_id, institutionId))
-      .groupBy(
-        release_events.id,
-        release_events.shipment_id,
-        release_events.release_date,
-        release_events.released_by,
-        shipments.supplier_code,
-        shipments.shipment_date,
-      )
       .orderBy(desc(release_events.release_date))
       .limit(limit)
       .offset(offset),
@@ -188,33 +303,56 @@ export async function listInstitutionReleases(institutionId: number, page: numbe
  * render a meaningful "Released" column without an extra round-trip.
  */
 export async function listReleaseEventsForShipment(institutionId: number, shipmentId: number) {
+  const inFlightTotals = db
+    .select({
+      releaseEventId: in_flight.release_event_id,
+      totalReleased: sql<number>`coalesce(sum(${in_flight.quantity}), 0)::int`.as("total_released"),
+    })
+    .from(in_flight)
+    .where(eq(in_flight.institution_id, institutionId))
+    .groupBy(in_flight.release_event_id)
+    .as("in_flight_totals");
+
+  const lossTotals = db
+    .select({
+      releaseEventId: release_event_losses.release_event_id,
+      totalLosses: sql<number>`coalesce(sum(
+        ${release_event_losses.damaged_in_transit}
+        + ${release_event_losses.diseased_in_transit}
+        + ${release_event_losses.parasite}
+        + ${release_event_losses.non_emergence}
+        + ${release_event_losses.poor_emergence}
+      ), 0)::int`.as("total_losses"),
+    })
+    .from(release_event_losses)
+    .where(eq(release_event_losses.institution_id, institutionId))
+    .groupBy(release_event_losses.release_event_id)
+    .as("loss_totals");
+
   return db
     .select({
       id: release_events.id,
       releaseDate: release_events.release_date,
       releasedBy: release_events.released_by,
-      totalReleased: sql<number>`coalesce(sum(${in_flight.quantity}), 0)::int`.as("total_released"),
+      totalReleased: sql<number>`coalesce(${inFlightTotals.totalReleased}, 0)::int`.as(
+        "total_released",
+      ),
+      totalLosses: sql<number>`coalesce(${lossTotals.totalLosses}, 0)::int`.as("total_losses"),
     })
     .from(release_events)
-    .leftJoin(
-      in_flight,
-      and(
-        eq(in_flight.release_event_id, release_events.id),
-        eq(in_flight.institution_id, release_events.institution_id),
-      ),
-    )
+    .leftJoin(inFlightTotals, eq(inFlightTotals.releaseEventId, release_events.id))
+    .leftJoin(lossTotals, eq(lossTotals.releaseEventId, release_events.id))
     .where(
       and(
         eq(release_events.institution_id, institutionId),
         eq(release_events.shipment_id, shipmentId),
       ),
     )
-    .groupBy(release_events.id, release_events.release_date, release_events.released_by)
     .orderBy(desc(release_events.release_date));
 }
 
 /**
- * Fetch a release event and its in-flight items.
+ * Fetch a release event and its in-flight + loss attribution items.
  */
 export async function getReleaseEventWithItems(institutionId: number, releaseEventId: number) {
   const [event] = await db
@@ -249,7 +387,26 @@ export async function getReleaseEventWithItems(institutionId: number, releaseEve
     )
     .orderBy(in_flight.id);
 
-  return { event, items };
+  const losses = await db
+    .select({
+      id: release_event_losses.id,
+      shipmentItemId: release_event_losses.shipment_item_id,
+      damagedInTransit: release_event_losses.damaged_in_transit,
+      diseasedInTransit: release_event_losses.diseased_in_transit,
+      parasite: release_event_losses.parasite,
+      nonEmergence: release_event_losses.non_emergence,
+      poorEmergence: release_event_losses.poor_emergence,
+    })
+    .from(release_event_losses)
+    .where(
+      and(
+        eq(release_event_losses.release_event_id, releaseEventId),
+        eq(release_event_losses.institution_id, institutionId),
+      ),
+    )
+    .orderBy(release_event_losses.id);
+
+  return { event, items, losses };
 }
 
 /**
@@ -260,7 +417,7 @@ export async function updateReleaseEventItems(
   releaseEventId: number,
   payload: UpdateReleaseEventItemsBody,
 ) {
-  assertReleaseItems(payload.items);
+  assertUpdateReleaseItems(payload.items);
 
   return db.transaction(async (tx) => {
     const [releaseEvent] = await tx
@@ -281,13 +438,7 @@ export async function updateReleaseEventItems(
       throw new Error(RELEASE_ERRORS.RELEASE_EVENT_NOT_FOUND);
     }
 
-    const shipmentItemIds = payload.items.map((item) => item.shipment_item_id);
-
-    // Read every in-flight row for the release event so we can enforce that
-    // the caller supplied an update for each one. Partial updates (omitting
-    // an existing row) would silently leave that row untouched, which is
-    // almost never what the UI intends.
-    const existingRows = await tx
+    const existingInFlightRows = await tx
       .select({
         id: in_flight.id,
         shipmentItemId: in_flight.shipment_item_id,
@@ -302,15 +453,71 @@ export async function updateReleaseEventItems(
       )
       .for("update");
 
-    const payloadSet = new Set(shipmentItemIds);
-    if (
-      existingRows.length !== payloadSet.size ||
-      existingRows.some((row) => !payloadSet.has(row.shipmentItemId))
-    ) {
-      throw new Error(RELEASE_ERRORS.RELEASE_ITEMS_MUST_MATCH);
+    const existingLossRows = await tx
+      .select({
+        id: release_event_losses.id,
+        shipmentItemId: release_event_losses.shipment_item_id,
+        damaged_in_transit: release_event_losses.damaged_in_transit,
+        diseased_in_transit: release_event_losses.diseased_in_transit,
+        parasite: release_event_losses.parasite,
+        non_emergence: release_event_losses.non_emergence,
+        poor_emergence: release_event_losses.poor_emergence,
+      })
+      .from(release_event_losses)
+      .where(
+        and(
+          eq(release_event_losses.institution_id, institutionId),
+          eq(release_event_losses.release_event_id, releaseEventId),
+        ),
+      )
+      .for("update");
+
+    const existingInFlightByShipmentItemId = new Map(
+      existingInFlightRows.map((row) => [row.shipmentItemId, row]),
+    );
+    const existingLossByShipmentItemId = new Map(
+      existingLossRows.map((row) => [row.shipmentItemId, row]),
+    );
+
+    const desiredInFlightByShipmentItemId = new Map<number, number>(
+      payload.items.map((row) => [row.shipment_item_id, row.quantity]),
+    );
+
+    // Edit semantics: `losses` are event-level final values for this release.
+    // To preserve current UI behavior during rollout, omitted `losses` means
+    // "leave existing event losses unchanged".
+    const desiredLossByShipmentItemId = new Map<number, LossValues>();
+    if (Array.isArray(payload.losses)) {
+      for (const row of payload.losses) {
+        desiredLossByShipmentItemId.set(row.shipment_item_id, toLossValues(row));
+      }
+    } else {
+      for (const row of existingLossRows) {
+        desiredLossByShipmentItemId.set(
+          row.shipmentItemId,
+          toLossValues({
+            damaged_in_transit: row.damaged_in_transit,
+            diseased_in_transit: row.diseased_in_transit,
+            parasite: row.parasite,
+            non_emergence: row.non_emergence,
+            poor_emergence: row.poor_emergence,
+          }),
+        );
+      }
     }
 
-    const existingByShipmentItemId = new Map(existingRows.map((row) => [row.shipmentItemId, row]));
+    const touchedItemIdSet = new Set<number>([
+      ...existingInFlightRows.map((row) => row.shipmentItemId),
+      ...existingLossRows.map((row) => row.shipmentItemId),
+      ...Array.from(desiredInFlightByShipmentItemId.keys()),
+      ...Array.from(desiredLossByShipmentItemId.keys()),
+    ]);
+
+    if (touchedItemIdSet.size === 0) {
+      throw new Error(RELEASE_ERRORS.EMPTY_RELEASE_EVENT);
+    }
+
+    const touchedItemIds = Array.from(touchedItemIdSet);
 
     const lockedItems = await tx
       .select({
@@ -328,19 +535,71 @@ export async function updateReleaseEventItems(
         and(
           eq(shipment_items.institution_id, institutionId),
           eq(shipment_items.shipment_id, releaseEvent.shipmentId),
-          inArray(shipment_items.id, shipmentItemIds),
+          inArray(shipment_items.id, touchedItemIds),
         ),
       )
       .for("update");
 
-    if (lockedItems.length !== shipmentItemIds.length) {
+    if (lockedItems.length !== touchedItemIds.length) {
       throw new Error(RELEASE_ERRORS.SHIPMENT_ITEM_NOT_FOUND);
     }
 
-    const lockedItemById = new Map(lockedItems.map((row) => [row.id, row]));
+    const lockedItemById = new Map(lockedItems.map((row) => [row.id, { ...row }]));
+    const originalLockedItemById = new Map(lockedItems.map((row) => [row.id, row]));
+    const shipmentLossPatchByItemId = new Map<number, LossValues>();
+
+    // Apply event-level loss deltas to shipment source-of-truth loss totals.
+    for (const shipmentItemId of touchedItemIds) {
+      const existingEventLoss = toLossValues(
+        existingLossByShipmentItemId.get(shipmentItemId)
+          ? {
+              damaged_in_transit:
+                existingLossByShipmentItemId.get(shipmentItemId)!.damaged_in_transit,
+              diseased_in_transit:
+                existingLossByShipmentItemId.get(shipmentItemId)!.diseased_in_transit,
+              parasite: existingLossByShipmentItemId.get(shipmentItemId)!.parasite,
+              non_emergence: existingLossByShipmentItemId.get(shipmentItemId)!.non_emergence,
+              poor_emergence: existingLossByShipmentItemId.get(shipmentItemId)!.poor_emergence,
+            }
+          : undefined,
+      );
+      const desiredEventLoss = desiredLossByShipmentItemId.get(shipmentItemId) ?? toLossValues();
+      const row = lockedItemById.get(shipmentItemId);
+      const originalRow = originalLockedItemById.get(shipmentItemId);
+      if (!row || !originalRow) {
+        throw new Error(RELEASE_ERRORS.SHIPMENT_ITEM_NOT_FOUND);
+      }
+
+      for (const column of LOSS_COLUMNS) {
+        const next = row[column] + (desiredEventLoss[column] - existingEventLoss[column]);
+        if (next < 0) {
+          throw new Error(RELEASE_ERRORS.LOSS_TOTAL_UNDERFLOW);
+        }
+        row[column] = next;
+      }
+
+      const nextLosses = toLossValues({
+        damaged_in_transit: row.damaged_in_transit,
+        diseased_in_transit: row.diseased_in_transit,
+        parasite: row.parasite,
+        non_emergence: row.non_emergence,
+        poor_emergence: row.poor_emergence,
+      });
+      const originalLosses = toLossValues({
+        damaged_in_transit: originalRow.damaged_in_transit,
+        diseased_in_transit: originalRow.diseased_in_transit,
+        parasite: originalRow.parasite,
+        non_emergence: originalRow.non_emergence,
+        poor_emergence: originalRow.poor_emergence,
+      });
+
+      if (LOSS_COLUMNS.some((column) => nextLosses[column] !== originalLosses[column])) {
+        shipmentLossPatchByItemId.set(shipmentItemId, nextLosses);
+      }
+    }
 
     // Bulk-fetch total released per shipment item in one query, then subtract
-    // each item's own current quantity in JS — eliminates the per-item N+1.
+    // the current release event's row quantity in JS.
     const releasedTotalsRows = await tx
       .select({
         shipment_item_id: in_flight.shipment_item_id,
@@ -350,7 +609,7 @@ export async function updateReleaseEventItems(
       .where(
         and(
           eq(in_flight.institution_id, institutionId),
-          inArray(in_flight.shipment_item_id, shipmentItemIds),
+          inArray(in_flight.shipment_item_id, touchedItemIds),
         ),
       )
       .groupBy(in_flight.shipment_item_id);
@@ -359,27 +618,140 @@ export async function updateReleaseEventItems(
       releasedTotalsRows.map((row) => [row.shipment_item_id, Number(row.total)]),
     );
 
-    for (const item of payload.items) {
-      const existing = existingByShipmentItemId.get(item.shipment_item_id);
-      const locked = lockedItemById.get(item.shipment_item_id);
-
-      if (!existing || !locked) {
+    // Validate desired in-flight quantities against post-loss shipment state.
+    for (const shipmentItemId of touchedItemIds) {
+      const locked = lockedItemById.get(shipmentItemId);
+      if (!locked) {
         throw new Error(RELEASE_ERRORS.SHIPMENT_ITEM_NOT_FOUND);
       }
 
-      // Total released minus the current row's quantity = released by other rows
-      const totalReleased = releasedTotalByShipmentItemId.get(item.shipment_item_id) ?? 0;
-      const alreadyReleased = totalReleased - existing.quantity;
+      const existingEventInFlight =
+        existingInFlightByShipmentItemId.get(shipmentItemId)?.quantity ?? 0;
+      const desiredEventInFlight = desiredInFlightByShipmentItemId.get(shipmentItemId) ?? 0;
+      const totalReleased = releasedTotalByShipmentItemId.get(shipmentItemId) ?? 0;
+      const alreadyReleased = totalReleased - existingEventInFlight;
       const remaining = calculateRemaining(locked, alreadyReleased);
 
-      if (item.quantity > remaining) {
+      if (desiredEventInFlight > remaining) {
         throw new Error(RELEASE_ERRORS.QUANTITY_EXCEEDS_REMAINING);
       }
+    }
 
+    const finalInFlightTotal = Array.from(desiredInFlightByShipmentItemId.values()).reduce(
+      (sum, qty) => sum + qty,
+      0,
+    );
+    const finalLossTotal = Array.from(desiredLossByShipmentItemId.values()).reduce(
+      (sum, values) => sum + sumLossValues(values),
+      0,
+    );
+    if (finalInFlightTotal === 0 && finalLossTotal === 0) {
+      throw new Error(RELEASE_ERRORS.EMPTY_RELEASE_EVENT);
+    }
+
+    for (const [shipmentItemId, patch] of shipmentLossPatchByItemId) {
       await tx
-        .update(in_flight)
-        .set({ quantity: item.quantity, updated_at: new Date() })
-        .where(and(eq(in_flight.id, existing.id), eq(in_flight.institution_id, institutionId)));
+        .update(shipment_items)
+        .set({ ...patch, updated_at: new Date() })
+        .where(
+          and(
+            eq(shipment_items.id, shipmentItemId),
+            eq(shipment_items.institution_id, institutionId),
+          ),
+        );
+    }
+
+    const existingInFlightItemIds = new Set<number>();
+    for (const existingRow of existingInFlightRows) {
+      existingInFlightItemIds.add(existingRow.shipmentItemId);
+      const desiredQuantity = desiredInFlightByShipmentItemId.get(existingRow.shipmentItemId) ?? 0;
+      if (desiredQuantity === 0) {
+        await tx
+          .delete(in_flight)
+          .where(
+            and(eq(in_flight.id, existingRow.id), eq(in_flight.institution_id, institutionId)),
+          );
+        continue;
+      }
+
+      if (desiredQuantity !== existingRow.quantity) {
+        await tx
+          .update(in_flight)
+          .set({ quantity: desiredQuantity, updated_at: new Date() })
+          .where(
+            and(eq(in_flight.id, existingRow.id), eq(in_flight.institution_id, institutionId)),
+          );
+      }
+    }
+
+    const newInFlightRows = Array.from(desiredInFlightByShipmentItemId.entries())
+      .filter(
+        ([shipmentItemId, quantity]) =>
+          quantity > 0 && !existingInFlightItemIds.has(shipmentItemId),
+      )
+      .map(([shipmentItemId, quantity]) => ({
+        institution_id: institutionId,
+        release_event_id: releaseEventId,
+        shipment_item_id: shipmentItemId,
+        quantity,
+      }));
+
+    if (newInFlightRows.length > 0) {
+      await tx.insert(in_flight).values(newInFlightRows);
+    }
+
+    const existingLossItemIds = new Set<number>();
+    for (const existingRow of existingLossRows) {
+      existingLossItemIds.add(existingRow.shipmentItemId);
+      const desiredLosses =
+        desiredLossByShipmentItemId.get(existingRow.shipmentItemId) ?? toLossValues();
+      if (sumLossValues(desiredLosses) === 0) {
+        await tx
+          .delete(release_event_losses)
+          .where(
+            and(
+              eq(release_event_losses.id, existingRow.id),
+              eq(release_event_losses.institution_id, institutionId),
+            ),
+          );
+        continue;
+      }
+
+      const currentLosses = toLossValues({
+        damaged_in_transit: existingRow.damaged_in_transit,
+        diseased_in_transit: existingRow.diseased_in_transit,
+        parasite: existingRow.parasite,
+        non_emergence: existingRow.non_emergence,
+        poor_emergence: existingRow.poor_emergence,
+      });
+
+      if (LOSS_COLUMNS.some((column) => desiredLosses[column] !== currentLosses[column])) {
+        await tx
+          .update(release_event_losses)
+          .set({ ...desiredLosses, updated_at: new Date() })
+          .where(
+            and(
+              eq(release_event_losses.id, existingRow.id),
+              eq(release_event_losses.institution_id, institutionId),
+            ),
+          );
+      }
+    }
+
+    const newLossRows = Array.from(desiredLossByShipmentItemId.entries())
+      .filter(
+        ([shipmentItemId, losses]) =>
+          sumLossValues(losses) > 0 && !existingLossItemIds.has(shipmentItemId),
+      )
+      .map(([shipmentItemId, losses]) => ({
+        institution_id: institutionId,
+        release_event_id: releaseEventId,
+        shipment_item_id: shipmentItemId,
+        ...losses,
+      }));
+
+    if (newLossRows.length > 0) {
+      await tx.insert(release_event_losses).values(newLossRows);
     }
 
     return { updated: true };
@@ -447,35 +819,60 @@ export async function createReleaseFromShipment(
       throw new Error(RELEASE_ERRORS.SHIPMENT_ITEM_NOT_FOUND);
     }
 
-    // Apply loss updates in memory + via UPDATE statements so downstream
-    // remaining checks see the corrected inventory.
+    // Create flow accepts absolute loss totals; we apply those to
+    // shipment_items and separately persist only positive per-event deltas.
     const lockedMutableItems = new Map(lockedItems.map((row) => [row.id, { ...row }]));
+    const lossAttributionRows: Array<{ shipment_item_id: number } & LossValues> = [];
     for (const update of lossUpdates) {
       const row = lockedMutableItems.get(update.shipment_item_id);
       if (!row) {
         throw new Error(RELEASE_ERRORS.SHIPMENT_ITEM_NOT_FOUND);
       }
 
-      const patch: Partial<Record<(typeof LOSS_COLUMNS)[number], number>> = {};
-      for (const column of LOSS_COLUMNS) {
-        const next = update[column];
-        if (typeof next === "number") {
-          row[column] = next;
-          patch[column] = next;
-        }
-      }
+      const { absolutePatch, attributionDelta } = computeCreateLossDelta(
+        {
+          damaged_in_transit: row.damaged_in_transit,
+          diseased_in_transit: row.diseased_in_transit,
+          parasite: row.parasite,
+          non_emergence: row.non_emergence,
+          poor_emergence: row.poor_emergence,
+        },
+        update,
+      );
 
-      if (Object.keys(patch).length === 0) continue;
+      if (Object.keys(absolutePatch).length === 0) continue;
+
+      // Keep in-memory row in sync with the absolute write so remaining checks
+      // below read post-update source-of-truth values.
+      for (const [column, value] of Object.entries(absolutePatch) as Array<[LossColumn, number]>) {
+        row[column] = value;
+      }
 
       await tx
         .update(shipment_items)
-        .set({ ...patch, updated_at: new Date() })
+        .set({ ...absolutePatch, updated_at: new Date() })
         .where(
           and(
             eq(shipment_items.id, update.shipment_item_id),
             eq(shipment_items.institution_id, institutionId),
           ),
         );
+
+      const totalDelta = Object.values(attributionDelta).reduce(
+        (sum, value) => sum + (typeof value === "number" ? value : 0),
+        0,
+      );
+
+      if (totalDelta > 0) {
+        lossAttributionRows.push({
+          shipment_item_id: update.shipment_item_id,
+          damaged_in_transit: attributionDelta.damaged_in_transit ?? 0,
+          diseased_in_transit: attributionDelta.diseased_in_transit ?? 0,
+          parasite: attributionDelta.parasite ?? 0,
+          non_emergence: attributionDelta.non_emergence ?? 0,
+          poor_emergence: attributionDelta.poor_emergence ?? 0,
+        });
+      }
     }
 
     // Replace the original lockedItems list with the mutated copies so the
@@ -552,22 +949,40 @@ export async function createReleaseFromShipment(
         releasedBy: release_events.released_by,
       });
 
-    const inFlightRows = await tx
-      .insert(in_flight)
-      .values(
-        payload.items.map((item) => ({
+    const inFlightRows =
+      payload.items.length > 0
+        ? await tx
+            .insert(in_flight)
+            .values(
+              payload.items.map((item) => ({
+                institution_id: institutionId,
+                release_event_id: releaseEvent.id,
+                shipment_item_id: item.shipment_item_id,
+                quantity: item.quantity,
+              })),
+            )
+            .returning({
+              id: in_flight.id,
+              releaseEventId: in_flight.release_event_id,
+              shipmentItemId: in_flight.shipment_item_id,
+              quantity: in_flight.quantity,
+            })
+        : [];
+
+    if (lossAttributionRows.length > 0) {
+      await tx.insert(release_event_losses).values(
+        lossAttributionRows.map((row) => ({
           institution_id: institutionId,
           release_event_id: releaseEvent.id,
-          shipment_item_id: item.shipment_item_id,
-          quantity: item.quantity,
+          shipment_item_id: row.shipment_item_id,
+          damaged_in_transit: row.damaged_in_transit,
+          diseased_in_transit: row.diseased_in_transit,
+          parasite: row.parasite,
+          non_emergence: row.non_emergence,
+          poor_emergence: row.poor_emergence,
         })),
-      )
-      .returning({
-        id: in_flight.id,
-        releaseEventId: in_flight.release_event_id,
-        shipmentItemId: in_flight.shipment_item_id,
-        quantity: in_flight.quantity,
-      });
+      );
+    }
 
     return {
       event: releaseEvent,
@@ -816,7 +1231,7 @@ export async function deleteReleaseEvent(institutionId: number, releaseEventId: 
       throw new Error(RELEASE_ERRORS.RELEASE_EVENT_NOT_FOUND);
     }
 
-    const relatedItems = await tx
+    const relatedInFlightItems = await tx
       .select({ shipmentItemId: in_flight.shipment_item_id })
       .from(in_flight)
       .where(
@@ -826,11 +1241,48 @@ export async function deleteReleaseEvent(institutionId: number, releaseEventId: 
         ),
       );
 
-    const shipmentItemIds = Array.from(new Set(relatedItems.map((row) => row.shipmentItemId)));
+    const relatedLossRows = await tx
+      .select({
+        shipmentItemId: release_event_losses.shipment_item_id,
+        damaged_in_transit: release_event_losses.damaged_in_transit,
+        diseased_in_transit: release_event_losses.diseased_in_transit,
+        parasite: release_event_losses.parasite,
+        non_emergence: release_event_losses.non_emergence,
+        poor_emergence: release_event_losses.poor_emergence,
+      })
+      .from(release_event_losses)
+      .where(
+        and(
+          eq(release_event_losses.institution_id, institutionId),
+          eq(release_event_losses.release_event_id, releaseEventId),
+        ),
+      );
 
+    const shipmentItemIds = Array.from(
+      new Set([
+        ...relatedInFlightItems.map((row) => row.shipmentItemId),
+        ...relatedLossRows.map((row) => row.shipmentItemId),
+      ]),
+    );
+
+    let lockedShipmentItems: Array<{
+      id: number;
+      damaged_in_transit: number;
+      diseased_in_transit: number;
+      parasite: number;
+      non_emergence: number;
+      poor_emergence: number;
+    }> = [];
     if (shipmentItemIds.length > 0) {
-      await tx
-        .select({ id: shipment_items.id })
+      lockedShipmentItems = await tx
+        .select({
+          id: shipment_items.id,
+          damaged_in_transit: shipment_items.damaged_in_transit,
+          diseased_in_transit: shipment_items.diseased_in_transit,
+          parasite: shipment_items.parasite,
+          non_emergence: shipment_items.non_emergence,
+          poor_emergence: shipment_items.poor_emergence,
+        })
         .from(shipment_items)
         .where(
           and(
@@ -839,6 +1291,48 @@ export async function deleteReleaseEvent(institutionId: number, releaseEventId: 
           ),
         )
         .for("update");
+
+      if (lockedShipmentItems.length !== shipmentItemIds.length) {
+        throw new Error(RELEASE_ERRORS.SHIPMENT_ITEM_NOT_FOUND);
+      }
+    }
+
+    if (relatedLossRows.length > 0) {
+      const lockedById = new Map(lockedShipmentItems.map((row) => [row.id, row]));
+
+      for (const lossRow of relatedLossRows) {
+        const locked = lockedById.get(lossRow.shipmentItemId);
+        if (!locked) {
+          throw new Error(RELEASE_ERRORS.SHIPMENT_ITEM_NOT_FOUND);
+        }
+
+        const patch = computeDeleteLossRollbackPatch(
+          toLossValues({
+            damaged_in_transit: locked.damaged_in_transit,
+            diseased_in_transit: locked.diseased_in_transit,
+            parasite: locked.parasite,
+            non_emergence: locked.non_emergence,
+            poor_emergence: locked.poor_emergence,
+          }),
+          toLossValues({
+            damaged_in_transit: lossRow.damaged_in_transit,
+            diseased_in_transit: lossRow.diseased_in_transit,
+            parasite: lossRow.parasite,
+            non_emergence: lossRow.non_emergence,
+            poor_emergence: lossRow.poor_emergence,
+          }),
+        );
+
+        await tx
+          .update(shipment_items)
+          .set({ ...patch, updated_at: new Date() })
+          .where(
+            and(
+              eq(shipment_items.id, lossRow.shipmentItemId),
+              eq(shipment_items.institution_id, institutionId),
+            ),
+          );
+      }
     }
 
     const [deleted] = await tx

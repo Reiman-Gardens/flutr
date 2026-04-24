@@ -10,6 +10,7 @@ import {
   shipment_items,
   release_events,
   in_flight,
+  release_event_losses,
 } from "@/lib/schema";
 
 describe("schema", () => {
@@ -25,6 +26,7 @@ describe("schema", () => {
       expect(getTableName(shipment_items)).toBe("shipment_items");
       expect(getTableName(release_events)).toBe("release_events");
       expect(getTableName(in_flight)).toBe("in_flight");
+      expect(getTableName(release_event_losses)).toBe("release_event_losses");
     });
   });
 
@@ -211,6 +213,23 @@ describe("schema", () => {
       expect(columns).toContain("shipment_item_id");
       expect(columns).toContain("quantity");
       expect(columns).toContain("created_at");
+    });
+  });
+
+  describe("release_event_losses", () => {
+    it("has required columns", () => {
+      const columns = Object.keys(release_event_losses);
+      expect(columns).toContain("id");
+      expect(columns).toContain("institution_id");
+      expect(columns).toContain("release_event_id");
+      expect(columns).toContain("shipment_item_id");
+      expect(columns).toContain("damaged_in_transit");
+      expect(columns).toContain("diseased_in_transit");
+      expect(columns).toContain("parasite");
+      expect(columns).toContain("non_emergence");
+      expect(columns).toContain("poor_emergence");
+      expect(columns).toContain("created_at");
+      expect(columns).toContain("updated_at");
     });
   });
 });

@@ -112,12 +112,16 @@ export default function CreateReleasePage() {
   }, [values]);
 
   const totalGood = categoryTotals.goodEmergence;
+  const totalAllocated = useMemo(
+    () => Object.values(categoryTotals).reduce((acc, value) => acc + value, 0),
+    [categoryTotals],
+  );
 
   /** Validate that no item has been over-allocated relative to its cap. */
   const validate = useCallback((): string | null => {
     if (!data) return "Shipment not loaded yet.";
-    if (totalGood === 0) {
-      return "Set a Good Emergence quantity on at least one species before saving.";
+    if (totalAllocated === 0) {
+      return "Set at least one category quantity before saving.";
     }
     for (const item of data.items) {
       const allocated = sumCategories(values[item.id]);
@@ -127,7 +131,7 @@ export default function CreateReleasePage() {
       }
     }
     return null;
-  }, [data, totalGood, values]);
+  }, [data, totalAllocated, values]);
 
   const handleSubmit = async () => {
     const validationError = validate();
@@ -242,7 +246,7 @@ export default function CreateReleasePage() {
       <div className="bg-background sticky bottom-0 -mx-4 border-t px-4 py-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4">
           <ReleaseSummary totalGood={totalGood} categoryTotals={categoryTotals} />
-          <Button size="lg" onClick={handleSubmit} disabled={submitting || totalGood === 0}>
+          <Button size="lg" onClick={handleSubmit} disabled={submitting || totalAllocated === 0}>
             {submitting ? "Saving…" : "Save release"}
           </Button>
         </div>

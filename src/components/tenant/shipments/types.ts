@@ -61,6 +61,7 @@ export type ReleaseHistoryRow = {
   releaseDate: string;
   releasedBy: string;
   totalReleased: number;
+  totalLosses: number;
 };
 
 export type ReleaseEventDetail = {
@@ -71,6 +72,15 @@ export type ReleaseEventDetail = {
     releasedBy: string;
   };
   items: { id: number; shipmentItemId: number; quantity: number }[];
+  losses: {
+    id: number;
+    shipmentItemId: number;
+    damagedInTransit: number;
+    diseasedInTransit: number;
+    parasite: number;
+    nonEmergence: number;
+    poorEmergence: number;
+  }[];
 };
 
 /**

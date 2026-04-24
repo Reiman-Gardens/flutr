@@ -321,7 +321,8 @@ Response shape:
       "shipmentDate": "2026-03-01T00:00:00.000Z",
       "releaseDate": "2026-03-13T00:00:00.000Z",
       "releasedBy": "Alice",
-      "totalReleased": 25
+      "totalReleased": 25,
+      "totalLosses": 4
     }
   ],
   "pagination": {
@@ -350,9 +351,25 @@ Returns `400 INVALID_REQUEST` for non-numeric `page` / `limit` values or
       "shipment_item_id": 101,
       "quantity": 8
     }
+  ],
+  "losses": [
+    {
+      "shipment_item_id": 101,
+      "damaged_in_transit": 0,
+      "diseased_in_transit": 0,
+      "parasite": 0,
+      "non_emergence": 0,
+      "poor_emergence": 2
+    }
   ]
 }
 ```
+
+- `items` and `losses` are event-level final values for the target release event.
+- `items` quantities are nonnegative integers (0 allowed on edit).
+- `losses` quantities are nonnegative integers (0 allowed on edit).
+- A patch that results in all in-flight and all losses being 0 is rejected (`400 INVALID_REQUEST`).
+- If `losses` is omitted, existing `release_event_losses` rows are preserved (non-destructive compatibility behavior).
 
 `GET /api/tenant/releases/[releaseId]` response shape:
 
@@ -370,9 +387,25 @@ Returns `400 INVALID_REQUEST` for non-numeric `page` / `limit` values or
       "shipmentItemId": 101,
       "quantity": 8
     }
+  ],
+  "losses": [
+    {
+      "id": 11,
+      "shipmentItemId": 101,
+      "damagedInTransit": 0,
+      "diseasedInTransit": 0,
+      "parasite": 0,
+      "nonEmergence": 0,
+      "poorEmergence": 2
+    }
   ]
 }
 ```
+
+`DELETE /api/tenant/releases/[releaseId]`:
+
+- Returns `200 OK` with `{ "deleted": true }` on success.
+- Returns `409 CONFLICT` when delete rollback would reduce shipment loss totals below 0.
 
 ### Tenant institution PATCH contract
 
@@ -523,7 +556,9 @@ Response shape:
       "id": 500,
       "shipmentId": 55,
       "releaseDate": "2026-03-13T12:00:00.000Z",
-      "releasedBy": "Release Admin"
+      "releasedBy": "Release Admin",
+      "totalReleased": 20,
+      "totalLosses": 2
     }
   ]
 }
@@ -534,11 +569,26 @@ Response shape:
 ```json
 {
   "released_at": "2026-03-13T12:00:00.000Z",
-  "items": [{ "shipment_item_id": 101, "quantity": 20 }]
+  "items": [{ "shipment_item_id": 101, "quantity": 20 }],
+  "loss_updates": [
+    {
+      "shipment_item_id": 101,
+      "damaged_in_transit": 1,
+      "diseased_in_transit": 0,
+      "parasite": 0,
+      "non_emergence": 0,
+      "poor_emergence": 2
+    }
+  ]
 }
 ```
 
-- `released_at` is optional. `items` is required (min 1, no duplicate `shipment_item_id`).
+- `released_at` is optional.
+- Create supports in-flight only, losses only, or mixed payloads.
+- At least one release item or at least one loss-update value is required.
+- `loss_updates` values are absolute shipment-item totals in create flow (not event deltas).
+- Decreasing an existing shipment-item loss total via create is rejected (`409 CONFLICT`).
+- Duplicate `shipment_item_id` values are rejected within `items` and within `loss_updates`.
 
 ### Tenant in-flight row contracts
 

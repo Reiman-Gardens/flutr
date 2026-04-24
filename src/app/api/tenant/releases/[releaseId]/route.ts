@@ -52,6 +52,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     return ok({
       event: result.event,
       items: result.items,
+      losses: result.losses ?? [],
     });
   } catch (error) {
     const authError = mapAuthError(error);
@@ -107,11 +108,15 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         return notFound(error.message);
       }
 
-      if (error.message === RELEASE_ERRORS.RELEASE_ITEMS_MUST_MATCH) {
+      if (error.message === RELEASE_ERRORS.EMPTY_RELEASE_EVENT) {
         return invalidRequest(error.message);
       }
 
       if (error.message === RELEASE_ERRORS.QUANTITY_EXCEEDS_REMAINING) {
+        return conflict(error.message);
+      }
+
+      if (error.message === RELEASE_ERRORS.LOSS_TOTAL_UNDERFLOW) {
         return conflict(error.message);
       }
     }
@@ -151,6 +156,10 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     if (error instanceof Error) {
       if (error.message === RELEASE_ERRORS.RELEASE_EVENT_NOT_FOUND) {
         return notFound(error.message);
+      }
+
+      if (error.message === RELEASE_ERRORS.LOSS_TOTAL_UNDERFLOW) {
+        return conflict(error.message);
       }
     }
 

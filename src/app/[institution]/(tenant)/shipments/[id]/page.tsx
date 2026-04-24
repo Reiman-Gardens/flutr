@@ -33,17 +33,11 @@ import {
 } from "@/components/ui/table";
 import {
   computeItemRemaining,
+  type ReleaseHistoryRow,
   type ShipmentDetailResponse,
   type ShipmentItemRow,
   type SpeciesPickerOption,
 } from "@/components/tenant/shipments/types";
-
-type ShipmentReleaseRow = {
-  id: number;
-  releaseDate: string;
-  releasedBy: string;
-  totalReleased: number;
-};
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -83,7 +77,7 @@ export default function ShipmentDetailPage() {
   const shipmentId = Number(params?.id);
 
   const [data, setData] = useState<ShipmentDetailResponse | null>(null);
-  const [releases, setReleases] = useState<ShipmentReleaseRow[]>([]);
+  const [releases, setReleases] = useState<ReleaseHistoryRow[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -139,7 +133,10 @@ export default function ShipmentDetailPage() {
           const releasesResult = await releasesResponse.json().catch(() => null);
           if (signal?.aborted) return;
           const events = Array.isArray(releasesResult?.releaseEvents)
-            ? releasesResult.releaseEvents
+            ? (releasesResult.releaseEvents as ReleaseHistoryRow[]).map((row) => ({
+                ...row,
+                totalLosses: Number(row.totalLosses ?? 0),
+              }))
             : [];
           setReleases(events);
         } else {
@@ -540,6 +537,7 @@ export default function ShipmentDetailPage() {
                     <TableHead>Release date</TableHead>
                     <TableHead>Released by</TableHead>
                     <TableHead className="text-right">Released</TableHead>
+                    <TableHead className="text-right">Losses</TableHead>
                     <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -551,6 +549,7 @@ export default function ShipmentDetailPage() {
                       </TableCell>
                       <TableCell>{release.releasedBy}</TableCell>
                       <TableCell className="text-right">{release.totalReleased}</TableCell>
+                      <TableCell className="text-right">{release.totalLosses}</TableCell>
                       <TableCell className="text-right">
                         <Button asChild size="sm" variant="outline">
                           <Link

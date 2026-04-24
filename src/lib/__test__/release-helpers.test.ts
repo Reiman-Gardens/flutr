@@ -1,4 +1,9 @@
-import { calculateRemaining } from "@/lib/queries/releases";
+import {
+  calculateRemaining,
+  computeCreateLossDelta,
+  computeDeleteLossRollbackPatch,
+  RELEASE_ERRORS,
+} from "@/lib/queries/releases";
 
 const baseItem = {
   id: 1,
@@ -73,5 +78,94 @@ describe("N+1 fix: bulk sum minus existing quantity coercion", () => {
     const existingQuantity = 0;
     const alreadyReleased = totalReleased - existingQuantity;
     expect(alreadyReleased).toBe(0);
+  });
+});
+
+describe("computeCreateLossDelta", () => {
+  const baseLosses = {
+    damaged_in_transit: 2,
+    diseased_in_transit: 3,
+    parasite: 1,
+    non_emergence: 4,
+    poor_emergence: 5,
+  };
+
+  it("returns absolutePatch plus positive attributionDelta for increases", () => {
+    const result = computeCreateLossDelta(baseLosses, {
+      poor_emergence: 8,
+      parasite: 1,
+      non_emergence: 6,
+    });
+
+    expect(result.absolutePatch).toEqual({
+      poor_emergence: 8,
+      parasite: 1,
+      non_emergence: 6,
+    });
+    expect(result.attributionDelta).toEqual({
+      poor_emergence: 3,
+      non_emergence: 2,
+    });
+  });
+
+  it("returns empty attributionDelta when absolute values are unchanged", () => {
+    const result = computeCreateLossDelta(baseLosses, {
+      damaged_in_transit: 2,
+      diseased_in_transit: 3,
+    });
+
+    expect(result.absolutePatch).toEqual({
+      damaged_in_transit: 2,
+      diseased_in_transit: 3,
+    });
+    expect(result.attributionDelta).toEqual({});
+  });
+
+  it("throws when an absolute loss total decreases in create flow", () => {
+    expect(() =>
+      computeCreateLossDelta(baseLosses, {
+        poor_emergence: 4,
+      }),
+    ).toThrow(RELEASE_ERRORS.NEGATIVE_LOSS_DELTA);
+  });
+});
+
+describe("computeDeleteLossRollbackPatch", () => {
+  const currentLosses = {
+    damaged_in_transit: 5,
+    diseased_in_transit: 4,
+    parasite: 3,
+    non_emergence: 6,
+    poor_emergence: 2,
+  };
+
+  it("subtracts event-level losses from current shipment loss totals", () => {
+    const patch = computeDeleteLossRollbackPatch(currentLosses, {
+      damaged_in_transit: 1,
+      diseased_in_transit: 2,
+      parasite: 0,
+      non_emergence: 1,
+      poor_emergence: 2,
+    });
+
+    expect(patch).toEqual({
+      damaged_in_transit: 4,
+      diseased_in_transit: 2,
+      parasite: 3,
+      non_emergence: 5,
+      poor_emergence: 0,
+    });
+  });
+
+  it("throws when rollback would drive any loss column below zero", () => {
+    expect(() =>
+      computeDeleteLossRollbackPatch(currentLosses, {
+        damaged_in_transit: 0,
+        diseased_in_transit: 0,
+        parasite: 4,
+        non_emergence: 0,
+        poor_emergence: 0,
+      }),
+    ).toThrow(RELEASE_ERRORS.LOSS_TOTAL_UNDERFLOW);
   });
 });
