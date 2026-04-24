@@ -72,6 +72,9 @@ PostgreSQL 17 managed via Drizzle ORM:
 - **Butterfly Species Institution** — Institution-specific species details (common name, description, image)
 - **Supplier** — Global butterfly vendor/supplier code used by shipments and imports
 - **Shipment** — A butterfly shipment record with quality/damage tracking metrics
+- **Release Event** — A release workflow event linked to a shipment (`release_date`, `released_by`)
+- **In Flight** — Event-level released quantities per shipment item (good-emergence release rows)
+- **Release Event Losses** — Event-level loss attribution rows captured during create/edit release workflows
 
 ### Key Relationships
 
@@ -79,7 +82,9 @@ PostgreSQL 17 managed via Drizzle ORM:
 Institution ─┬─ Users
               ├─ Butterfly Species Institution ── Butterfly Species (global)
               └─ Shipments ─┬─ Butterfly Species (global)
-                            └─ Supplier (global by code)
+                            ├─ Supplier (global by code)
+                            └─ Release Events ─┬─ In Flight
+                                               └─ Release Event Losses
 ```
 
 ## API Routes
@@ -112,6 +117,12 @@ Institution ─┬─ Users
   - `POST /api/tenant/shipments/import/preview` — Tenant-scoped parse + validate historical input (no writes).
   - `POST /api/tenant/shipments/import/commit` — Tenant-scoped commit using preview hash.
   - `GET /api/tenant/shipments/export?format=xlsx[&from=YYYY-MM-DD][&to=YYYY-MM-DD]` — Tenant-scoped XLSX export, optionally filtered by date range.
+- Tenant release endpoints (requires `x-tenant-slug` header):
+  - `GET /api/tenant/releases` — Paginated release list with additive `totalReleased` and `totalLosses`.
+  - `GET /api/tenant/releases/[releaseId]` — Release detail including `event`, `items` (in-flight), and `losses` (release_event_losses).
+  - `POST /api/tenant/shipments/[id]/releases` — Create release; accepts `items` plus create-only `loss_updates` absolute shipment totals.
+  - `PATCH /api/tenant/releases/[releaseId]` — Edit release; accepts event-level `items` and event-level `losses`.
+  - `DELETE /api/tenant/releases/[releaseId]` — Delete release; rolls back in-flight and release-attributed loss quantities, with underflow protection.
 
 ### Backend Architecture
 

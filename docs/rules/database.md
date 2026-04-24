@@ -33,6 +33,8 @@ Tenant isolation is enforced at the database level using composite foreign keys 
 - `release_events (institution_id, shipment_id) -> shipments (institution_id, id)` — `CASCADE`
 - `in_flight (institution_id, release_event_id) -> release_events (institution_id, id)` — `CASCADE`
 - `in_flight (institution_id, shipment_item_id) -> shipment_items (institution_id, id)` — `RESTRICT`
+- `release_event_losses (institution_id, release_event_id) -> release_events (institution_id, id)` — `CASCADE`
+- `release_event_losses (institution_id, shipment_item_id) -> shipment_items (institution_id, id)` — `RESTRICT`
 
 Composite tenant keys prevent cross-tenant references even if a raw numeric ID exists in another
 institution. The supplier relationship is intentionally global by code so historical imports can
@@ -54,6 +56,8 @@ Current performance indexes:
 | `idx_shipments_institution_shipment_date`              | `shipments`                     | `(institution_id, shipment_date)`             | Paginated shipment list (filter + sort)         |
 | `idx_release_events_institution_release_date`          | `release_events`                | `(institution_id, release_date)`              | Paginated release list (filter + sort)          |
 | `idx_release_events_institution_shipment_release_date` | `release_events`                | `(institution_id, shipment_id, release_date)` | Shipment-scoped release history (filter + sort) |
+| `idx_release_event_losses_institution_event`           | `release_event_losses`          | `(institution_id, release_event_id)`          | Release detail loss-attribution lookup          |
+| `idx_release_event_losses_institution_shipment_item`   | `release_event_losses`          | `(institution_id, shipment_item_id)`          | Edit/delete rollback loss aggregation           |
 
 ## Docker
 

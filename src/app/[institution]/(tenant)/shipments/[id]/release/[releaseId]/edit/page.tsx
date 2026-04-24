@@ -2,16 +2,29 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { notFound, useParams, useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ROUTES } from "@/lib/routes";
 
 import {
-  ReleaseComposer,
-  type ReleaseQuantities,
-} from "@/components/tenant/releases/release-composer";
+  ReleaseEditComposer,
+  type ReleaseEditLossesByItem,
+  type ReleaseEditLossField,
+  type ReleaseEditLossValues,
+  type ReleaseEditQuantities,
+} from "@/components/tenant/releases/release-edit-composer";
 import type {
   ReleaseEventDetail,
   ShipmentDetailResponse,
@@ -38,14 +51,19 @@ export default function EditReleasePage() {
 
   const [release, setRelease] = useState<ReleaseEventDetail | null>(null);
   const [shipment, setShipment] = useState<ShipmentDetailResponse | null>(null);
-  const [values, setValues] = useState<ReleaseQuantities>({});
-  const [originalValues, setOriginalValues] = useState<ReleaseQuantities>({});
+  const [releaseValues, setReleaseValues] = useState<ReleaseEditQuantities>({});
+  const [originalReleaseValues, setOriginalReleaseValues] = useState<ReleaseEditQuantities>({});
+  const [lossValues, setLossValues] = useState<ReleaseEditLossesByItem>({});
+  const [originalLossValues, setOriginalLossValues] = useState<ReleaseEditLossesByItem>({});
   const [status, setStatus] = useState<"idle" | "loading" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const tenantHeaders = useMemo(() => ({ "x-tenant-slug": slug }), [slug]);
   const detailHref = ROUTES.tenant.shipmentById(slug, shipmentId);
+  const errorMessageId = "release-edit-error-message";
 
   const handleGoBack = () => router.back();
 
@@ -89,12 +107,26 @@ export default function EditReleasePage() {
         setRelease(releaseJson);
         setShipment(shJson);
 
-        const initialValues: ReleaseQuantities = {};
+        const initialReleaseValues: ReleaseEditQuantities = {};
         for (const item of releaseJson.items as ReleaseEventDetail["items"]) {
-          initialValues[item.shipmentItemId] = item.quantity;
+          initialReleaseValues[item.shipmentItemId] = item.quantity;
         }
-        setValues(initialValues);
-        setOriginalValues(initialValues);
+
+        const initialLossValues: ReleaseEditLossesByItem = {};
+        for (const row of releaseJson.losses as ReleaseEventDetail["losses"]) {
+          initialLossValues[row.shipmentItemId] = {
+            damagedInTransit: row.damagedInTransit,
+            diseasedInTransit: row.diseasedInTransit,
+            parasite: row.parasite,
+            nonEmergence: row.nonEmergence,
+            poorEmergence: row.poorEmergence,
+          };
+        }
+
+        setReleaseValues(initialReleaseValues);
+        setOriginalReleaseValues(initialReleaseValues);
+        setLossValues(initialLossValues);
+        setOriginalLossValues(initialLossValues);
         setStatus("idle");
       } catch (err) {
         if (ac.signal.aborted) return;
@@ -106,31 +138,111 @@ export default function EditReleasePage() {
     return () => ac.abort();
   }, [releaseId, shipmentId, tenantHeaders]);
 
-  const handleChange = useCallback((itemId: number, quantity: number) => {
-    setValues((current) => ({ ...current, [itemId]: quantity }));
+  const handleReleaseChange = useCallback((itemId: number, quantity: number) => {
+    setReleaseValues((current) => ({ ...current, [itemId]: quantity }));
   }, []);
 
-  const total = useMemo(
-    () => Object.values(values).reduce((acc, value) => acc + (value || 0), 0),
-    [values],
+  const handleLossChange = useCallback(
+    (itemId: number, field: ReleaseEditLossField, quantity: number) => {
+      setLossValues((current) => {
+        const currentItem: ReleaseEditLossValues = current[itemId] ?? {
+          damagedInTransit: 0,
+          diseasedInTransit: 0,
+          parasite: 0,
+          nonEmergence: 0,
+          poorEmergence: 0,
+        };
+        return {
+          ...current,
+          [itemId]: {
+            ...currentItem,
+            [field]: quantity,
+          },
+        };
+      });
+    },
+    [],
+  );
+
+  const trackedItemIds = useMemo(() => {
+    if (!release) return [];
+    const ids = new Set<number>();
+    for (const item of release.items) ids.add(item.shipmentItemId);
+    for (const row of release.losses) ids.add(row.shipmentItemId);
+    return Array.from(ids);
+  }, [release]);
+
+  const trackedItems = useMemo(() => {
+    if (!shipment || trackedItemIds.length === 0) return [];
+    const idSet = new Set(trackedItemIds);
+    return shipment.items.filter((item) => idSet.has(item.id));
+  }, [shipment, trackedItemIds]);
+
+  const totalReleased = useMemo(
+    () => Object.values(releaseValues).reduce((acc, value) => acc + (value || 0), 0),
+    [releaseValues],
+  );
+
+  const totalLosses = useMemo(
+    () =>
+      Object.values(lossValues).reduce(
+        (acc, row) =>
+          acc +
+          row.damagedInTransit +
+          row.diseasedInTransit +
+          row.parasite +
+          row.nonEmergence +
+          row.poorEmergence,
+        0,
+      ),
+    [lossValues],
   );
 
   const handleSave = async () => {
     if (!release) return;
+    if (trackedItems.length === 0) {
+      setErrorMessage("This release has no editable rows.");
+      return;
+    }
 
-    // The PATCH endpoint can only update existing in_flight rows; it cannot
-    // add or remove species. Restrict to the original shipment_item_ids and
-    // require quantity > 0 (positive integer per release validation).
-    const items = release.items
-      .map((row) => ({
-        shipment_item_id: row.shipmentItemId,
-        quantity: values[row.shipmentItemId] ?? 0,
-      }))
-      .filter((item) => item.quantity > 0);
+    const items = trackedItems.map((item) => ({
+      shipment_item_id: item.id,
+      quantity: releaseValues[item.id] ?? 0,
+    }));
 
-    if (items.length !== release.items.length) {
+    const losses = trackedItems.map((item) => {
+      const row = lossValues[item.id] ?? {
+        damagedInTransit: 0,
+        diseasedInTransit: 0,
+        parasite: 0,
+        nonEmergence: 0,
+        poorEmergence: 0,
+      };
+      return {
+        shipment_item_id: item.id,
+        damaged_in_transit: row.damagedInTransit,
+        diseased_in_transit: row.diseasedInTransit,
+        parasite: row.parasite,
+        non_emergence: row.nonEmergence,
+        poor_emergence: row.poorEmergence,
+      };
+    });
+
+    const nextTotalReleased = items.reduce((sum, row) => sum + row.quantity, 0);
+    const nextTotalLosses = losses.reduce(
+      (sum, row) =>
+        sum +
+        row.damaged_in_transit +
+        row.diseased_in_transit +
+        row.parasite +
+        row.non_emergence +
+        row.poor_emergence,
+      0,
+    );
+
+    if (nextTotalReleased === 0 && nextTotalLosses === 0) {
       setErrorMessage(
-        "Quantities must remain positive for every species in this release. To remove a species, delete and recreate the release.",
+        "Release must include at least one in-flight or loss quantity. Delete release instead.",
       );
       return;
     }
@@ -141,7 +253,7 @@ export default function EditReleasePage() {
       const response = await fetch(`/api/tenant/releases/${releaseId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...tenantHeaders },
-        body: JSON.stringify({ items }),
+        body: JSON.stringify({ items, losses }),
       });
       const result = await response.json().catch(() => null);
       if (!response.ok) {
@@ -151,6 +263,34 @@ export default function EditReleasePage() {
       router.push(detailHref);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteRelease = async () => {
+    setDeleteOpen(false);
+    setDeleting(true);
+    setErrorMessage(null);
+    try {
+      const response = await fetch(`/api/tenant/releases/${releaseId}`, {
+        method: "DELETE",
+        headers: tenantHeaders,
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok) {
+        if (response.status === 409) {
+          setErrorMessage(
+            result?.error?.message ??
+              "Delete Release could not be completed because undo would reduce shipment loss totals below zero. Adjust shipment totals first, then retry.",
+          );
+          return;
+        }
+        setErrorMessage(result?.error?.message ?? "Unable to delete release.");
+        return;
+      }
+
+      router.push(detailHref);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -184,12 +324,6 @@ export default function EditReleasePage() {
     );
   }
 
-  // Restrict the composer to the species that are part of this release so
-  // users don't see species they cannot interact with via the PATCH API.
-  const composerItems = shipment.items.filter((item) =>
-    release.items.some((row) => row.shipmentItemId === item.id),
-  );
-
   return (
     <div className="flex flex-col gap-6 pb-32">
       <div>
@@ -202,27 +336,43 @@ export default function EditReleasePage() {
           {shipment.shipment.supplierCode} · Released {formatDate(release.event.releaseDate)} by{" "}
           {release.event.releasedBy}
         </p>
+        <div className="mt-3">
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => setDeleteOpen(true)}
+            disabled={saving || deleting}
+          >
+            <Trash2 className="size-4" />
+            Delete Release
+          </Button>
+        </div>
       </div>
 
       {errorMessage && (
-        <div className="text-destructive text-sm" role="alert">
+        <div id={errorMessageId} className="text-destructive text-sm" role="alert">
           {errorMessage}
         </div>
       )}
 
       <Card>
         <CardHeader>
-          <CardTitle>Released butterflies</CardTitle>
+          <CardTitle>Release quantities</CardTitle>
           <CardDescription>
-            Adjust the per-species counts. The release date and operator are read-only.
+            Adjust this release&apos;s in-flight and loss-attribution values. Loss fields are
+            event-level quantities for this release only.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ReleaseComposer
-            items={composerItems}
-            values={values}
-            onChange={handleChange}
-            alreadyAllocated={originalValues}
+          <ReleaseEditComposer
+            items={trackedItems}
+            releaseValues={releaseValues}
+            lossValues={lossValues}
+            originalReleaseValues={originalReleaseValues}
+            originalLossValues={originalLossValues}
+            onReleaseChange={handleReleaseChange}
+            onLossChange={handleLossChange}
+            errorMessageId={errorMessage ? errorMessageId : undefined}
           />
         </CardContent>
       </Card>
@@ -230,14 +380,44 @@ export default function EditReleasePage() {
       <div className="bg-background sticky bottom-0 -mx-4 border-t px-4 py-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4">
           <div>
-            <div className="text-muted-foreground text-xs uppercase">Total released</div>
-            <div className="text-2xl font-semibold">{total}</div>
+            <div className="text-muted-foreground text-xs uppercase">This release</div>
+            <div
+              className="text-2xl font-semibold"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              {totalReleased} released · {totalLosses} losses
+            </div>
           </div>
-          <Button size="lg" onClick={handleSave} disabled={saving || total === 0}>
+          <Button
+            size="lg"
+            onClick={handleSave}
+            disabled={saving || deleting || (totalReleased === 0 && totalLosses === 0)}
+          >
             {saving ? "Saving…" : "Save changes"}
           </Button>
         </div>
       </div>
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this release?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will undo the in-flight quantities and event-attributed loss quantities recorded
+              by this release. If shipment totals were edited later, delete can be blocked to
+              prevent negative loss totals.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteRelease} disabled={deleting}>
+              {deleting ? "Deleting…" : "Delete Release"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

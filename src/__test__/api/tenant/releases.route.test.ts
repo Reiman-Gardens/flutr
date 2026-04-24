@@ -7,6 +7,12 @@ jest.mock("@/lib/services/tenant-shipments", () => ({
     SHIPMENT_NOT_FOUND: "Shipment not found",
     SHIPMENT_ITEM_NOT_FOUND: "Shipment item not found",
     QUANTITY_EXCEEDS_REMAINING: "Quantity exceeds remaining available butterflies",
+    NEGATIVE_LOSS_DELTA:
+      "Create release loss_updates cannot decrease shipment loss totals; use shipment edit for corrections",
+    EMPTY_RELEASE_EVENT:
+      "Release must include at least one in-flight or loss quantity; delete release instead",
+    LOSS_TOTAL_UNDERFLOW:
+      "Release edit would reduce shipment loss totals below zero; adjust shipment totals first",
   },
   createTenantRelease: jest.fn(),
 }));
@@ -22,8 +28,10 @@ jest.mock("@/lib/services/tenant-releases", () => ({
     IN_FLIGHT_ALREADY_EXISTS: "In-flight row already exists for this release item",
     SHIPMENT_ITEM_RELEASE_MISMATCH: "Shipment item does not belong to the release shipment",
     QUANTITY_EXCEEDS_REMAINING: "Quantity exceeds remaining available butterflies",
-    RELEASE_ITEMS_MUST_MATCH:
-      "Release update must include every existing in-flight row for the release event",
+    EMPTY_RELEASE_EVENT:
+      "Release must include at least one in-flight or loss quantity; delete release instead",
+    LOSS_TOTAL_UNDERFLOW:
+      "Release edit would reduce shipment loss totals below zero; adjust shipment totals first",
   },
   getTenantReleases: jest.fn(),
   getTenantReleaseById: jest.fn(),
@@ -140,6 +148,14 @@ function validCreateReleasePayload() {
   };
 }
 
+function validLossOnlyReleasePayload() {
+  return {
+    released_at: "2026-03-13T12:00:00.000Z",
+    items: [],
+    loss_updates: [{ shipment_item_id: 101, poor_emergence: 2 }],
+  };
+}
+
 function validInFlightPayload() {
   return {
     shipment_item_id: 101,
@@ -200,6 +216,7 @@ describe("Tenant Releases API", () => {
             releaseDate: "2026-03-13",
             releasedBy: "Alice",
             totalReleased: 25,
+            totalLosses: 4,
           },
         ],
         pagination: { page: 1, limit: 50, total: 1, totalPages: 1 },
@@ -211,7 +228,16 @@ describe("Tenant Releases API", () => {
       const body = await response.json();
       expect(Array.isArray(body.releases)).toBe(true);
       expect(body.releases).toHaveLength(1);
-      expect(body.releases[0].id).toBe(9);
+      expect(body.releases[0]).toEqual({
+        id: 9,
+        shipmentId: 55,
+        supplierCode: "SUP-1",
+        shipmentDate: "2026-03-01",
+        releaseDate: "2026-03-13",
+        releasedBy: "Alice",
+        totalReleased: 25,
+        totalLosses: 4,
+      });
       expect(body.pagination).toEqual({ page: 1, limit: 50, total: 1, totalPages: 1 });
       expect(mockGetTenantReleases).toHaveBeenCalledWith({ slug: SLUG, page: 1, limit: 50 });
     });
@@ -342,6 +368,19 @@ describe("Tenant Releases API", () => {
       expect((await response.json()).error.code).toBe("CONFLICT");
     });
 
+    it("returns 409 when create loss_updates attempts to decrease existing losses", async () => {
+      mockCreateTenantRelease.mockRejectedValueOnce(
+        new Error(SHIPMENT_RELEASE_ERRORS.NEGATIVE_LOSS_DELTA),
+      );
+
+      const response = (await postReleaseFromShipment(
+        makePostShipmentReleaseRequest("55", validCreateReleasePayload(), SLUG),
+        shipmentRouteContext("55"),
+      ))!;
+      expect(response.status).toBe(409);
+      expect((await response.json()).error.code).toBe("CONFLICT");
+    });
+
     it("returns 201 on successful release creation", async () => {
       mockCreateTenantRelease.mockResolvedValueOnce({
         event: {
@@ -365,6 +404,27 @@ describe("Tenant Releases API", () => {
       const body = await response.json();
       expect(body.release.event.id).toBe(500);
       expect(body.release.items).toHaveLength(2);
+      expect(mockCreateTenantRelease).toHaveBeenCalledWith(
+        expect.objectContaining({ slug: SLUG, shipmentId: 55 }),
+      );
+    });
+
+    it("returns 201 for a losses-only release payload (no in-flight rows)", async () => {
+      mockCreateTenantRelease.mockResolvedValueOnce({
+        event: {
+          id: 501,
+          shipmentId: 55,
+          releaseDate: "2026-03-13T12:00:00.000Z",
+          releasedBy: "Release Admin",
+        },
+        items: [],
+      });
+
+      const response = (await postReleaseFromShipment(
+        makePostShipmentReleaseRequest("55", validLossOnlyReleasePayload(), SLUG),
+        shipmentRouteContext("55"),
+      ))!;
+      expect(response.status).toBe(201);
       expect(mockCreateTenantRelease).toHaveBeenCalledWith(
         expect.objectContaining({ slug: SLUG, shipmentId: 55 }),
       );
@@ -582,7 +642,7 @@ describe("Tenant Releases API", () => {
       expect((await response.json()).error.code).toBe("NOT_FOUND");
     });
 
-    it("returns 200 with event and items", async () => {
+    it("returns 200 with event, items, and losses", async () => {
       mockGetTenantReleaseById.mockResolvedValueOnce({
         event: {
           id: 500,
@@ -593,6 +653,17 @@ describe("Tenant Releases API", () => {
         items: [
           { id: 1, shipmentItemId: 101, quantity: 20 },
           { id: 2, shipmentItemId: 102, quantity: 5 },
+        ],
+        losses: [
+          {
+            id: 11,
+            shipmentItemId: 101,
+            damagedInTransit: 0,
+            diseasedInTransit: 0,
+            parasite: 0,
+            nonEmergence: 0,
+            poorEmergence: 2,
+          },
         ],
       });
 
@@ -605,6 +676,8 @@ describe("Tenant Releases API", () => {
       const body = await response.json();
       expect(body.event.id).toBe(500);
       expect(body.items).toHaveLength(2);
+      expect(body.losses).toHaveLength(1);
+      expect(body.losses[0].poorEmergence).toBe(2);
       expect(mockGetTenantReleaseById).toHaveBeenCalledWith({ slug: SLUG, releaseId: 500 });
     });
   });
@@ -735,9 +808,9 @@ describe("Tenant Releases API", () => {
       expect((await response.json()).error.code).toBe("INVALID_REQUEST");
     });
 
-    it("returns 400 when payload omits an existing release in-flight row", async () => {
+    it("returns 400 when patch would result in an empty release", async () => {
       mockUpdateTenantRelease.mockRejectedValueOnce(
-        new Error(TENANT_RELEASE_ERRORS.RELEASE_ITEMS_MUST_MATCH),
+        new Error(TENANT_RELEASE_ERRORS.EMPTY_RELEASE_EVENT),
       );
 
       const response = (await patchReleaseById(
@@ -746,6 +819,19 @@ describe("Tenant Releases API", () => {
       ))!;
       expect(response.status).toBe(400);
       expect((await response.json()).error.code).toBe("INVALID_REQUEST");
+    });
+
+    it("returns 409 when loss rollback would underflow shipment totals", async () => {
+      mockUpdateTenantRelease.mockRejectedValueOnce(
+        new Error(TENANT_RELEASE_ERRORS.LOSS_TOTAL_UNDERFLOW),
+      );
+
+      const response = (await patchReleaseById(
+        makeReleasePatchRequest("500", validReleasePatchPayload(), SLUG),
+        releaseRouteContext("500"),
+      ))!;
+      expect(response.status).toBe(409);
+      expect((await response.json()).error.code).toBe("CONFLICT");
     });
 
     it("returns 200 on successful update", async () => {
@@ -826,6 +912,19 @@ describe("Tenant Releases API", () => {
       ))!;
       expect(response.status).toBe(404);
       expect((await response.json()).error.code).toBe("NOT_FOUND");
+    });
+
+    it("returns 409 when delete rollback would underflow shipment losses", async () => {
+      mockDeleteTenantRelease.mockRejectedValueOnce(
+        new Error(TENANT_RELEASE_ERRORS.LOSS_TOTAL_UNDERFLOW),
+      );
+
+      const response = (await deleteReleaseById(
+        makeReleaseDetailRequest("500", "DELETE", SLUG),
+        releaseRouteContext("500"),
+      ))!;
+      expect(response.status).toBe(409);
+      expect((await response.json()).error.code).toBe("CONFLICT");
     });
 
     it("returns 200 on successful delete", async () => {

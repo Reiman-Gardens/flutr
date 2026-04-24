@@ -7,6 +7,21 @@ const releaseItemSchema = z
   })
   .strict();
 
+const updateReleaseItemSchema = z
+  .object({
+    shipment_item_id: z.coerce.number().int().positive(),
+    quantity: z.coerce.number().int().nonnegative(),
+  })
+  .strict();
+
+const releaseLossColumns = [
+  "damaged_in_transit",
+  "diseased_in_transit",
+  "parasite",
+  "non_emergence",
+  "poor_emergence",
+] as const;
+
 /**
  * Loss-column corrections that can be applied atomically alongside a release
  * POST. Each row carries absolute new values for any loss columns the client
@@ -28,7 +43,7 @@ const releaseLossUpdateSchema = z
 export const createReleaseFromShipmentSchema = z
   .object({
     released_at: z.coerce.date().optional(),
-    items: z.array(releaseItemSchema).min(1, "At least one release item is required"),
+    items: z.array(releaseItemSchema).default([]),
     loss_updates: z.array(releaseLossUpdateSchema).optional().default([]),
   })
   .strict()
@@ -59,6 +74,20 @@ export const createReleaseFromShipmentSchema = z
         break;
       }
       lossSeen.add(row.shipment_item_id);
+    }
+
+    // Create-release can be "release + losses" OR "losses-only" (e.g. poor emergence),
+    // but should still reject truly empty/no-op payloads.
+    const hasAnyLossValue = (data.loss_updates ?? []).some((row) =>
+      releaseLossColumns.some((column) => typeof row[column] === "number"),
+    );
+
+    if (data.items.length === 0 && !hasAnyLossValue) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "At least one release item or loss update is required",
+        path: ["items"],
+      });
     }
   });
 
@@ -92,12 +121,34 @@ export const createInFlightBodySchema = z
 
 export type CreateInFlightBody = z.infer<typeof createInFlightBodySchema>;
 
+const updateReleaseLossRowSchema = z
+  .object({
+    shipment_item_id: z.coerce.number().int().positive(),
+    damaged_in_transit: z.coerce.number().int().nonnegative(),
+    diseased_in_transit: z.coerce.number().int().nonnegative(),
+    parasite: z.coerce.number().int().nonnegative(),
+    non_emergence: z.coerce.number().int().nonnegative(),
+    poor_emergence: z.coerce.number().int().nonnegative(),
+  })
+  .strict();
+
 export const updateReleaseEventItemsSchema = z
   .object({
-    items: z.array(releaseItemSchema).min(1, "At least one release item is required"),
+    items: z.array(updateReleaseItemSchema).default([]),
+    // Edit-flow event-level losses. Distinct name from create `loss_updates`
+    // to avoid mixing absolute-total and event-level semantics.
+    losses: z.array(updateReleaseLossRowSchema).optional(),
   })
   .strict()
   .superRefine((data, ctx) => {
+    if (data.items.length === 0 && (!data.losses || data.losses.length === 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "At least one release item or losses row is required",
+        path: ["items"],
+      });
+    }
+
     const seen = new Set<number>();
 
     for (const item of data.items) {
@@ -111,6 +162,19 @@ export const updateReleaseEventItemsSchema = z
       }
 
       seen.add(item.shipment_item_id);
+    }
+
+    const lossSeen = new Set<number>();
+    for (const row of data.losses ?? []) {
+      if (lossSeen.has(row.shipment_item_id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Shipment items must be unique in losses",
+          path: ["losses"],
+        });
+        break;
+      }
+      lossSeen.add(row.shipment_item_id);
     }
   });
 
