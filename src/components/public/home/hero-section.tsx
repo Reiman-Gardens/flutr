@@ -32,7 +32,7 @@ export function HeroSection({
             {/* Butterfly SVG decorations */}
             <svg
               viewBox="0 0 100 80"
-              className="text-white/10 absolute top-6 left-8 w-20 rotate-12"
+              className="absolute top-6 left-8 w-20 rotate-12 text-white/10"
               fill="currentColor"
               aria-hidden="true"
             >
@@ -43,7 +43,7 @@ export function HeroSection({
             </svg>
             <svg
               viewBox="0 0 100 80"
-              className="text-white/[0.07] absolute top-1/3 right-16 w-32 -rotate-6"
+              className="absolute top-1/3 right-16 w-32 -rotate-6 text-white/[0.07]"
               fill="currentColor"
               aria-hidden="true"
             >
@@ -54,7 +54,7 @@ export function HeroSection({
             </svg>
             <svg
               viewBox="0 0 100 80"
-              className="text-white/10 absolute bottom-10 left-1/3 w-16 rotate-45"
+              className="absolute bottom-10 left-1/3 w-16 rotate-45 text-white/10"
               fill="currentColor"
               aria-hidden="true"
             >
@@ -65,7 +65,7 @@ export function HeroSection({
             </svg>
             <svg
               viewBox="0 0 100 80"
-              className="text-white/[0.06] absolute right-8 -bottom-2 w-28 -rotate-12"
+              className="absolute right-8 -bottom-2 w-28 -rotate-12 text-white/[0.06]"
               fill="currentColor"
               aria-hidden="true"
             >
@@ -86,7 +86,7 @@ export function HeroSection({
             id="hero-heading"
             className="max-w-lg text-3xl leading-tight font-bold text-white sm:text-4xl lg:text-6xl"
           >
-            A World of <span className="text-emerald-300 font-bold italic">Natural Wonder.</span>
+            A World of <span className="font-bold text-emerald-300 italic">Natural Wonder.</span>
           </h1>
           <p className="mt-3 max-w-md text-sm leading-relaxed text-white/80 sm:text-base">
             {description ??
@@ -97,7 +97,7 @@ export function HeroSection({
 
       {/* Live Stats — overlaps bottom of hero, right-aligned on desktop */}
       <div className="mx-auto flex max-w-7xl justify-end px-4 sm:px-6 lg:px-8">
-        <div className="pt-4 w-full sm:-mt-16 lg:w-auto lg:pt-0">
+        <div className="w-full pt-4 lg:-mt-16 lg:w-auto lg:pt-0">
           <LiveStats totalButterflies={totalButterflies} totalSpecies={totalSpecies} />
         </div>
       </div>
