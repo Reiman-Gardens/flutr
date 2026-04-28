@@ -28,14 +28,16 @@ export function TopNav({ links, className }: TopNavProps) {
           aria-label={institution?.name ? `${institution.name} home` : "Home"}
         >
           {institution?.logo_url ? (
-            <Image
-              src={institution.logo_url}
-              alt={institution.name}
-              width={32}
-              height={32}
-              sizes="(max-width: 640px) 24px, (max-width: 1024px) 28px, 32px"
-              className="size-6 object-contain sm:size-7 lg:size-8"
-            />
+            <span className="flex size-6 shrink-0 items-center justify-center rounded bg-white p-0.5 ring-1 ring-black/10 sm:size-7 lg:size-8">
+              <Image
+                src={institution.logo_url}
+                alt={institution.name}
+                width={32}
+                height={32}
+                sizes="(max-width: 640px) 20px, (max-width: 1024px) 24px, 28px"
+                className="size-full object-contain"
+              />
+            </span>
           ) : (
             <span>{institution?.name ?? "Flutr"}</span>
           )}

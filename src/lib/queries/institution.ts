@@ -29,6 +29,7 @@ export const getPublicInstitution = cache(async (slug: string) => {
       donation_url: institutions.donation_url,
       logo_url: institutions.logo_url,
       facility_image_url: institutions.facility_image_url,
+      theme_colors: institutions.theme_colors,
       social_links: institutions.social_links,
     })
     .from(institutions)
