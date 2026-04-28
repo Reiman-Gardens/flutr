@@ -19,7 +19,7 @@ export function NewsSection({ title, content, image_url, created_at }: NewsSecti
   return (
     <section aria-labelledby="news-heading">
       <h2 id="news-heading" className="mb-4 text-lg font-bold">
-        Latest News
+        {title}
       </h2>
       <Card className="overflow-hidden py-0">
         {image_url && (
@@ -33,13 +33,12 @@ export function NewsSection({ title, content, image_url, created_at }: NewsSecti
             />
           </div>
         )}
-        <CardHeader className="pt-6 pb-2">
+        <CardHeader className="pt-6 pb-1">
           <div className="flex items-start gap-3">
             <div className="bg-secondary text-secondary-foreground flex size-10 shrink-0 items-center justify-center rounded-lg">
               <Newspaper className="size-5" aria-hidden="true" />
             </div>
             <div>
-              <p className="leading-snug font-semibold">{title}</p>
               <time dateTime={created_at.toISOString()} className="text-muted-foreground text-xs">
                 {dateStr}
               </time>

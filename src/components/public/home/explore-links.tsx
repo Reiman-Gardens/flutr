@@ -28,13 +28,13 @@ export function ExploreLinks({ basePath }: ExploreLinksProps) {
       description: "Browse our local residents",
     },
     {
-      href: `${basePath}/contact`,
+      href: `${basePath}/contact#volunteer`,
       icon: Heart,
       title: "Volunteer",
       description: "Help support our butterfly house",
     },
     {
-      href: `${basePath}/contact`,
+      href: `${basePath}/contact#contact`,
       icon: Mail,
       title: "Contact Us",
       description: "Get in touch with us",
@@ -48,10 +48,10 @@ export function ExploreLinks({ basePath }: ExploreLinksProps) {
       </h2>
       <nav aria-label="Explore pages">
         <ul className="space-y-2" role="list">
-          {links.map((link) => {
+          {links.map((link, idx) => {
             const Icon = link.icon;
             return (
-              <li key={link.href}>
+              <li key={`${link.title}-${idx}`}>
                 <Link
                   href={link.href}
                   className="group bg-card hover:bg-accent focus-visible:ring-ring flex items-center gap-4 rounded-xl border p-4 shadow-sm transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
