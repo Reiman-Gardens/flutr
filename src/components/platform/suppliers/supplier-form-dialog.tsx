@@ -29,9 +29,18 @@ import { Switch } from "@/components/ui/switch";
 
 import { normalizePlatformSupplier, type PlatformSupplierRecord } from "./suppliers.utils";
 
+const WEBSITE_MAX_LENGTH = 300;
+
+function sanitizeWebsiteInput(value: string) {
+  return value.trim().replace(/[\u0000-\u001F\u007F]/g, "");
+}
+
 const websiteInputSchema = z
   .string()
-  .trim()
+  .transform(sanitizeWebsiteInput)
+  .refine((value) => value.length <= WEBSITE_MAX_LENGTH, {
+    message: `Website must be at most ${WEBSITE_MAX_LENGTH} characters`,
+  })
   .refine((value) => !value || isValidWebsiteInput(value), {
     message: "Enter a valid website",
   });
