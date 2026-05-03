@@ -164,6 +164,21 @@ describe("Platform Suppliers API", () => {
       );
     });
 
+    it("accepts supplier websites without a protocol", async () => {
+      mockCreatePlatformSupplier.mockResolvedValueOnce({
+        ...sampleSupplier,
+        websiteUrl: "example.com",
+      });
+
+      const response = (await postSupplier(
+        makePostRequest({ ...validCreatePayload(), website_url: "example.com" }),
+      ))!;
+      expect(response.status).toBe(201);
+      expect(mockCreatePlatformSupplier).toHaveBeenCalledWith(
+        expect.objectContaining({ website_url: "example.com" }),
+      );
+    });
+
     it("returns 409 when supplier code already exists", async () => {
       mockCreatePlatformSupplier.mockRejectedValueOnce(new Error("CONFLICT"));
 
@@ -274,6 +289,23 @@ describe("Platform Suppliers API", () => {
 
       const body = await response.json();
       expect(body.supplier.name).toBe("Updated Name");
+    });
+
+    it("accepts website updates without a protocol", async () => {
+      mockUpdatePlatformSupplier.mockResolvedValueOnce({
+        ...sampleSupplier,
+        websiteUrl: "example.com",
+      });
+
+      const response = (await patchSupplierById(
+        makePatchRequest("1", { website_url: "example.com" }),
+        routeContext("1"),
+      ))!;
+      expect(response.status).toBe(200);
+      expect(mockUpdatePlatformSupplier).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ website_url: "example.com" }),
+      );
     });
 
     it("returns 404 when supplier not found", async () => {

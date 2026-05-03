@@ -2,6 +2,28 @@ import { z } from "zod";
 
 import { sanitizeText, sanitizedNonEmpty } from "@/lib/validation/sanitize";
 
+const supplierWebsiteSchema = z
+  .string()
+  .trim()
+  .max(300)
+  .refine((value) => isValidSupplierWebsite(value), {
+    message: "Enter a valid website",
+  })
+  .transform((v) => sanitizeText(v));
+
+function isValidSupplierWebsite(value: string) {
+  if (!value || /\s/.test(value)) return false;
+
+  const candidate = /^[a-z][a-z\d+\-.]*:\/\//i.test(value) ? value : `https://${value}`;
+
+  try {
+    const url = new URL(candidate);
+    return url.hostname.includes(".");
+  } catch {
+    return false;
+  }
+}
+
 /**
  * ---------------------------
  * Params: Supplier ID
@@ -36,12 +58,7 @@ export const createSupplierBodySchema = z
     name: sanitizedNonEmpty(200),
     code: sanitizedNonEmpty(50),
     country: sanitizedNonEmpty(100),
-    website_url: z
-      .string()
-      .trim()
-      .url()
-      .transform((v) => sanitizeText(v))
-      .optional(),
+    website_url: supplierWebsiteSchema.optional(),
     is_active: z.boolean().optional(),
   })
   .strict();
@@ -60,13 +77,7 @@ export const updateSupplierBodySchema = z
     name: sanitizedNonEmpty(200).optional(),
     code: sanitizedNonEmpty(50).optional(),
     country: sanitizedNonEmpty(100).optional(),
-    website_url: z
-      .string()
-      .trim()
-      .url()
-      .transform((v) => sanitizeText(v))
-      .nullable()
-      .optional(),
+    website_url: supplierWebsiteSchema.nullable().optional(),
     is_active: z.boolean().optional(),
   })
   .strict()
