@@ -26,34 +26,16 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { sanitizedNonEmpty } from "@/lib/validation/sanitize";
+import { supplierWebsiteSchema } from "@/lib/validation/suppliers";
 
 import { normalizePlatformSupplier, type PlatformSupplierRecord } from "./suppliers.utils";
 
-const websiteInputSchema = z
-  .string()
-  .trim()
-  .refine((value) => !value || isValidWebsiteInput(value), {
-    message: "Enter a valid website",
-  });
-
-function isValidWebsiteInput(value: string) {
-  if (/\s/.test(value)) return false;
-
-  const candidate = /^[a-z][a-z\d+\-.]*:\/\//i.test(value) ? value : `https://${value}`;
-
-  try {
-    const url = new URL(candidate);
-    return url.hostname.includes(".");
-  } catch {
-    return false;
-  }
-}
-
 const supplierFormSchema = z.object({
-  name: z.string().trim().min(1, "Supplier name is required").max(200),
-  code: z.string().trim().min(1, "Supplier code is required").max(50),
-  country: z.string().trim().min(1, "Country is required").max(100),
-  website_url: websiteInputSchema,
+  name: sanitizedNonEmpty(200),
+  code: sanitizedNonEmpty(50),
+  country: sanitizedNonEmpty(100),
+  website_url: supplierWebsiteSchema.or(z.literal("")),
   is_active: z.boolean(),
 });
 

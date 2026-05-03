@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { sanitizeText, sanitizedNonEmpty } from "@/lib/validation/sanitize";
 
-const supplierWebsiteSchema = z
+export const supplierWebsiteSchema = z
   .string()
   .trim()
   .max(300)
