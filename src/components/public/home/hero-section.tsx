@@ -6,6 +6,7 @@ interface HeroSectionProps {
   facility_image_url: string | null;
   totalButterflies: number;
   totalSpecies: number;
+  primaryColor?: string;
 }
 
 export function HeroSection({
@@ -13,6 +14,7 @@ export function HeroSection({
   facility_image_url,
   totalButterflies,
   totalSpecies,
+  primaryColor = "#a78bfa",
 }: HeroSectionProps) {
   return (
     <section aria-labelledby="hero-heading" className="relative w-full">
@@ -86,7 +88,10 @@ export function HeroSection({
             id="hero-heading"
             className="max-w-lg text-3xl leading-tight font-bold text-white sm:text-4xl lg:text-6xl"
           >
-            A World of <span className="font-bold text-emerald-300 italic">Natural Wonder.</span>
+            A World of{" "}
+            <span className="font-bold italic" style={{ color: primaryColor }}>
+              Natural Wonder.
+            </span>
           </h1>
           <p className="mt-3 max-w-md text-sm leading-relaxed text-white/80 sm:text-base">
             {description ??
@@ -98,7 +103,11 @@ export function HeroSection({
       {/* Live Stats — overlaps bottom of hero, right-aligned on desktop */}
       <div className="mx-auto flex max-w-7xl justify-end px-4 sm:px-6 lg:px-8">
         <div className="w-full pt-4 lg:-mt-16 lg:w-auto lg:pt-0">
-          <LiveStats totalButterflies={totalButterflies} totalSpecies={totalSpecies} />
+          <LiveStats
+            totalButterflies={totalButterflies}
+            totalSpecies={totalSpecies}
+            primaryColor={primaryColor}
+          />
         </div>
       </div>
     </section>
