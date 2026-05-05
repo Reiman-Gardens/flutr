@@ -1,6 +1,9 @@
 import { notFound } from "next/navigation";
+import { auth } from "@/auth";
 import { getPublicInstitution } from "@/lib/queries/institution";
+import { getOrCreateUserOnboarding } from "@/lib/queries/onboarding";
 import { InstitutionDataProvider } from "@/components/providers/institution-provider";
+import { InstitutionLayoutClient } from "./layout-client";
 import type { PublicInstitution } from "@/types/institution";
 
 interface InstitutionLayoutProps {
@@ -20,5 +23,24 @@ export default async function InstitutionLayout({ children, params }: Institutio
     social_links: row.social_links as PublicInstitution["social_links"],
   };
 
-  return <InstitutionDataProvider institution={institution}>{children}</InstitutionDataProvider>;
+  // Load onboarding state if user is authenticated and belongs to this institution
+  let onboardingState = null;
+  const session = await auth();
+  if (session?.user && session.user.institutionId === institution.id) {
+    try {
+      const userId = Number(session.user.id);
+      const institutionId = session.user.institutionId;
+      onboardingState = await getOrCreateUserOnboarding(userId, institutionId);
+    } catch (error) {
+      console.error("Error loading onboarding state:", error);
+    }
+  }
+
+  return (
+    <InstitutionDataProvider institution={institution}>
+      <InstitutionLayoutClient initialOnboardingState={onboardingState}>
+        {children}
+      </InstitutionLayoutClient>
+    </InstitutionDataProvider>
+  );
 }

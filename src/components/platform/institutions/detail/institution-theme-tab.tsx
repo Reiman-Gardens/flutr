@@ -120,7 +120,7 @@ export default function InstitutionThemeTab({
             </p>
           )}
           {/* Theme Colors */}
-          <section className="flex flex-col gap-4">
+          <section className="flex flex-col gap-4" data-onboarding="theme-settings">
             <h2 className="text-sm font-semibold">Primary Color</h2>
 
             {readOnly ? (

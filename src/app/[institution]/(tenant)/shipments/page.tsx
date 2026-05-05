@@ -167,7 +167,7 @@ export default function ShipmentsListPage() {
             to release.
           </p>
         </div>
-        <Button asChild>
+        <Button asChild data-onboarding="import-btn">
           <Link href={addHref}>Add shipment</Link>
         </Button>
       </div>
@@ -209,7 +209,7 @@ export default function ShipmentsListPage() {
             </Empty>
           ) : (
             <div className="overflow-x-auto">
-              <Table>
+              <Table data-onboarding="shipment-table">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Supplier</TableHead>

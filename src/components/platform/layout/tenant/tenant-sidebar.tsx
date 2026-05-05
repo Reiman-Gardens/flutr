@@ -7,6 +7,7 @@ export default function TenantSidebar() {
     <aside
       aria-label="Tenant sidebar"
       className="bg-background hidden min-h-0 w-56 shrink-0 border-r md:flex md:flex-col"
+      data-onboarding="nav"
     >
       <TenantNavList />
     </aside>

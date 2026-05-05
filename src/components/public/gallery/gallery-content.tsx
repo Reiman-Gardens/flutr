@@ -144,6 +144,7 @@ export function GalleryContent({ slug, species }: GalleryContentProps) {
         onSortChange={search.setSort}
         onFiltersChange={handleFiltersChange}
         onReset={search.resetAll}
+        data-onboarding="species-search"
       />
 
       {/* Results count */}
@@ -155,7 +156,11 @@ export function GalleryContent({ slug, species }: GalleryContentProps) {
 
       {/* Species grid */}
       {search.totalCount > 0 ? (
-        <ul role="list" className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+        <ul
+          role="list"
+          className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4"
+          data-onboarding="species-grid"
+        >
           {search.visibleResults.map((s) => (
             <SpeciesCard
               key={s.id}
@@ -170,11 +175,18 @@ export function GalleryContent({ slug, species }: GalleryContentProps) {
           ))}
         </ul>
       ) : (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div
+          className="flex flex-col items-center justify-center py-16 text-center"
+          data-onboarding="species-grid"
+        >
           <SearchX className="text-muted-foreground/40 mb-4 size-12" aria-hidden="true" />
           <p className="text-muted-foreground font-medium">No species found</p>
           <p className="text-muted-foreground mt-1 text-sm">
             Try adjusting your search or filter criteria.
+          </p>
+          <p className="mt-4 max-w-sm text-xs text-emerald-600">
+            💡 <strong>Tip:</strong> Once you add shipments of butterflies, species will
+            automatically appear in the gallery for visitors to discover.
           </p>
         </div>
       )}

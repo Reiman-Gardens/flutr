@@ -51,7 +51,7 @@ export default function TenantHeader({
   user,
   sessionUser,
 }: {
-  user: AuthUser;
+  user?: AuthUser;
   sessionUser?: SessionUser;
 }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -103,12 +103,14 @@ export default function TenantHeader({
           <ThemeToggle />
 
           <div className="flex items-center gap-3">
-            <div className="min-w-0 text-right">
-              <p className="truncate text-sm leading-none font-medium">
-                {sessionUser?.name ?? `User #${user.id}`}
-              </p>
-              <p className="text-muted-foreground mt-0.5 text-xs">{getRoleLabel(user.role)}</p>
-            </div>
+            {user && (
+              <div className="min-w-0 text-right">
+                <p className="truncate text-sm leading-none font-medium">
+                  {sessionUser?.name ?? `User #${user.id}`}
+                </p>
+                <p className="text-muted-foreground mt-0.5 text-xs">{getRoleLabel(user.role)}</p>
+              </div>
+            )}
 
             <Avatar className="size-8">
               <AvatarImage src={sessionUser?.image ?? ""} alt="" />

@@ -394,7 +394,7 @@ export default function InstitutionProfileTab({
           <Separator />
 
           {/* Contact */}
-          <section className="flex flex-col gap-4">
+          <section className="flex flex-col gap-4" data-onboarding="org-info">
             <h2 className="text-sm font-semibold">Contact</h2>
 
             <FormField
@@ -485,8 +485,22 @@ export default function InstitutionProfileTab({
 
           <Separator />
 
+          {/* News Management */}
+          <section className="flex flex-col gap-4" data-onboarding="news-section">
+            <h2 className="text-sm font-semibold">Institution News</h2>
+            <p className="text-muted-foreground text-sm">
+              Publish updates and announcements that appear on your public-facing pages to keep
+              visitors engaged with your conservation efforts and facility news.
+            </p>
+            <Button variant="outline" className="w-fit" disabled>
+              Manage News (Coming Soon)
+            </Button>
+          </section>
+
+          <Separator />
+
           {/* Social Links */}
-          <section className="flex flex-col gap-4">
+          <section className="flex flex-col gap-4" data-onboarding="social-links">
             <h2 className="text-sm font-semibold">Social Links</h2>
 
             {(

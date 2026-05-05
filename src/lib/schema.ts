@@ -546,3 +546,42 @@ export const release_event_losses = pgTable(
     ),
   }),
 );
+
+/**
+ * User Onboarding Progress
+ *
+ * Tracks onboarding tour completion for new users.
+ * - One record per user per institution
+ * - Tracks which steps have been interacted with
+ * - Records when tour is completed
+ * - Allows replay from dashboard
+ */
+export const user_onboarding = pgTable(
+  "user_onboarding",
+  {
+    id: serial("id").primaryKey(),
+
+    user_id: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+
+    institution_id: integer("institution_id")
+      .notNull()
+      .references(() => institutions.id, { onDelete: "cascade" }),
+
+    current_step: text("current_step").notNull().default("dashboard"),
+    completed_steps: jsonb("completed_steps").notNull().default([]),
+    tour_completed: boolean("tour_completed").notNull().default(false),
+
+    created_at: timestamp("created_at").defaultNow().notNull(),
+    updated_at: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    unique_user_institution: uniqueIndex("unique_user_institution").on(
+      table.user_id,
+      table.institution_id,
+    ),
+
+    idx_onboarding_institution: index("idx_onboarding_institution").on(table.institution_id),
+  }),
+);
