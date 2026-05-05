@@ -1,5 +1,4 @@
 import Image from "next/image";
-import { Newspaper } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 interface NewsSectionProps {
@@ -34,16 +33,9 @@ export function NewsSection({ title, content, image_url, created_at }: NewsSecti
           </div>
         )}
         <CardHeader className="pt-6 pb-1">
-          <div className="flex items-start gap-3">
-            <div className="bg-secondary text-secondary-foreground flex size-10 shrink-0 items-center justify-center rounded-lg">
-              <Newspaper className="size-5" aria-hidden="true" />
-            </div>
-            <div>
-              <time dateTime={created_at.toISOString()} className="text-muted-foreground text-xs">
-                {dateStr}
-              </time>
-            </div>
-          </div>
+          <time dateTime={created_at.toISOString()} className="text-muted-foreground text-xs">
+            {dateStr}
+          </time>
         </CardHeader>
         <CardContent className="pb-6">
           <p className="text-muted-foreground line-clamp-4 text-sm leading-relaxed">{content}</p>

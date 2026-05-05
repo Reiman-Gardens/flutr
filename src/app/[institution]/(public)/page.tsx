@@ -29,6 +29,7 @@ export default async function InstitutionPage({ params }: InstitutionPageProps) 
 
   // Pick a deterministic "Butterfly of the Day" based on the current UTC date
   const featured = speciesRows.length > 0 ? speciesRows[dayIndex(speciesRows.length)] : null;
+  const primaryColor = inst.theme_colors?.[0] ?? "#a78bfa"; // Light purple default
 
   return (
     <div>
@@ -38,6 +39,7 @@ export default async function InstitutionPage({ params }: InstitutionPageProps) 
         facility_image_url={inst.facility_image_url}
         totalButterflies={totalButterflies}
         totalSpecies={totalSpecies}
+        primaryColor={primaryColor}
       />
 
       {/* Below hero: 2-column on desktop, stacked on mobile */}

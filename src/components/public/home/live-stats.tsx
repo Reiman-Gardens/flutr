@@ -1,9 +1,14 @@
 interface LiveStatsProps {
   totalButterflies: number;
   totalSpecies: number;
+  primaryColor?: string;
 }
 
-export function LiveStats({ totalButterflies, totalSpecies }: LiveStatsProps) {
+export function LiveStats({
+  totalButterflies,
+  totalSpecies,
+  primaryColor = "#a78bfa",
+}: LiveStatsProps) {
   return (
     <aside
       aria-labelledby="live-stats-heading"
@@ -11,7 +16,8 @@ export function LiveStats({ totalButterflies, totalSpecies }: LiveStatsProps) {
     >
       {/* Corner decoration */}
       <div
-        className="bg-primary absolute -top-6 -right-6 size-24 rotate-12 rounded-xl"
+        className="absolute -top-6 -right-6 size-24 rotate-12 rounded-xl"
+        style={{ backgroundColor: primaryColor }}
         aria-hidden="true"
       />
 
@@ -23,7 +29,11 @@ export function LiveStats({ totalButterflies, totalSpecies }: LiveStatsProps) {
           >
             Live Statistics
           </h2>
-          <span className="bg-success inline-block size-2.5 rounded-full" aria-hidden="true" />
+          <span
+            className="inline-block size-2.5 rounded-full"
+            style={{ backgroundColor: primaryColor }}
+            aria-hidden="true"
+          />
         </div>
 
         <div className="mt-2 flex items-start gap-6 sm:gap-12">
