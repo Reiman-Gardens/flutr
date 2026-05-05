@@ -1,9 +1,22 @@
-// placeholder for suppliers management page
-export default function PlatformSuppliersPage() {
-  return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-10">
-      <h1 className="text-2xl font-bold">Suppliers Management</h1>
-      <p>This is a placeholder for the suppliers management page.</p>
-    </div>
-  );
+import SuppliersClient from "@/components/platform/suppliers/suppliers-client";
+import type { PlatformSupplierSummary } from "@/components/platform/suppliers/suppliers.utils";
+import { getPlatformSuppliers } from "@/lib/services/platform-suppliers";
+
+export default async function PlatformSuppliersPage() {
+  const rawSuppliers = await getPlatformSuppliers();
+
+  const suppliers: PlatformSupplierSummary[] = rawSuppliers.map((supplier) => ({
+    id: supplier.id,
+    name: supplier.name,
+    code: supplier.code,
+    country: supplier.country,
+    websiteUrl: supplier.websiteUrl,
+    isActive: supplier.isActive,
+    createdAt:
+      supplier.createdAt instanceof Date
+        ? supplier.createdAt.toISOString()
+        : String(supplier.createdAt),
+  }));
+
+  return <SuppliersClient suppliers={suppliers} />;
 }
