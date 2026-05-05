@@ -214,7 +214,7 @@ export function SpeciesPickerDialog({
                         {option.imgWingsOpen ? (
                           <Image
                             src={option.imgWingsOpen}
-                            alt=""
+                            alt={`${option.commonName} (${option.scientificName})`}
                             width={128}
                             height={128}
                             quality={90}
