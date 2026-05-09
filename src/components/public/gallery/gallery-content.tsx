@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useCallback } from "react";
+import { useEffect, useMemo, useCallback, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { SearchX } from "lucide-react";
 
@@ -16,7 +16,10 @@ import { SpeciesCard } from "./species-card";
 
 interface GalleryContentProps {
   slug: string;
+  /** Institution-scoped species (with overrides and in-flight counts). */
   species: GallerySpecies[];
+  /** Full global catalog — shown when the "Show all species" toggle is on. */
+  globalSpecies: GallerySpecies[];
 }
 
 const SORT_FIELDS: SortField[] = ["common_name", "scientific_name", "family", "in_flight"];
@@ -71,6 +74,7 @@ function parseInitialState(searchParams: URLSearchParams) {
   const sd = searchParams.get("sd") as SortDirection | null;
   const fam = searchParams.get("fam");
   const vc = searchParams.get("vc");
+  const gl = searchParams.get("gl");
 
   return {
     query: q,
@@ -78,18 +82,24 @@ function parseInitialState(searchParams: URLSearchParams) {
     sortDirection: sd && SORT_DIRS.includes(sd) ? sd : ("desc" as SortDirection),
     families: fam ? fam.split(",") : [],
     visibleCount: vc ? Math.max(PAGE_SIZE, parseInt(vc, 10) || PAGE_SIZE) : undefined,
+    showGlobal: gl === "1",
   };
 }
 
-export function GalleryContent({ slug, species }: GalleryContentProps) {
+export function GalleryContent({ slug, species, globalSpecies }: GalleryContentProps) {
   const searchParams = useSearchParams();
 
   // Parse URL params once on mount (useMemo with empty searchParams from initial render)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const initial = useMemo(() => parseInitialState(searchParams), []);
 
+  const [showGlobal, setShowGlobal] = useState(initial.showGlobal);
+
+  // Switch between institution and global species list based on toggle.
+  const activeSpecies = showGlobal ? globalSpecies : species;
+
   const search = useSpeciesSearch({
-    items: species,
+    items: activeSpecies,
     pageSize: PAGE_SIZE,
     defaultSortField: initial.sortField,
     defaultSortDirection: initial.sortDirection,
@@ -105,6 +115,21 @@ export function GalleryContent({ slug, species }: GalleryContentProps) {
     [setActiveFamilies],
   );
 
+  const handleShowGlobalChange = useCallback(
+    (show: boolean) => {
+      if (show === showGlobal) return;
+      setShowGlobal(show);
+      // Reset search state when switching scopes so stale filters don't carry over.
+      search.resetAll();
+    },
+    [search, showGlobal],
+  );
+
+  const handleReset = useCallback(() => {
+    setShowGlobal(false);
+    search.resetAll();
+  }, [search]);
+
   // Sync state to URL (replaceState — no navigation, no re-render)
   const syncToUrl = useCallback(() => {
     const params = new URLSearchParams();
@@ -113,6 +138,7 @@ export function GalleryContent({ slug, species }: GalleryContentProps) {
     if (search.sortDirection !== "desc") params.set("sd", search.sortDirection);
     if (search.activeFamilies.length > 0) params.set("fam", search.activeFamilies.join(","));
     if (search.visibleCount > PAGE_SIZE) params.set("vc", String(search.visibleCount));
+    if (showGlobal) params.set("gl", "1");
 
     const qs = params.toString();
     const url = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
@@ -123,6 +149,7 @@ export function GalleryContent({ slug, species }: GalleryContentProps) {
     search.sortDirection,
     search.activeFamilies,
     search.visibleCount,
+    showGlobal,
   ]);
 
   useEffect(() => {
@@ -143,7 +170,9 @@ export function GalleryContent({ slug, species }: GalleryContentProps) {
         onQueryChange={search.setQuery}
         onSortChange={search.setSort}
         onFiltersChange={handleFiltersChange}
-        onReset={search.resetAll}
+        onReset={handleReset}
+        showGlobal={showGlobal}
+        onShowGlobalChange={handleShowGlobalChange}
       />
 
       {/* Results count */}

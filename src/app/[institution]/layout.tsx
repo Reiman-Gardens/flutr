@@ -20,5 +20,15 @@ export default async function InstitutionLayout({ children, params }: Institutio
     social_links: row.social_links as PublicInstitution["social_links"],
   };
 
-  return <InstitutionDataProvider institution={institution}>{children}</InstitutionDataProvider>;
+  const primaryColor = institution.theme_colors?.[0];
+
+  return (
+    <InstitutionDataProvider institution={institution}>
+      <div
+        style={primaryColor ? ({ "--primary": primaryColor } as React.CSSProperties) : undefined}
+      >
+        {children}
+      </div>
+    </InstitutionDataProvider>
+  );
 }

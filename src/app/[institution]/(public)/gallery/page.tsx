@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { getPublicInstitution } from "@/lib/queries/institution";
-import { getGalleryData } from "@/lib/queries/gallery";
+import { getGalleryData, getGalleryGlobalSpecies } from "@/lib/queries/gallery";
 import { GalleryHeader } from "@/components/public/gallery/gallery-header";
 import { GalleryContent } from "@/components/public/gallery/gallery-content";
 import { CuratorsNote } from "@/components/public/gallery/curators-note";
@@ -23,12 +23,15 @@ export default async function GalleryPage({ params }: GalleryPageProps) {
 
   const inst = (await getPublicInstitution(slug))!;
 
-  const { species } = await getGalleryData(inst.id);
+  const [{ species }, globalSpecies] = await Promise.all([
+    getGalleryData(inst.id),
+    getGalleryGlobalSpecies(),
+  ]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       <GalleryHeader />
-      <GalleryContent slug={slug} species={species} />
+      <GalleryContent slug={slug} species={species} globalSpecies={globalSpecies} />
       <CuratorsNote />
     </div>
   );
