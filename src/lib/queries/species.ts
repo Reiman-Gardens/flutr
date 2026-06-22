@@ -111,11 +111,12 @@ export async function upsertSpeciesOverride(
 export async function ensureSpeciesLinksForInstitution(
   institutionId: number,
   speciesIds: number[],
+  executor: Pick<typeof db, "insert"> = db,
 ) {
   const uniqueSpeciesIds = Array.from(new Set(speciesIds));
   if (uniqueSpeciesIds.length === 0) return;
 
-  await db
+  await executor
     .insert(butterfly_species_institution)
     .values(
       uniqueSpeciesIds.map((speciesId) => ({

@@ -8,6 +8,7 @@ import {
   in_flight,
   release_events,
 } from "@/lib/schema";
+import { ensureSpeciesLinksForInstitution } from "@/lib/queries/species";
 
 import type { CreateShipmentBody, UpdateShipmentBody } from "@/lib/validation/shipments";
 
@@ -298,6 +299,11 @@ export async function createShipment(institutionId: number, payload: CreateShipm
       poor_emergence: item.poor_emergence,
     }));
 
+    await ensureSpeciesLinksForInstitution(
+      institutionId,
+      payload.items.map((item) => item.butterfly_species_id),
+      tx,
+    );
     await tx.insert(shipment_items).values(items);
 
     return inserted.id;
@@ -506,6 +512,12 @@ export async function updateShipment(
     }
 
     if (payload.add_items) {
+      await ensureSpeciesLinksForInstitution(
+        institutionId,
+        payload.add_items.map((item) => item.butterfly_species_id),
+        tx,
+      );
+
       const rows = payload.add_items.map((item) => ({
         institution_id: institutionId,
         shipment_id: shipmentId,
