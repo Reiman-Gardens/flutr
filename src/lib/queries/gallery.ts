@@ -3,7 +3,7 @@ import { asc, eq, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { butterfly_species, butterfly_species_institution } from "@/lib/schema";
-import { inFlightCountSubquery } from "@/lib/queries/subqueries";
+import { currentInFlightBySpeciesSubquery } from "@/lib/queries/inflight";
 
 export interface GallerySpecies {
   id: number;
@@ -23,7 +23,7 @@ export interface GallerySpeciesDetail extends GallerySpecies {
 
 /** Base gallery query selecting all species columns for an institution (cached per request). */
 const queryGallerySpecies = cache(async (institutionId: number) => {
-  const ifc = inFlightCountSubquery(institutionId);
+  const currentInFlight = currentInFlightBySpeciesSubquery(institutionId);
 
   return db
     .select({
@@ -37,14 +37,14 @@ const queryGallerySpecies = cache(async (institutionId: number) => {
       img_wings_closed: butterfly_species.img_wings_closed,
       extra_img_1: butterfly_species.extra_img_1,
       extra_img_2: butterfly_species.extra_img_2,
-      in_flight_count: sql<number>`coalesce(${ifc.total}, 0)`.as("in_flight_count"),
+      in_flight_count: sql<number>`coalesce(${currentInFlight.quantity}, 0)`.as("in_flight_count"),
     })
     .from(butterfly_species_institution)
     .innerJoin(
       butterfly_species,
       eq(butterfly_species_institution.butterfly_species_id, butterfly_species.id),
     )
-    .leftJoin(ifc, eq(ifc.butterfly_species_id, butterfly_species.id))
+    .leftJoin(currentInFlight, eq(currentInFlight.butterfly_species_id, butterfly_species.id))
     .where(eq(butterfly_species_institution.institution_id, institutionId))
     .orderBy(butterfly_species.common_name);
 });
@@ -100,7 +100,7 @@ export const getGalleryGlobalSpecies = cache(
             .from(butterfly_species)
             .orderBy(asc(butterfly_species.common_name))
         : await (async () => {
-            const ifc = inFlightCountSubquery(institutionId);
+            const currentInFlight = currentInFlightBySpeciesSubquery(institutionId);
             return db
               .select({
                 id: butterfly_species.id,
@@ -109,10 +109,15 @@ export const getGalleryGlobalSpecies = cache(
                 family: butterfly_species.family,
                 range: butterfly_species.range,
                 img_wings_open: butterfly_species.img_wings_open,
-                in_flight_count: sql<number>`coalesce(${ifc.total}, 0)`.as("in_flight_count"),
+                in_flight_count: sql<number>`coalesce(${currentInFlight.quantity}, 0)`.as(
+                  "in_flight_count",
+                ),
               })
               .from(butterfly_species)
-              .leftJoin(ifc, eq(ifc.butterfly_species_id, butterfly_species.id))
+              .leftJoin(
+                currentInFlight,
+                eq(currentInFlight.butterfly_species_id, butterfly_species.id),
+              )
               .orderBy(asc(butterfly_species.common_name));
           })();
 

@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
 import { getPublicInstitution } from "@/lib/queries/institution";
-import { getInstitutionHomeData, getPublicNewsPreview } from "@/lib/queries/home";
-import { dayIndex } from "@/lib/utils";
+import {
+  getButterflyOfTheDayForInstitution,
+  getInstitutionHomeData,
+  getPublicNewsPreview,
+} from "@/lib/queries/home";
 import { HeroSection } from "@/components/public/home/hero-section";
 import { FeaturedButterfly } from "@/components/public/home/featured-butterfly";
 import { ExploreLinks } from "@/components/public/home/explore-links";
@@ -22,13 +25,12 @@ export default async function InstitutionPage({ params }: InstitutionPageProps) 
 
   const basePath = `/${slug}`;
 
-  const [{ totalButterflies, totalSpecies, speciesRows }, news] = await Promise.all([
+  const [{ totalButterflies, totalSpecies }, featured, news] = await Promise.all([
     getInstitutionHomeData(inst.id),
+    getButterflyOfTheDayForInstitution(inst.id),
     getPublicNewsPreview(inst.id),
   ]);
 
-  // Pick a deterministic "Butterfly of the Day" based on the current UTC date
-  const featured = speciesRows.length > 0 ? speciesRows[dayIndex(speciesRows.length)] : null;
   const primaryColor = inst.theme_colors?.[0] ?? "#a78bfa"; // Light purple default
 
   return (
