@@ -1,4 +1,4 @@
-import { dayIndex } from "@/lib/utils";
+import { dayIndex, seededDayIndex } from "@/lib/utils";
 
 describe("dayIndex", () => {
   it("returns a value between 0 and length - 1", () => {
@@ -49,5 +49,34 @@ describe("dayIndex", () => {
     expect(morning).toBe(evening);
 
     jest.restoreAllMocks();
+  });
+});
+
+describe("seededDayIndex", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("returns a value in range [0, length)", () => {
+    const result = seededDayIndex(10, 123);
+    expect(result).toBeGreaterThanOrEqual(0);
+    expect(result).toBeLessThan(10);
+  });
+
+  it("returns the same value for the same institution and UTC day", () => {
+    jest.spyOn(Date, "now").mockReturnValue(86_400_000 * 15 + 1234);
+
+    const morning = seededDayIndex(8, 77);
+    const noon = seededDayIndex(8, 77);
+
+    expect(morning).toBe(noon);
+  });
+
+  it("can vary by institution on the same day", () => {
+    jest.spyOn(Date, "now").mockReturnValue(86_400_000 * 22);
+
+    const values = new Set(Array.from({ length: 20 }, (_, index) => seededDayIndex(11, index + 1)));
+
+    expect(values.size).toBeGreaterThan(1);
   });
 });

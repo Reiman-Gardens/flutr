@@ -25,7 +25,7 @@ export default async function GalleryPage({ params }: GalleryPageProps) {
 
   const [{ species }, globalSpecies] = await Promise.all([
     getGalleryData(inst.id),
-    getGalleryGlobalSpecies(),
+    getGalleryGlobalSpecies(inst.id),
   ]);
 
   return (

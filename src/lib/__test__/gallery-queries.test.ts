@@ -11,16 +11,18 @@
 
 import { createThenableQuery } from "@/__test__/api/_utils/mockDb";
 import * as dbModule from "@/lib/db";
+import { currentInFlightBySpeciesSubquery } from "@/lib/queries/inflight";
 
 jest.mock("@/lib/db");
-jest.mock("@/lib/queries/subqueries", () => ({
-  inFlightCountSubquery: jest.fn(() => ({
+jest.mock("@/lib/queries/inflight", () => ({
+  currentInFlightBySpeciesSubquery: jest.fn(() => ({
     butterfly_species_id: "butterfly_species_id",
-    total: "total",
+    quantity: "quantity",
   })),
 }));
 
 const mockDb = dbModule as unknown as { db: { select: jest.Mock } };
+const mockCurrentInFlightBySpeciesSubquery = currentInFlightBySpeciesSubquery as jest.Mock;
 
 const mockRow = {
   id: 1,
@@ -45,6 +47,10 @@ const mockRowWithOverride = {
 describe("getGalleryData", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockCurrentInFlightBySpeciesSubquery.mockReturnValue({
+      butterfly_species_id: "butterfly_species_id",
+      quantity: "quantity",
+    });
   });
 
   it("returns species array with narrowed shape (no extra image columns)", async () => {
@@ -86,6 +92,10 @@ describe("getGalleryData", () => {
 describe("getGalleryDetailData", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockCurrentInFlightBySpeciesSubquery.mockReturnValue({
+      butterfly_species_id: "butterfly_species_id",
+      quantity: "quantity",
+    });
   });
 
   it("returns full GallerySpeciesDetail shape including all image columns", async () => {

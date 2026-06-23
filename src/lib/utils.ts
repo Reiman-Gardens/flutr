@@ -12,6 +12,22 @@ export function dayIndex(length: number): number {
   return daysSinceEpoch % length;
 }
 
+/** Returns a stable daily index seeded by a tenant-specific value. */
+export function seededDayIndex(length: number, seed: string | number): number {
+  if (length <= 0) return 0;
+
+  const daysSinceEpoch = Math.floor(Date.now() / 86_400_000);
+  const input = `${seed}:${daysSinceEpoch}`;
+  let hash = 2166136261;
+
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return (hash >>> 0) % length;
+}
+
 /**
  * Trigger a browser file download from a Blob.
  * Creates a temporary anchor element, clicks it, then cleans up.

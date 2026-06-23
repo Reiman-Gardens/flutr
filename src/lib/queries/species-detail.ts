@@ -3,7 +3,7 @@ import { eq, and, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { butterfly_species, butterfly_species_institution } from "@/lib/schema";
-import { inFlightCountSubquery } from "@/lib/queries/subqueries";
+import { currentInFlightBySpeciesSubquery } from "@/lib/queries/inflight";
 import type { SpeciesFunFact } from "@/types/butterfly";
 
 /** Normalize fun facts from DB: ensure it's a valid array of {title, fact} objects, or null */
@@ -49,7 +49,7 @@ export interface SpeciesDetail {
 /** Species detail for a single species at an institution (cached per request). */
 export const getSpeciesDetail = cache(
   async (institutionId: number, scientificName: string): Promise<SpeciesDetail | null> => {
-    const ifc = inFlightCountSubquery(institutionId);
+    const currentInFlight = currentInFlightBySpeciesSubquery(institutionId);
 
     const rows = await db
       .select({
@@ -70,14 +70,16 @@ export const getSpeciesDetail = cache(
         img_wings_closed: butterfly_species.img_wings_closed,
         extra_img_1: butterfly_species.extra_img_1,
         extra_img_2: butterfly_species.extra_img_2,
-        in_flight_count: sql<number>`coalesce(${ifc.total}, 0)::int`.as("in_flight_count"),
+        in_flight_count: sql<number>`coalesce(${currentInFlight.quantity}, 0)::int`.as(
+          "in_flight_count",
+        ),
       })
       .from(butterfly_species_institution)
       .innerJoin(
         butterfly_species,
         eq(butterfly_species_institution.butterfly_species_id, butterfly_species.id),
       )
-      .leftJoin(ifc, eq(ifc.butterfly_species_id, butterfly_species.id))
+      .leftJoin(currentInFlight, eq(currentInFlight.butterfly_species_id, butterfly_species.id))
       .where(
         and(
           eq(butterfly_species_institution.institution_id, institutionId),

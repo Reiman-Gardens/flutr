@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 
 import { getPublicInstitution } from "@/lib/queries/institution";
 import { getStatsData, transformStatsData } from "@/lib/queries/stats";
-import { getFeaturedSpeciesList } from "@/lib/queries/home";
-import { dayIndex } from "@/lib/utils";
+import { getButterflyOfTheDayForInstitution } from "@/lib/queries/home";
 import { StatsHeader } from "@/components/shared/stats/stats-header";
 import { StatsOverviewCards } from "@/components/shared/stats/stats-overview-cards";
 import { StatsHighlightCards } from "@/components/shared/stats/stats-highlight-cards";
@@ -31,12 +30,21 @@ export default async function StatsPage({ params }: StatsPageProps) {
 
   const inst = (await getPublicInstitution(slug))!;
 
-  const [rows, speciesRows] = await Promise.all([
+  const [rows, featured] = await Promise.all([
     getStatsData(inst.id),
-    getFeaturedSpeciesList(inst.id),
+    getButterflyOfTheDayForInstitution(inst.id),
   ]);
   const stats = transformStatsData(rows);
-  const featured = speciesRows.length > 0 ? speciesRows[dayIndex(speciesRows.length)] : null;
+  const dailyHighlight = featured
+    ? {
+        name: featured.common_name,
+        quantity: Number(featured.in_flight_count),
+        scientific_name: featured.scientific_name,
+        family: featured.family,
+        range: featured.range,
+        img_wings_open: featured.img_wings_open,
+      }
+    : null;
 
   if (stats.totalButterflies === 0) {
     return (
@@ -87,12 +95,12 @@ export default async function StatsPage({ params }: StatsPageProps) {
         {stats.speciesBreakdown.length > 0 && (
           <div className="order-2 lg:order-0 lg:row-span-2">
             <div className="space-y-4">
-              {stats.speciesBreakdown.length >= 3 && (
+              {stats.speciesBreakdown.length > 0 && dailyHighlight && (
                 <StatsHighlightCards
                   slug={slug}
                   mostCommon={stats.speciesBreakdown[0]}
                   mostRare={stats.speciesBreakdown[stats.speciesBreakdown.length - 1]}
-                  daily={stats.speciesBreakdown[dayIndex(stats.speciesBreakdown.length)]}
+                  daily={dailyHighlight}
                 />
               )}
               <FamilyDistributionChart data={stats.familyDistribution} />

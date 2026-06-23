@@ -58,6 +58,19 @@ describe("transformStatsData", () => {
     expect(result.speciesBreakdown.map((s) => s.name)).toEqual(["B", "C", "A"]);
   });
 
+  it("preserves species quantities in breakdown output for treemap and notable species cards", () => {
+    const rows = [
+      makeRow({ scientific_name: "A", common_name: "A", quantity: 3 }),
+      makeRow({ scientific_name: "B", common_name: "B", quantity: 11 }),
+    ];
+    const result = transformStatsData(rows);
+
+    expect(result.speciesBreakdown).toEqual([
+      expect.objectContaining({ name: "B", quantity: 11 }),
+      expect.objectContaining({ name: "A", quantity: 3 }),
+    ]);
+  });
+
   it("groups families exceeding MAX_FAMILIES_SHOWN into Other", () => {
     const families = ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8"];
     const rows = families.map((f, i) =>
