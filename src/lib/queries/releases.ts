@@ -38,6 +38,7 @@ type LockedShipmentItem = {
   id: number;
   shipment_id: number;
   number_received: number;
+  emerged_in_transit: number;
   damaged_in_transit: number;
   diseased_in_transit: number;
   parasite: number;
@@ -206,6 +207,7 @@ async function sumReleasedForItem(
 export function calculateRemaining(item: LockedShipmentItem, alreadyReleased: number) {
   const availableBeforeReleases =
     item.number_received -
+    item.emerged_in_transit -
     item.damaged_in_transit -
     item.diseased_in_transit -
     item.parasite -
@@ -570,6 +572,7 @@ export async function updateReleaseEventItems(
         id: shipment_items.id,
         shipment_id: shipment_items.shipment_id,
         number_received: shipment_items.number_received,
+        emerged_in_transit: shipment_items.emerged_in_transit,
         damaged_in_transit: shipment_items.damaged_in_transit,
         diseased_in_transit: shipment_items.diseased_in_transit,
         parasite: shipment_items.parasite,
@@ -845,6 +848,7 @@ export async function createReleaseFromShipment(
         id: shipment_items.id,
         shipment_id: shipment_items.shipment_id,
         number_received: shipment_items.number_received,
+        emerged_in_transit: shipment_items.emerged_in_transit,
         damaged_in_transit: shipment_items.damaged_in_transit,
         diseased_in_transit: shipment_items.diseased_in_transit,
         parasite: shipment_items.parasite,
@@ -1071,6 +1075,7 @@ export async function createInFlightForRelease(
         id: shipment_items.id,
         shipment_id: shipment_items.shipment_id,
         number_received: shipment_items.number_received,
+        emerged_in_transit: shipment_items.emerged_in_transit,
         damaged_in_transit: shipment_items.damaged_in_transit,
         diseased_in_transit: shipment_items.diseased_in_transit,
         parasite: shipment_items.parasite,
@@ -1165,6 +1170,7 @@ export async function updateInFlightQuantity(
         id: shipment_items.id,
         shipment_id: shipment_items.shipment_id,
         number_received: shipment_items.number_received,
+        emerged_in_transit: shipment_items.emerged_in_transit,
         damaged_in_transit: shipment_items.damaged_in_transit,
         diseased_in_transit: shipment_items.diseased_in_transit,
         parasite: shipment_items.parasite,

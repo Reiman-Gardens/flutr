@@ -9,6 +9,7 @@ const baseItem = {
   id: 1,
   shipment_id: 10,
   number_received: 100,
+  emerged_in_transit: 0,
   damaged_in_transit: 0,
   diseased_in_transit: 0,
   parasite: 0,
@@ -28,14 +29,37 @@ describe("calculateRemaining", () => {
   it("subtracts all loss columns before applying releases", () => {
     const item = {
       ...baseItem,
+      emerged_in_transit: 6,
       damaged_in_transit: 5,
       diseased_in_transit: 3,
       parasite: 2,
       non_emergence: 4,
       poor_emergence: 1,
     };
-    // available = 100 - 15 = 85; remaining = 85 - 20 = 65
-    expect(calculateRemaining(item, 20)).toBe(65);
+    // available = 100 - 21 = 79; remaining = 79 - 20 = 59
+    expect(calculateRemaining(item, 20)).toBe(59);
+  });
+
+  it("subtracts emerged_in_transit from remaining inventory", () => {
+    const item = {
+      ...baseItem,
+      number_received: 8,
+      emerged_in_transit: 2,
+      poor_emergence: 2,
+    };
+
+    expect(calculateRemaining(item, 4)).toBe(0);
+  });
+
+  it("keeps existing zero-emerged calculations unchanged", () => {
+    const item = {
+      ...baseItem,
+      number_received: 30,
+      emerged_in_transit: 0,
+      poor_emergence: 2,
+    };
+
+    expect(calculateRemaining(item, 20)).toBe(8);
   });
 
   it("returns 0 when exactly fully released", () => {

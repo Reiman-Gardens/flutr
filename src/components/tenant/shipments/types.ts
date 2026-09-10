@@ -91,6 +91,7 @@ export type ReleaseEventDetail = {
 export function computeItemRemaining(item: ShipmentItemRow): number {
   const grossAvailable =
     item.numberReceived -
+    item.emergedInTransit -
     item.damagedInTransit -
     item.diseasedInTransit -
     item.parasite -

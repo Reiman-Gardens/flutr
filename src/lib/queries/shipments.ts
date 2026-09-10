@@ -133,8 +133,9 @@ export function buildShipmentCompletionMap(
 /**
  * Compute remaining butterflies + completion flag per shipment for a tenant.
  *
- * Per shipment item, "remaining" = number_received − (damaged + diseased
- * + parasite + non_emergence + poor_emergence) − sum(in_flight.quantity).
+ * Per shipment item, "remaining" = number_received - (emerged_in_transit
+ * + damaged + diseased + parasite + non_emergence + poor_emergence)
+ * - sum(in_flight.quantity).
  * A shipment is "completed" when remaining sums to zero across all of its
  * items AND it has at least one item (an empty shipment is treated as
  * in-progress so users see something to fill in).
@@ -162,6 +163,7 @@ export async function getShipmentCompletionMap(
       itemCount: count(shipment_items.id),
       grossAvailable: sql<number>`coalesce(sum(
         ${shipment_items.number_received}
+        - ${shipment_items.emerged_in_transit}
         - ${shipment_items.damaged_in_transit}
         - ${shipment_items.diseased_in_transit}
         - ${shipment_items.parasite}
@@ -480,6 +482,7 @@ export async function updateShipment(
 
         const availableAfterUpdate =
           item.number_received -
+          item.emerged_in_transit -
           item.damaged_in_transit -
           item.diseased_in_transit -
           item.parasite -

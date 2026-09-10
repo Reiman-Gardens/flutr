@@ -66,6 +66,7 @@ const METRIC_COLUMNS: MetricColumn[] = [
  * and matches the composer's per-species behavior.
  */
 const LOSS_FIELDS: LossField[] = [
+  "emergedInTransit",
   "damagedInTransit",
   "diseasedInTransit",
   "parasite",
@@ -94,7 +95,6 @@ interface ShipmentItemsTableProps {
  */
 function metricMaxFor(item: ShipmentItemRow, field: MetricKey): number | undefined {
   if (field === "numberReceived") return undefined;
-  if (field === "emergedInTransit") return undefined;
 
   const otherLosses = LOSS_FIELDS.filter((k) => k !== field).reduce((acc, k) => acc + item[k], 0);
   return Math.max(0, item.numberReceived - item.inFlightQuantity - otherLosses);
