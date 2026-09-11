@@ -166,6 +166,7 @@ export default function ShipmentDetailPage() {
     const totalLosses = items.reduce(
       (acc, item) =>
         acc +
+        item.emergedInTransit +
         item.damagedInTransit +
         item.diseasedInTransit +
         item.parasite +
