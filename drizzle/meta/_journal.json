@@ -43,6 +43,13 @@
       "when": 1777043238117,
       "tag": "0005_pale_chimera",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1757851200000,
+      "tag": "0006_release_lifespan_snapshot",
+      "breakpoints": true
     }
   ]
 }
