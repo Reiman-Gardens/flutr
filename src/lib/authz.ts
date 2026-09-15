@@ -158,7 +158,7 @@ export function canReadSpecies(user: AuthenticatedUser): boolean {
 }
 
 export function canManageSpeciesOverrides(user: AuthenticatedUser): boolean {
-  return hasAtLeast(user, "ADMIN");
+  return can(user, "CHANGE_BUTTERFLY");
 }
 
 // Institution profile

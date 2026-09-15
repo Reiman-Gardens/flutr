@@ -35,6 +35,7 @@ src/
 │   ├── [institution]/      # Multi-tenant institution routes
 │   │   ├── (tenant)/       # Protected tenant admin routes (sidebar + header + footer shell)
 │   │   │   ├── dashboard/  # Admin dashboard
+│   │   │   ├── butterflies/ # Per-institution species overrides (common name, lifespan)
 │   │   │   ├── organization/ # Institution organization management
 │   │   │   └── shipments/  # Shipment list, detail (force-edit + release history), add, create release (shipments/[id]/release/new), edit release (shipments/[id]/release/[releaseId]/edit)
 │   │   └── (public)/       # Public-facing routes
@@ -55,6 +56,7 @@ src/
 │   │   ├── species/        # Platform species CRUD client, dialogs, table/cards, utilities
 │   │   └── suppliers/      # SuppliersTable, toolbar, row, utils
 │   ├── tenant/             # Tenant-facing feature components
+│   │   ├── species/        # Tenant species override client, edit dialog, table/cards, utilities
 │   │   ├── shipments/      # SpeciesPickerDialog, ShipmentItemsTable, ShipmentStatusBadge, SupplierSelect, types
 │   │   └── releases/       # ReleaseComposer, ReleaseCategoryComposer, ReleaseQuantityControls
 │   ├── nav/                # Public navigation components (top-nav, mobile-nav, footer)
@@ -127,7 +129,7 @@ pnpm db:studio      # Open Drizzle Studio GUI
 - `institution_news` — Institution-specific news entries (institution_id, title, content, is_active, optional image_url, timestamps)
 - `users` — User accounts tied to an institution (name, globally unique email, password_hash, role, institution_id, timestamps)
 - `butterfly_species` — Global master species catalog (scientific_name, common_name, family, sub_family, lifespan_days, range, optional description, host_plant, habitat, fun_facts, image fields: img_wings_open, img_wings_closed, extra_img_1, extra_img_2, timestamps)
-- `butterfly_species_institution` — Institution-specific overrides for global species (butterfly_species_id, institution_id, optional common_name_override, lifespan_override, timestamps)
+- `butterfly_species_institution` — Institution-specific overrides for global species (butterfly_species_id, institution_id, optional common_name_override, lifespan_override, timestamps). A row also marks the species as carried by that institution, which is what the public gallery lists. Edited at `/[institution]/butterflies`.
 - `suppliers` — Butterfly suppliers/vendors (institution_id, name, code, country, is_active, optional website_url, timestamps)
 - `shipments` — Shipment headers (institution_id, supplier_code, shipment_date, arrival_date, timestamps)
 - `shipment_items` — Shipment line items per species (institution_id, shipment_id, butterfly_species_id, number_received, emerged_in_transit, damaged_in_transit, diseased_in_transit, parasite, non_emergence, poor_emergence, timestamps)
@@ -176,6 +178,7 @@ Detailed documentation lives in `docs/`:
 | Shipment status badge | `ShipmentStatusBadge` from `@/components/tenant/shipments/shipment-status-badge`                                                            | Standard pill rendering for "In flight" / "Completed" shipment status                                                                                                                          |
 | Shipment items table  | `ShipmentItemsTable` from `@/components/tenant/shipments/shipment-items-table`                                                              | Read-only + inline-editable species table wrapped in the shared search toolbar; enforces per-metric min/max client-side                                                                        |
 | Species picker dialog | `SpeciesPickerDialog` from `@/components/tenant/shipments/species-picker-dialog`                                                            | Multi-select species picker backed by `useSpeciesSearch`; used by shipment add/edit                                                                                                            |
+| Species overrides     | `resolveCommonName`, `resolveLifespan`, `hasOverride`, `filterSpecies` from `@/components/tenant/species/species.utils`                     | Resolve an institution's species overrides against the global catalog; an empty override counts as absent so a blank name never renders                                                        |
 | Remaining helper      | `computeItemRemaining` from `@/components/tenant/shipments/types`                                                                           | Mirrors the DB `calculateRemaining` formula so client caps match the server                                                                                                                    |
 
 ## Workflow Rules

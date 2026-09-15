@@ -1,5 +1,6 @@
 import {
   Building2,
+  Bug,
   LayoutDashboard,
   LogOut,
   type LucideIcon,
@@ -34,6 +35,12 @@ export const TENANT_NAV_ITEMS: readonly NavItem[] = [
     label: "Shipments",
     href: "/shipments",
     icon: Package,
+  },
+  {
+    id: "butterflies",
+    label: "Butterflies",
+    href: "/butterflies",
+    icon: Bug,
   },
   {
     id: "news",

@@ -153,10 +153,13 @@ export type UpdateSpeciesBody = z.infer<typeof updateSpeciesBodySchema>;
  */
 export const updateSpeciesOverrideBodySchema = z
   .object({
+    // Empty / whitespace-only input clears the override. Every read path resolves
+    // overrides with `??` or SQL coalesce, neither of which treats "" as absent —
+    // storing "" would render a blank butterfly name on the public site.
     common_name_override: z
       .string()
       .max(200)
-      .transform((v) => sanitizeText(v))
+      .transform((v) => sanitizeText(v) || null)
       .nullable()
       .optional(),
 

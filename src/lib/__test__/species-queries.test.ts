@@ -1,6 +1,11 @@
 const mockInsert = jest.fn();
 const mockOnConflictDoNothing = jest.fn();
-const mockValues = jest.fn((rows: unknown[]) => ({ onConflictDoNothing: mockOnConflictDoNothing }));
+const mockOnConflictDoUpdate = jest.fn();
+const mockReturning = jest.fn();
+const mockValues = jest.fn((rows: unknown) => ({
+  onConflictDoNothing: mockOnConflictDoNothing,
+  onConflictDoUpdate: mockOnConflictDoUpdate,
+}));
 
 jest.mock("@/lib/db", () => ({
   db: {
@@ -9,13 +14,20 @@ jest.mock("@/lib/db", () => ({
 }));
 
 import { butterfly_species_institution } from "@/lib/schema";
-import { ensureSpeciesLinksForInstitution } from "@/lib/queries/species";
+import { ensureSpeciesLinksForInstitution, upsertSpeciesOverride } from "@/lib/queries/species";
+
+const conflictTarget = [
+  butterfly_species_institution.butterfly_species_id,
+  butterfly_species_institution.institution_id,
+];
 
 describe("species queries", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockInsert.mockReturnValue({ values: mockValues });
     mockOnConflictDoNothing.mockResolvedValue(undefined);
+    mockOnConflictDoUpdate.mockReturnValue({ returning: mockReturning });
+    mockReturning.mockResolvedValue([{ id: 1 }]);
   });
 
   it("ensures species links with onConflictDoNothing so existing overrides are preserved", async () => {
@@ -33,10 +45,7 @@ describe("species queries", () => {
       },
     ]);
     expect(mockOnConflictDoNothing).toHaveBeenCalledWith({
-      target: [
-        butterfly_species_institution.butterfly_species_id,
-        butterfly_species_institution.institution_id,
-      ],
+      target: conflictTarget,
     });
   });
 
@@ -49,5 +58,46 @@ describe("species queries", () => {
 
     expect(txInsert).toHaveBeenCalledWith(butterfly_species_institution);
     expect(mockInsert).not.toHaveBeenCalled();
+  });
+
+  describe("upsertSpeciesOverride", () => {
+    it("upserts on the (species, institution) pair", async () => {
+      await upsertSpeciesOverride(7, 3, { common_name_override: "Exhibit Morpho" });
+
+      expect(mockInsert).toHaveBeenCalledWith(butterfly_species_institution);
+      expect(mockOnConflictDoUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({ target: conflictTarget }),
+      );
+    });
+
+    it("leaves an omitted column untouched on update", async () => {
+      await upsertSpeciesOverride(7, 3, { common_name_override: "Exhibit Morpho" });
+
+      const [{ set }] = mockOnConflictDoUpdate.mock.calls[0] as [{ set: Record<string, unknown> }];
+
+      expect(set).toHaveProperty("common_name_override", "Exhibit Morpho");
+      // lifespan_override was not supplied, so the existing value must survive.
+      expect(set).not.toHaveProperty("lifespan_override");
+    });
+
+    it("clears an override when an explicit null is supplied", async () => {
+      await upsertSpeciesOverride(7, 3, { common_name_override: null, lifespan_override: 21 });
+
+      const [{ set }] = mockOnConflictDoUpdate.mock.calls[0] as [{ set: Record<string, unknown> }];
+
+      expect(set).toHaveProperty("common_name_override", null);
+      expect(set).toHaveProperty("lifespan_override", 21);
+    });
+
+    it("writes both overrides on the insert path", async () => {
+      await upsertSpeciesOverride(7, 3, { lifespan_override: 21 });
+
+      expect(mockValues).toHaveBeenCalledWith({
+        institution_id: 7,
+        butterfly_species_id: 3,
+        common_name_override: null,
+        lifespan_override: 21,
+      });
+    });
   });
 });

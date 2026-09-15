@@ -20,6 +20,9 @@ export async function listSpeciesForTenant(institutionId: number) {
       id: butterfly_species.id,
       scientificName: butterfly_species.scientific_name,
 
+      /** Null when the institution does not carry this species (no link row). */
+      linkId: butterfly_species_institution.id,
+
       commonName: butterfly_species.common_name,
       commonNameOverride: butterfly_species_institution.common_name_override,
 

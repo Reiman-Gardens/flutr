@@ -35,7 +35,10 @@ export const ROUTES = {
       `/${slug}/shipments/${id}/release/new`,
     shipmentReleaseEdit: (slug: string, id: string | number, releaseId: string | number) =>
       `/${slug}/shipments/${id}/release/${releaseId}/edit`,
+    butterflies: (slug: string) => `/${slug}/butterflies`,
     news: (slug: string) => `/${slug}/news`,
+    speciesApi: "/api/tenant/species",
+    speciesOverrideApi: (id: number | string) => `/api/tenant/species/${id}`,
     newsApi: "/api/tenant/news",
     newsEntryApi: (id: number | string) => `/api/tenant/news/${id}`,
     shipmentsApi: "/api/tenant/shipments",

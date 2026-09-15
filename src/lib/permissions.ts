@@ -5,7 +5,8 @@
 // - ADMIN: View shipments, create release, create shipments, manage suppliers,
 // create employee, manage users, change longevity, change common name,
 // change logo of butterfly
-// - EMPLOYEE: View shipments, create release, create shipments
+// - EMPLOYEE: View shipments, create release, create shipments,
+// change longevity, change common name (institution-level species overrides)
 export type Role = "SUPERUSER" | "ADMIN" | "EMPLOYEE" | string;
 
 export type Permission =
@@ -68,6 +69,7 @@ export const PERMISSION_MATRIX: Record<Role, Permission[]> = {
     "VIEW_ORGANIZATION",
     "CREATE_RELEASE",
     "CREATE_SHIPMENT",
+    "CHANGE_BUTTERFLY",
   ],
 };
 
