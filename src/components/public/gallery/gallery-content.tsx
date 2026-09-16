@@ -96,6 +96,12 @@ export function GalleryContent({ slug, species, globalSpecies }: GalleryContentP
 
   const [showGlobal, setShowGlobal] = useState(initial.showGlobal);
 
+  // Card display controls: local, presentational Gallery UI state only — unrelated to
+  // population/search/filter/sort/pagination. Not persisted to the URL. Independent of
+  // showGlobal/sortField, so they survive scope and sort changes by construction.
+  const [showOrigin, setShowOrigin] = useState(false);
+  const [showFamily, setShowFamily] = useState(false);
+
   // Switch between institution and global species list based on toggle.
   const activeSpecies = showGlobal ? globalSpecies : species;
 
@@ -133,6 +139,8 @@ export function GalleryContent({ slug, species, globalSpecies }: GalleryContentP
 
   const handleReset = useCallback(() => {
     setShowGlobal(false);
+    setShowOrigin(false);
+    setShowFamily(false);
     search.resetAll();
   }, [search]);
 
@@ -179,6 +187,10 @@ export function GalleryContent({ slug, species, globalSpecies }: GalleryContentP
         onReset={handleReset}
         showGlobal={showGlobal}
         onShowGlobalChange={handleShowGlobalChange}
+        showOrigin={showOrigin}
+        onShowOriginChange={setShowOrigin}
+        showFamily={showFamily}
+        onShowFamilyChange={setShowFamily}
       />
 
       {/* Results count */}
@@ -201,6 +213,12 @@ export function GalleryContent({ slug, species, globalSpecies }: GalleryContentP
               range={s.range}
               img_wings_open={s.img_wings_open}
               in_flight_count={s.in_flight_count}
+              showOrigin={showOrigin}
+              showFamily={showFamily}
+              // Flying Today is derived, not stored: visible only under an In Flight sort and
+              // only for species actually currently in flight — never "0 Flying Today" (e.g. in
+              // global mode, where population isn't pre-filtered to positive counts).
+              showFlyingToday={search.sortField === "in_flight" && s.in_flight_count > 0}
             />
           ))}
         </ul>

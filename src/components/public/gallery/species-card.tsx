@@ -12,6 +12,12 @@ interface SpeciesCardProps {
   range: string[];
   img_wings_open: string | null;
   in_flight_count: number;
+  /** Whether to render the origin/region chip (also requires a non-empty range). */
+  showOrigin?: boolean;
+  /** Whether to render the family chip. */
+  showFamily?: boolean;
+  /** Whether to render the "X Flying Today" chip. Caller decides eligibility (sort mode, count). */
+  showFlyingToday?: boolean;
 }
 
 export function SpeciesCard({
@@ -22,6 +28,9 @@ export function SpeciesCard({
   range,
   img_wings_open,
   in_flight_count,
+  showOrigin = false,
+  showFamily = false,
+  showFlyingToday = false,
 }: SpeciesCardProps) {
   const region = range.length > 0 ? range[0] : null;
 
@@ -51,19 +60,23 @@ export function SpeciesCard({
 
               {/* Chips */}
               <div className="absolute top-2 left-2 flex flex-wrap gap-1.5">
-                {region && (
+                {showOrigin && region && (
                   <span className="bg-background text-foreground rounded-full px-2.5 py-0.5 text-xs font-medium shadow-sm">
                     <span className="sr-only">Region: </span>
                     {region}
                   </span>
                 )}
-                <span className="bg-background text-foreground rounded-full px-2.5 py-0.5 text-xs font-medium shadow-sm">
-                  {family}
-                </span>
-                <span className="bg-background text-foreground rounded-full px-2.5 py-0.5 text-xs font-medium shadow-sm">
-                  <span className="sr-only">Number of butterflies in flight: </span>
-                  {in_flight_count} Flying Today
-                </span>
+                {showFamily && (
+                  <span className="bg-background text-foreground rounded-full px-2.5 py-0.5 text-xs font-medium shadow-sm">
+                    {family}
+                  </span>
+                )}
+                {showFlyingToday && (
+                  <span className="bg-background text-foreground rounded-full px-2.5 py-0.5 text-xs font-medium shadow-sm">
+                    <span className="sr-only">Number of butterflies in flight: </span>
+                    {in_flight_count} Flying Today
+                  </span>
+                )}
               </div>
             </div>
 

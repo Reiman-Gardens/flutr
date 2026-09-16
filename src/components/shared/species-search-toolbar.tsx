@@ -55,6 +55,14 @@ interface SpeciesSearchToolbarProps {
   showGlobal?: boolean;
   /** When provided, renders a "Show all species" toggle in the filters modal and enables scope switching. */
   onShowGlobalChange?: (show: boolean) => void;
+  /** Current "Show origin" card-display toggle state. Only used if onShowOriginChange is provided. */
+  showOrigin?: boolean;
+  /** When provided, renders a "Show origin" card-display toggle in the filters modal. */
+  onShowOriginChange?: (show: boolean) => void;
+  /** Current "Show family" card-display toggle state. Only used if onShowFamilyChange is provided. */
+  showFamily?: boolean;
+  /** When provided, renders a "Show family" card-display toggle in the filters modal. */
+  onShowFamilyChange?: (show: boolean) => void;
 }
 
 const DEFAULT_SORT_OPTIONS: SortOption[] = [
@@ -98,6 +106,10 @@ export function SpeciesSearchToolbar({
   onReset,
   showGlobal,
   onShowGlobalChange,
+  showOrigin,
+  onShowOriginChange,
+  showFamily,
+  onShowFamilyChange,
 }: SpeciesSearchToolbarProps) {
   // Debounced search input
   const [localQuery, setLocalQuery] = useState(query);
@@ -152,15 +164,21 @@ export function SpeciesSearchToolbar({
     setDraftFilters(cleared);
     onFiltersChange(cleared);
     onShowGlobalChange?.(false);
+    onShowOriginChange?.(false);
+    onShowFamilyChange?.(false);
     setModalOpen(false);
-  }, [onFiltersChange, onShowGlobalChange]);
+  }, [onFiltersChange, onShowGlobalChange, onShowOriginChange, onShowFamilyChange]);
 
+  // Card display (showOrigin/showFamily) are presentational toggles, not data filters — they
+  // don't count toward the active-filter badge, which represents actual scope/data filters only.
   const activeFilterCount = filters.families.length + (showGlobal ? 1 : 0);
   const isNonDefault =
     query.length > 0 ||
     sortField !== defaultSortField ||
     sortDirection !== defaultSortDirection ||
-    activeFilterCount > 0;
+    activeFilterCount > 0 ||
+    !!showOrigin ||
+    !!showFamily;
 
   return (
     <div className="space-y-3">
@@ -254,6 +272,55 @@ export function SpeciesSearchToolbar({
                 })}
               </div>
             </fieldset>
+
+            {/* Card display toggles — only rendered when the parent opts in */}
+            {(onShowOriginChange !== undefined || onShowFamilyChange !== undefined) && (
+              <fieldset className="space-y-3 border-t pt-4">
+                <legend className="mb-1 text-sm font-semibold">Card display</legend>
+                {onShowOriginChange !== undefined && (
+                  <div className="flex items-center gap-3">
+                    <Switch
+                      id="toolbar-show-origin"
+                      checked={showOrigin ?? false}
+                      onCheckedChange={onShowOriginChange}
+                      aria-describedby="toolbar-show-origin-desc"
+                    />
+                    <div>
+                      <Label
+                        htmlFor="toolbar-show-origin"
+                        className="cursor-pointer text-sm font-semibold"
+                      >
+                        Show origin
+                      </Label>
+                      <p id="toolbar-show-origin-desc" className="text-muted-foreground text-xs">
+                        Display each species&apos; geographic region on its card.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {onShowFamilyChange !== undefined && (
+                  <div className="flex items-center gap-3">
+                    <Switch
+                      id="toolbar-show-family"
+                      checked={showFamily ?? false}
+                      onCheckedChange={onShowFamilyChange}
+                      aria-describedby="toolbar-show-family-desc"
+                    />
+                    <div>
+                      <Label
+                        htmlFor="toolbar-show-family"
+                        className="cursor-pointer text-sm font-semibold"
+                      >
+                        Show family
+                      </Label>
+                      <p id="toolbar-show-family-desc" className="text-muted-foreground text-xs">
+                        Display each species&apos; taxonomic family on its card.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </fieldset>
+            )}
 
             {/* Global species toggle — only rendered when the parent opts in */}
             {onShowGlobalChange !== undefined && (
