@@ -4,9 +4,12 @@ import {
   getField,
   matchPriority,
   matchesAllTerms,
+  compareSpecies,
+  sortSpecies,
   PRIORITY_ORDER,
   type SpeciesItem,
   type SortField,
+  type SortDirection,
 } from "@/hooks/use-species-search";
 
 // ---------------------------------------------------------------------------
@@ -187,6 +190,205 @@ describe("matchPriority", () => {
     // "eastern tiger" both match as word prefixes in "Eastern Tiger Swallowtail"
     const regexes = compileTerms(["eastern", "tiger"]);
     expect(matchPriority(swallowtail, regexes, defaultOrder)).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// sortSpecies / compareSpecies — Gallery sort configurations
+//
+// Fixtures below mirror the shape GalleryContent passes into useSpeciesSearch: an
+// already-eligible (in_flight_count > 0) species set. Population selection is a separate
+// concern from sorting — sortSpecies/compareSpecies are order-only and never add or remove
+// species (see gallery-population.test.ts for the population rule itself), so every fixture
+// here is intentionally already eligible.
+//
+// The 8 field/direction pairs below are the exact field/direction values used by
+// GALLERY_SORT_OPTIONS in src/components/public/gallery/gallery-content.tsx (In Flight
+// High-Low/Low-High, Name A-Z/Z-A, Scientific A-Z/Z-A, Family A-Z/Z-A) — the full cross
+// product of SortField x SortDirection.
+// ---------------------------------------------------------------------------
+
+interface GallerySpeciesFixture extends SpeciesItem {
+  id: string;
+  in_flight_count: number;
+}
+
+describe("sortSpecies (Gallery sort configurations)", () => {
+  // Values chosen so common_name, scientific_name, family, and in_flight_count each
+  // produce a distinct total order — no ties to obscure a wrong-field bug.
+  const zebraLongwing: GallerySpeciesFixture = {
+    id: "zebra-longwing",
+    common_name: "Zebra Longwing",
+    scientific_name: "Heliconius charithonia",
+    family: "Nymphalidae",
+    in_flight_count: 12,
+  };
+  const blueMorphoFixture: GallerySpeciesFixture = {
+    id: "blue-morpho",
+    common_name: "Blue Morpho",
+    scientific_name: "Morpho peleides",
+    family: "Lycaenidae",
+    in_flight_count: 3,
+  };
+  const giantSwallowtail: GallerySpeciesFixture = {
+    id: "giant-swallowtail",
+    common_name: "Giant Swallowtail",
+    scientific_name: "Papilio cresphontes",
+    family: "Papilionidae",
+    in_flight_count: 27,
+  };
+  const atlasMoth: GallerySpeciesFixture = {
+    id: "atlas-moth",
+    common_name: "Atlas Moth",
+    scientific_name: "Attacus atlas",
+    family: "Saturniidae",
+    in_flight_count: 8,
+  };
+
+  const gallerySpecies: GallerySpeciesFixture[] = [
+    zebraLongwing,
+    blueMorphoFixture,
+    giantSwallowtail,
+    atlasMoth,
+  ];
+
+  const getNumericField = (item: GallerySpeciesFixture, field: SortField): number | undefined =>
+    field === "in_flight" ? item.in_flight_count : undefined;
+
+  const idsOf = (list: GallerySpeciesFixture[]) => list.map((s) => s.id);
+
+  it("sorts In Flight (High–Low): in_flight desc", () => {
+    const result = sortSpecies(gallerySpecies, "in_flight", "desc", getNumericField);
+    expect(idsOf(result)).toEqual([
+      "giant-swallowtail",
+      "zebra-longwing",
+      "atlas-moth",
+      "blue-morpho",
+    ]);
+  });
+
+  it("sorts In Flight (Low–High): in_flight asc", () => {
+    const result = sortSpecies(gallerySpecies, "in_flight", "asc", getNumericField);
+    expect(idsOf(result)).toEqual([
+      "blue-morpho",
+      "atlas-moth",
+      "zebra-longwing",
+      "giant-swallowtail",
+    ]);
+  });
+
+  it("sorts Name (A–Z): common_name asc", () => {
+    const result = sortSpecies(gallerySpecies, "common_name", "asc");
+    expect(idsOf(result)).toEqual([
+      "atlas-moth",
+      "blue-morpho",
+      "giant-swallowtail",
+      "zebra-longwing",
+    ]);
+  });
+
+  it("sorts Name (Z–A): common_name desc", () => {
+    const result = sortSpecies(gallerySpecies, "common_name", "desc");
+    expect(idsOf(result)).toEqual([
+      "zebra-longwing",
+      "giant-swallowtail",
+      "blue-morpho",
+      "atlas-moth",
+    ]);
+  });
+
+  it("sorts Scientific (A–Z): scientific_name asc", () => {
+    const result = sortSpecies(gallerySpecies, "scientific_name", "asc");
+    expect(idsOf(result)).toEqual([
+      "atlas-moth",
+      "zebra-longwing",
+      "blue-morpho",
+      "giant-swallowtail",
+    ]);
+  });
+
+  it("sorts Scientific (Z–A): scientific_name desc", () => {
+    const result = sortSpecies(gallerySpecies, "scientific_name", "desc");
+    expect(idsOf(result)).toEqual([
+      "giant-swallowtail",
+      "blue-morpho",
+      "zebra-longwing",
+      "atlas-moth",
+    ]);
+  });
+
+  it("sorts Family (A–Z): family asc", () => {
+    const result = sortSpecies(gallerySpecies, "family", "asc");
+    expect(idsOf(result)).toEqual([
+      "blue-morpho",
+      "zebra-longwing",
+      "giant-swallowtail",
+      "atlas-moth",
+    ]);
+  });
+
+  it("sorts Family (Z–A): family desc", () => {
+    const result = sortSpecies(gallerySpecies, "family", "desc");
+    expect(idsOf(result)).toEqual([
+      "atlas-moth",
+      "giant-swallowtail",
+      "zebra-longwing",
+      "blue-morpho",
+    ]);
+  });
+
+  it("never drops a species or changes the result count — sorting is order-only", () => {
+    const fields: SortField[] = ["common_name", "scientific_name", "family", "in_flight"];
+    const directions: SortDirection[] = ["asc", "desc"];
+
+    for (const field of fields) {
+      for (const direction of directions) {
+        const result = sortSpecies(gallerySpecies, field, direction, getNumericField);
+        expect(result).toHaveLength(gallerySpecies.length);
+        expect(new Set(idsOf(result))).toEqual(new Set(idsOf(gallerySpecies)));
+        // Sorting must never perform population selection — that is a separate concern
+        // (selectGalleryPopulation). Every fixture here is already in_flight_count > 0.
+        expect(result.every((s) => s.in_flight_count > 0)).toBe(true);
+      }
+    }
+  });
+
+  it("does not mutate the input array", () => {
+    const original = [...gallerySpecies];
+    sortSpecies(gallerySpecies, "common_name", "desc");
+    expect(gallerySpecies).toEqual(original);
+  });
+});
+
+describe("compareSpecies", () => {
+  it("falls back to text comparison when getNumericField is not provided for a numeric field", () => {
+    const a: SpeciesItem = { common_name: "Alpha", scientific_name: "A", family: "Fam" };
+    const b: SpeciesItem = { common_name: "Beta", scientific_name: "B", family: "Fam" };
+    // No getNumericField passed — compareSpecies must not throw and must fall back
+    // to a defined comparison (getField falls back to common_name for "in_flight").
+    expect(compareSpecies(a, b, "in_flight", "asc")).toBeLessThan(0);
+  });
+
+  it("tie-breaks equal numeric values by common_name ascending", () => {
+    const a: GallerySpeciesFixture = {
+      id: "a",
+      common_name: "Zeta",
+      scientific_name: "Z",
+      family: "Fam",
+      in_flight_count: 5,
+    };
+    const b: GallerySpeciesFixture = {
+      id: "b",
+      common_name: "Alpha",
+      scientific_name: "A",
+      family: "Fam",
+      in_flight_count: 5,
+    };
+    const getNumericField = (item: GallerySpeciesFixture) => item.in_flight_count;
+    // Equal in_flight_count — tie-break falls back to common_name asc regardless of
+    // the requested sort direction.
+    expect(compareSpecies(a, b, "in_flight", "desc", getNumericField)).toBeGreaterThan(0);
+    expect(compareSpecies(b, a, "in_flight", "desc", getNumericField)).toBeLessThan(0);
   });
 });
 

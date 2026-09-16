@@ -25,7 +25,11 @@ describe("gallery queries", () => {
     jest.clearAllMocks();
   });
 
-  it("uses shared current in-flight species counts for institution gallery rows", async () => {
+  // getGalleryData returns the full institution-associated species set, including
+  // zero-count species — Gallery population (in-flight-only vs. full historical set,
+  // depending on the selected sort mode) is a client-side concern (selectGalleryPopulation,
+  // applied inside useSpeciesSearch), not this function's contract.
+  it("uses shared current in-flight species counts for institution gallery rows and preserves zero-count species", async () => {
     const currentSubquery = {
       butterfly_species_id: { kind: "current-species-id" },
       quantity: { kind: "current-quantity" },
@@ -63,6 +67,8 @@ describe("gallery queries", () => {
     mockCurrentInFlightBySpeciesSubquery.mockReturnValue(currentSubquery);
     mockSelect.mockReturnValueOnce(galleryBuilder);
 
+    // Both the positive-count Blue Morpho and the zero-count Monarch are returned —
+    // getGalleryData no longer filters by in_flight_count.
     await expect(getGalleryData(501)).resolves.toEqual({
       species: [
         {
@@ -90,6 +96,65 @@ describe("gallery queries", () => {
     expect(galleryBuilder.leftJoin).toHaveBeenCalledWith(currentSubquery, expect.anything());
   });
 
+  it("returns institution-historical species even when every one currently has zero in-flight count", async () => {
+    const currentSubquery = {
+      butterfly_species_id: { kind: "current-species-id" },
+      quantity: { kind: "current-quantity" },
+    };
+    const rows = [
+      {
+        id: 5,
+        scientific_name: "Danaus plexippus",
+        common_name: "Monarch",
+        common_name_override: null,
+        family: "Nymphalidae",
+        range: ["North America"],
+        img_wings_open: "https://example.com/monarch.jpg",
+        img_wings_closed: null,
+        extra_img_1: null,
+        extra_img_2: null,
+        in_flight_count: 0,
+      },
+    ];
+    const galleryBuilder = createThenableQuery(rows);
+
+    mockCurrentInFlightBySpeciesSubquery.mockReturnValue(currentSubquery);
+    mockSelect.mockReturnValueOnce(galleryBuilder);
+
+    // Even with no species currently in flight, the full institution-historical set is
+    // still returned — eligibility for the "In Flight" Gallery view is decided client-side.
+    await expect(getGalleryData(505)).resolves.toEqual({
+      species: [
+        {
+          id: 5,
+          scientific_name: "Danaus plexippus",
+          common_name: "Monarch",
+          family: "Nymphalidae",
+          range: ["North America"],
+          img_wings_open: "https://example.com/monarch.jpg",
+          in_flight_count: 0,
+        },
+      ],
+    });
+  });
+
+  it("returns an empty species array when the institution has no associated species at all", async () => {
+    const currentSubquery = {
+      butterfly_species_id: { kind: "current-species-id" },
+      quantity: { kind: "current-quantity" },
+    };
+    const galleryBuilder = createThenableQuery([]);
+
+    mockCurrentInFlightBySpeciesSubquery.mockReturnValue(currentSubquery);
+    mockSelect.mockReturnValueOnce(galleryBuilder);
+
+    await expect(getGalleryData(506)).resolves.toEqual({ species: [] });
+  });
+
+  // getGalleryDetailData (used by the public API route) shares getGalleryData's unfiltered
+  // contract — neither function applies Gallery population/eligibility rules; that logic is
+  // specific to the client-side Gallery search pipeline (selectGalleryPopulation). This test
+  // locks in that both functions return zero-count species.
   it("preserves zero-current species in detailed gallery results", async () => {
     const currentSubquery = {
       butterfly_species_id: { kind: "current-species-id" },
@@ -131,6 +196,8 @@ describe("gallery queries", () => {
     ]);
   });
 
+  // getGalleryGlobalSpecies (the "Show all species" global-catalog mode) intentionally keeps
+  // zero-count species, matching getGalleryData's own (also unfiltered) contract.
   it("uses shared current in-flight counts for institution-scoped global species rows", async () => {
     const currentSubquery = {
       butterfly_species_id: { kind: "current-species-id" },

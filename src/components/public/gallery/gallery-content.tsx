@@ -13,6 +13,7 @@ import {
 } from "@/components/shared/species-search-toolbar";
 import type { GallerySpecies } from "@/lib/queries/gallery";
 import { SpeciesCard } from "./species-card";
+import { selectGalleryPopulation } from "./gallery-population";
 
 interface GalleryContentProps {
   slug: string;
@@ -107,6 +108,9 @@ export function GalleryContent({ slug, species, globalSpecies }: GalleryContentP
     initialFamilies: initial.families,
     initialVisibleCount: initial.visibleCount,
     getNumericField,
+    // Institution population rule (in-flight vs. historical, depending on sort mode) applies
+    // only to the institution-scoped view — the global catalog stays fully unfiltered.
+    selectItems: showGlobal ? undefined : selectGalleryPopulation,
   });
 
   const { setActiveFamilies } = search;
@@ -119,10 +123,12 @@ export function GalleryContent({ slug, species, globalSpecies }: GalleryContentP
     (show: boolean) => {
       if (show === showGlobal) return;
       setShowGlobal(show);
-      // Reset search state when switching scopes so stale filters don't carry over.
-      search.resetAll();
+      // Switch the dataset only — preserve query/sort/active family filters across scope
+      // changes. If the preserved filters have no matches in the newly-selected population,
+      // showing zero results is expected (not a bug); use Reset all or Clear All to intentionally
+      // clear them.
     },
-    [search, showGlobal],
+    [showGlobal],
   );
 
   const handleReset = useCallback(() => {
