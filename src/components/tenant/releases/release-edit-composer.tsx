@@ -91,6 +91,7 @@ function computeReleaseCap(params: {
   const { item, desiredLosses, originalLosses, originalRelease } = params;
 
   const currentShipmentLossTotal =
+    item.emergedInTransit +
     item.damagedInTransit +
     item.diseasedInTransit +
     item.parasite +
@@ -123,6 +124,7 @@ function computeLossFieldCap(params: {
   const { item, field, desiredRelease, desiredLosses, originalLosses, originalRelease } = params;
 
   const currentShipmentLossTotal =
+    item.emergedInTransit +
     item.damagedInTransit +
     item.diseasedInTransit +
     item.parasite +

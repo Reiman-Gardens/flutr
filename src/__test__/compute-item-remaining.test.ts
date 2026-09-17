@@ -24,6 +24,7 @@ describe("computeItemRemaining", () => {
   it("returns received minus losses minus in_flight in the normal case", () => {
     const item = makeItem({
       numberReceived: 50,
+      emergedInTransit: 2,
       damagedInTransit: 2,
       diseasedInTransit: 1,
       parasite: 1,
@@ -31,8 +32,8 @@ describe("computeItemRemaining", () => {
       poorEmergence: 1,
       inFlightQuantity: 10,
     });
-    // 50 - (2+1+1+3+1) - 10 = 32
-    expect(computeItemRemaining(item)).toBe(32);
+    // 50 - (2+2+1+1+3+1) - 10 = 30
+    expect(computeItemRemaining(item)).toBe(30);
   });
 
   it("returns 0 when everything has been released", () => {
@@ -56,15 +57,35 @@ describe("computeItemRemaining", () => {
     expect(computeItemRemaining(makeItem())).toBe(0);
   });
 
-  it("ignores emergedInTransit (it is informational, not a loss)", () => {
-    // emerged_in_transit is a status indicator, not a deduction. The release
-    // formula must not subtract it or we'd undercount remaining inventory.
-    const item = makeItem({ numberReceived: 30, emergedInTransit: 12 });
-    expect(computeItemRemaining(item)).toBe(30);
+  it("subtracts emergedInTransit from remaining inventory", () => {
+    const item = makeItem({
+      numberReceived: 8,
+      emergedInTransit: 2,
+      damagedInTransit: 0,
+      diseasedInTransit: 0,
+      parasite: 0,
+      nonEmergence: 0,
+      poorEmergence: 2,
+      inFlightQuantity: 4,
+    });
+
+    expect(computeItemRemaining(item)).toBe(0);
+  });
+
+  it("keeps existing zero-emerged calculations unchanged", () => {
+    const item = makeItem({
+      numberReceived: 30,
+      emergedInTransit: 0,
+      poorEmergence: 2,
+      inFlightQuantity: 20,
+    });
+
+    expect(computeItemRemaining(item)).toBe(8);
   });
 
   it("treats every loss column equally", () => {
     const lossColumns: Array<keyof ShipmentItemRow> = [
+      "emergedInTransit",
       "damagedInTransit",
       "diseasedInTransit",
       "parasite",

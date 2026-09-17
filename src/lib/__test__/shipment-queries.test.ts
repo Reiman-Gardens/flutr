@@ -11,7 +11,7 @@ jest.mock("@/lib/queries/species", () => ({
 }));
 
 import { shipments, shipment_items } from "@/lib/schema";
-import { createShipment, updateShipment } from "@/lib/queries/shipments";
+import { createShipment, SHIPMENT_ERRORS, updateShipment } from "@/lib/queries/shipments";
 import { ensureSpeciesLinksForInstitution } from "@/lib/queries/species";
 import { createThenableQuery } from "@/__test__/api/_utils/mockDb";
 
@@ -40,6 +40,14 @@ function buildInsertStub() {
     shipmentsReturning,
     itemValues,
   };
+}
+
+function createLockableQuery<T>(rows: T[]) {
+  const query = createThenableQuery(rows) as ReturnType<typeof createThenableQuery<T>> & {
+    for: jest.Mock;
+  };
+  query.for = jest.fn(() => query);
+  return query;
 }
 
 describe("shipment queries", () => {
@@ -140,5 +148,38 @@ describe("shipment queries", () => {
         butterfly_species_id: 12,
       }),
     ]);
+  });
+
+  it("counts emerged_in_transit when preventing inventory reductions below released total", async () => {
+    const tx = {
+      select: jest.fn(),
+      insert: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    };
+
+    tx.select
+      .mockImplementationOnce(() => createThenableQuery([{ id: 55 }]))
+      .mockImplementationOnce(() => createLockableQuery([{ id: 7 }]))
+      .mockImplementationOnce(() => createThenableQuery([{ total: 5 }]));
+
+    mockTransaction.mockImplementationOnce(async (callback) => callback(tx));
+
+    await expect(
+      updateShipment(77, 55, {
+        update_items: [
+          {
+            id: 7,
+            number_received: 8,
+            emerged_in_transit: 2,
+            damaged_in_transit: 0,
+            diseased_in_transit: 0,
+            parasite: 0,
+            non_emergence: 0,
+            poor_emergence: 2,
+          },
+        ],
+      }),
+    ).rejects.toThrow(SHIPMENT_ERRORS.INVALID_INVENTORY_REDUCTION);
   });
 });
