@@ -144,6 +144,7 @@ export const updateSpeciesBodySchema = z
   });
 
 export type UpdateSpeciesBody = z.infer<typeof updateSpeciesBodySchema>;
+export const MAX_LIFESPAN_DAYS = 365;
 
 /**
  * Tenant: Override species fields for a specific institution.
@@ -163,7 +164,13 @@ export const updateSpeciesOverrideBodySchema = z
       .nullable()
       .optional(),
 
-    lifespan_override: z.coerce.number().int().positive().nullable().optional(),
+    lifespan_override: z.coerce
+      .number()
+      .int()
+      .positive()
+      .max(MAX_LIFESPAN_DAYS)
+      .nullable()
+      .optional(),
   })
   .strict()
   .superRefine((data, ctx) => {

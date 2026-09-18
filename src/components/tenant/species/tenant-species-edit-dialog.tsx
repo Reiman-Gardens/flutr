@@ -29,6 +29,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { ROUTES } from "@/lib/routes";
 
+import { MAX_LIFESPAN_DAYS } from "@/lib/validation/species";
+
 import type { SpeciesOverrideValues, TenantSpeciesSummary } from "./species.utils";
 
 /**
@@ -42,9 +44,15 @@ const overrideFormSchema = z.object({
     .refine((value) => value.trim() === "" || /^\d+$/.test(value.trim()), {
       message: "Lifespan must be a whole number of days",
     })
-    .refine((value) => value.trim() === "" || Number(value) > 0, {
-      message: "Lifespan must be at least 1 day",
-    }),
+    .refine(
+      (value) => {
+        const trimmed = value.trim();
+        if (trimmed === "") return true;
+        const parsed = Number(trimmed);
+        return Number.isSafeInteger(parsed) && parsed >= 1 && parsed <= MAX_LIFESPAN_DAYS;
+      },
+      { message: `Lifespan must be between 1 and ${MAX_LIFESPAN_DAYS} days` },
+    ),
 });
 
 type OverrideFormValues = z.infer<typeof overrideFormSchema>;
@@ -154,7 +162,7 @@ export default function TenantSpeciesEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="italic">{species.scientificName}</DialogTitle>
           <DialogDescription>
@@ -222,6 +230,7 @@ export default function TenantSpeciesEditDialog({
                         type="number"
                         inputMode="numeric"
                         min={1}
+                        max={MAX_LIFESPAN_DAYS}
                         step={1}
                         placeholder={String(species.lifespanDays)}
                         {...field}

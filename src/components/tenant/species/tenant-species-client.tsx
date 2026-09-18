@@ -1,7 +1,7 @@
 "use client";
 
 import { Bug } from "lucide-react";
-import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useCallback, useDeferredValue, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -40,7 +40,24 @@ export default function TenantSpeciesClient({ species: initialSpecies }: TenantS
   const [scope, setScope] = useState<SpeciesScope>("mine");
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
   const [editTarget, setEditTarget] = useState<TenantSpeciesSummary | null>(null);
-  const sentinelRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  // Callback ref, not an effect: the sentinel unmounts whenever the list is fully
+  // expanded and remounts on the next search, so the observer has to follow the node
+  // itself rather than a dependency that can stay equal across those renders.
+  const sentinelRef = useCallback((el: HTMLDivElement | null) => {
+    observerRef.current?.disconnect();
+    if (!el) return;
+    observerRef.current = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisibleCount((n) => n + BATCH_SIZE);
+        }
+      },
+      { threshold: 0.1 },
+    );
+    observerRef.current.observe(el);
+  }, []);
 
   const filteredSpecies = useMemo(
     () => filterSpecies(species, deferredSearch, scope),
@@ -52,21 +69,6 @@ export default function TenantSpeciesClient({ species: initialSpecies }: TenantS
 
   const visibleSpecies = filteredSpecies.slice(0, visibleCount);
   const hasMore = visibleCount < filteredSpecies.length;
-
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisibleCount((n) => Math.min(n + BATCH_SIZE, filteredSpecies.length));
-        }
-      },
-      { threshold: 0.1 },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [filteredSpecies.length]);
 
   function handleSearchChange(value: string) {
     setSearch(value);
