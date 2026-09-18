@@ -25,6 +25,7 @@ Flutr uses a shared database with institution-level data isolation:
 /[institution]/(tenant)/inventory   # Protected — butterfly inventory
 /[institution]/(tenant)/shipments   # Protected — shipment list
 /[institution]/(tenant)/shipments/add # Protected — add shipment
+/[institution]/(tenant)/butterflies # Protected — per-institution species overrides
 /[institution]/(public)/            # Public — institution landing page
 /[institution]/(public)/stats       # Public — institution statistics
 /[institution]/(public)/[butterfly] # Public — species detail page

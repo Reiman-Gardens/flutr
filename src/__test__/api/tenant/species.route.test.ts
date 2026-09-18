@@ -221,5 +221,25 @@ describe("Tenant Species API", () => {
       const body = await response.json();
       expect(body.override.commonNameOverride).toBeNull();
     });
+
+    it("normalizes an empty common name to null so a blank name is never stored", async () => {
+      mockUpdateTenantSpeciesOverride.mockResolvedValueOnce({
+        id: 1,
+        speciesId: 10,
+        institutionId: 1,
+        commonNameOverride: null,
+        lifespanOverride: null,
+      });
+
+      const response = (await patchSpeciesOverride(
+        makePatchRequest("10", { common_name_override: "   " }, SLUG),
+        routeContext("10"),
+      ))!;
+      expect(response.status).toBe(200);
+
+      expect(mockUpdateTenantSpeciesOverride).toHaveBeenCalledWith(
+        expect.objectContaining({ common_name_override: null }),
+      );
+    });
   });
 });

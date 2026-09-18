@@ -104,7 +104,8 @@ All tenant routes use `x-tenant-slug` for tenant context:
 
 - `GET/POST /api/tenant/shipments` — list paginated shipments & create shipments
 - `GET/PATCH/DELETE /api/tenant/shipments/[id]` — shipment detail, update, delete
-- `GET /api/tenant/species` — list tenant-visible species with applied overrides
+- `GET /api/tenant/species` — list global species alongside this institution's overrides
+  (`linkId` is null when the institution does not carry the species)
 - `PATCH /api/tenant/species/[id]` — upsert tenant override fields for a species
 - `GET /api/tenant/releases` — list paginated release events for the institution
 - `POST /api/tenant/shipments/[id]/releases` — create release event with multiple shipment items
@@ -522,6 +523,7 @@ Response shape:
     {
       "id": 10,
       "scientificName": "Papilio glaucus",
+      "linkId": null,
       "commonName": "Eastern Tiger Swallowtail",
       "commonNameOverride": null,
       "lifespanDays": 14,
@@ -543,7 +545,12 @@ Response shape:
 ```
 
 - At least one of `common_name_override` or `lifespan_override` must be present.
-- Either field can be set to `null` to clear the override.
+- Either field can be set to `null` to clear the override. An empty or whitespace-only
+  `common_name_override` is normalized to `null`, so a blank name is never stored.
+- An omitted field is left untouched; only the fields present in the body are written.
+- Requires the `CHANGE_BUTTERFLY` permission — held by EMPLOYEE, ADMIN and SUPERUSER.
+- Saving an override for a species the institution has not received creates the link row,
+  which makes that species appear in the institution's public gallery.
 
 ### Tenant shipments/[id]/releases contract
 

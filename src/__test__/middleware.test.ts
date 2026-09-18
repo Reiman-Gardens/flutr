@@ -46,7 +46,9 @@ describe("middleware", () => {
     });
 
     it("matches actual admin route segments", () => {
-      expect(config.matcher[0]).toBe("/:institution/(dashboard|organization|shipments)/:path*");
+      expect(config.matcher[0]).toBe(
+        "/:institution/(dashboard|organization|shipments|butterflies)/:path*",
+      );
     });
   });
 
@@ -94,6 +96,30 @@ describe("middleware", () => {
     );
 
     expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("allows EMPLOYEE on butterflies route (has CHANGE_BUTTERFLY)", () => {
+    const response = handleAuthorizedRequest(
+      makeRequest("/monarch-house/butterflies", makeUser("EMPLOYEE", "monarch-house")),
+    );
+
+    expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("allows ADMIN on butterflies route", () => {
+    const response = handleAuthorizedRequest(
+      makeRequest("/monarch-house/butterflies", makeUser("ADMIN", "monarch-house")),
+    );
+
+    expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("blocks users from accessing another institution's butterflies route", () => {
+    const response = handleAuthorizedRequest(
+      makeRequest("/monarch-house/butterflies", makeUser("EMPLOYEE", "other-house")),
+    );
+
+    expect(response.headers.get("location")).toContain("/unauthorized");
   });
 
   it("blocks users from accessing another institution", () => {

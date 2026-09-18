@@ -144,6 +144,7 @@ export const updateSpeciesBodySchema = z
   });
 
 export type UpdateSpeciesBody = z.infer<typeof updateSpeciesBodySchema>;
+export const MAX_LIFESPAN_DAYS = 365;
 
 /**
  * Tenant: Override species fields for a specific institution.
@@ -153,14 +154,23 @@ export type UpdateSpeciesBody = z.infer<typeof updateSpeciesBodySchema>;
  */
 export const updateSpeciesOverrideBodySchema = z
   .object({
+    // Empty / whitespace-only input clears the override. Every read path resolves
+    // overrides with `??` or SQL coalesce, neither of which treats "" as absent —
+    // storing "" would render a blank butterfly name on the public site.
     common_name_override: z
       .string()
       .max(200)
-      .transform((v) => sanitizeText(v))
+      .transform((v) => sanitizeText(v) || null)
       .nullable()
       .optional(),
 
-    lifespan_override: z.coerce.number().int().positive().nullable().optional(),
+    lifespan_override: z.coerce
+      .number()
+      .int()
+      .positive()
+      .max(MAX_LIFESPAN_DAYS)
+      .nullable()
+      .optional(),
   })
   .strict()
   .superRefine((data, ctx) => {
