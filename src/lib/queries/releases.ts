@@ -2,6 +2,8 @@ import { and, count, desc, eq, inArray, ne, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import {
+  butterfly_species,
+  butterfly_species_institution,
   in_flight,
   release_event_losses,
   release_events,
@@ -174,6 +176,36 @@ function assertInFlightQuantity(quantity: UpdateInFlightQuantityBody["quantity"]
   if (!isPositiveInteger(quantity)) {
     throw new Error(RELEASE_ERRORS.INVALID_QUANTITY);
   }
+}
+
+async function getEffectiveLifespanAtRelease(
+  tx: DrizzleTx,
+  shipmentItemIds: number[],
+): Promise<Map<number, number>> {
+  if (shipmentItemIds.length === 0) {
+    return new Map();
+  }
+
+  const rows = await tx
+    .select({
+      shipment_item_id: shipment_items.id,
+      lifespan_days_at_release:
+        sql<number>`coalesce(${butterfly_species_institution.lifespan_override}, ${butterfly_species.lifespan_days})::int`.as(
+          "lifespan_days_at_release",
+        ),
+    })
+    .from(shipment_items)
+    .innerJoin(butterfly_species, eq(shipment_items.butterfly_species_id, butterfly_species.id))
+    .leftJoin(
+      butterfly_species_institution,
+      and(
+        eq(butterfly_species_institution.butterfly_species_id, butterfly_species.id),
+        eq(butterfly_species_institution.institution_id, shipment_items.institution_id),
+      ),
+    )
+    .where(inArray(shipment_items.id, shipmentItemIds));
+
+  return new Map(rows.map((row) => [row.shipment_item_id, Number(row.lifespan_days_at_release)]));
 }
 
 type DrizzleTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -999,17 +1031,30 @@ export async function createReleaseFromShipment(
         releasedBy: release_events.released_by,
       });
 
+    const lifespanByShipmentItemId = await getEffectiveLifespanAtRelease(
+      tx,
+      payload.items.map((item) => item.shipment_item_id),
+    );
+
     const inFlightRows =
       payload.items.length > 0
         ? await tx
             .insert(in_flight)
             .values(
-              payload.items.map((item) => ({
-                institution_id: institutionId,
-                release_event_id: releaseEvent.id,
-                shipment_item_id: item.shipment_item_id,
-                quantity: item.quantity,
-              })),
+              payload.items.map((item) => {
+                const lifespanDaysAtRelease = lifespanByShipmentItemId.get(item.shipment_item_id);
+                if (lifespanDaysAtRelease === undefined) {
+                  throw new Error(RELEASE_ERRORS.SHIPMENT_ITEM_NOT_FOUND);
+                }
+
+                return {
+                  institution_id: institutionId,
+                  release_event_id: releaseEvent.id,
+                  shipment_item_id: item.shipment_item_id,
+                  quantity: item.quantity,
+                  lifespan_days_at_release: lifespanDaysAtRelease,
+                };
+              }),
             )
             .returning({
               id: in_flight.id,
@@ -1122,6 +1167,34 @@ export async function createInFlightForRelease(
       throw new Error(RELEASE_ERRORS.QUANTITY_EXCEEDS_REMAINING);
     }
 
+    const [speciesLifespan] = await tx
+      .select({
+        lifespan_days_at_release:
+          sql<number>`coalesce(${butterfly_species_institution.lifespan_override}, ${butterfly_species.lifespan_days})::int`.as(
+            "lifespan_days_at_release",
+          ),
+      })
+      .from(shipment_items)
+      .innerJoin(butterfly_species, eq(shipment_items.butterfly_species_id, butterfly_species.id))
+      .leftJoin(
+        butterfly_species_institution,
+        and(
+          eq(butterfly_species_institution.butterfly_species_id, butterfly_species.id),
+          eq(butterfly_species_institution.institution_id, institutionId),
+        ),
+      )
+      .where(
+        and(
+          eq(shipment_items.id, payload.shipment_item_id),
+          eq(shipment_items.institution_id, institutionId),
+        ),
+      )
+      .limit(1);
+
+    if (!speciesLifespan) {
+      throw new Error(RELEASE_ERRORS.SHIPMENT_ITEM_NOT_FOUND);
+    }
+
     const [created] = await tx
       .insert(in_flight)
       .values({
@@ -1129,6 +1202,7 @@ export async function createInFlightForRelease(
         release_event_id: releaseEventId,
         shipment_item_id: payload.shipment_item_id,
         quantity: payload.quantity,
+        lifespan_days_at_release: Number(speciesLifespan.lifespan_days_at_release),
       })
       .returning({
         id: in_flight.id,

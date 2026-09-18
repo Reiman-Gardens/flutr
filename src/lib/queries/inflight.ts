@@ -28,7 +28,7 @@ export interface CurrentInFlightSummary {
 }
 
 function lifespanDaysExpr() {
-  return sql<number>`coalesce(${butterfly_species_institution.lifespan_override}, ${butterfly_species.lifespan_days})`;
+  return sql<number>`coalesce(${in_flight.lifespan_days_at_release}, ${butterfly_species.lifespan_days})`;
 }
 
 function aliveCondition() {
@@ -62,13 +62,6 @@ export function currentInFlightBySpeciesSubquery(institutionId: number) {
       ),
     )
     .innerJoin(butterfly_species, eq(shipment_items.butterfly_species_id, butterfly_species.id))
-    .leftJoin(
-      butterfly_species_institution,
-      and(
-        eq(butterfly_species_institution.butterfly_species_id, butterfly_species.id),
-        eq(butterfly_species_institution.institution_id, institutionId),
-      ),
-    )
     .where(and(eq(in_flight.institution_id, institutionId), aliveCondition()))
     .groupBy(shipment_items.butterfly_species_id)
     .as("current_in_flight_by_species");

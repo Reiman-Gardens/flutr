@@ -439,6 +439,7 @@ export const in_flight = pgTable(
     shipment_item_id: integer("shipment_item_id").notNull(),
 
     quantity: integer("quantity").notNull(),
+    lifespan_days_at_release: integer("lifespan_days_at_release"),
 
     created_at: timestamp("created_at").defaultNow().notNull(),
     updated_at: timestamp("updated_at").defaultNow().notNull(),
