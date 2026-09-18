@@ -19,6 +19,13 @@ export interface UseSpeciesSearchOptions<T extends SpeciesItem> {
   initialVisibleCount?: number;
   /** Numeric field accessor for custom sort fields like in_flight. */
   getNumericField?: (item: T, field: SortField) => number | undefined;
+  /**
+   * Optional population scope: decides which items are eligible at all, given the
+   * currently-selected sort field, before families are derived and before family/search
+   * filtering and sorting run. Generic — this hook has no opinion on what the rule is; the
+   * caller supplies it. When omitted, all items are eligible (existing behavior, unchanged).
+   */
+  selectItems?: (items: T[], sortField: SortField) => T[];
 }
 
 export interface UseSpeciesSearchReturn<T extends SpeciesItem> {
@@ -101,6 +108,44 @@ export function matchesAllTerms<T extends SpeciesItem>(item: T, regexes: RegExp[
   });
 }
 
+/**
+ * Compare two species items for sorting by the given field/direction.
+ * Numeric fields (e.g. "in_flight") use getNumericField and tie-break by common_name
+ * ascending; text fields compare case-insensitively. This is the single source of
+ * sort-order truth for useSpeciesSearch — do not duplicate this logic elsewhere.
+ */
+export function compareSpecies<T extends SpeciesItem>(
+  a: T,
+  b: T,
+  field: SortField,
+  direction: SortDirection,
+  getNumericField?: (item: T, field: SortField) => number | undefined,
+): number {
+  const dir = direction === "asc" ? 1 : -1;
+  const isTextSort = TEXT_SORT_FIELDS.includes(field);
+
+  if (!isTextSort && getNumericField) {
+    const aNum = getNumericField(a, field) ?? 0;
+    const bNum = getNumericField(b, field) ?? 0;
+    if (aNum !== bNum) return (aNum - bNum) * dir;
+    // Tie-break by common_name asc
+    return a.common_name.toLowerCase().localeCompare(b.common_name.toLowerCase());
+  }
+  const aVal = getField(a, field).toLowerCase();
+  const bVal = getField(b, field).toLowerCase();
+  return aVal.localeCompare(bVal) * dir;
+}
+
+/** Sort a list of species items by the given field/direction, using compareSpecies. */
+export function sortSpecies<T extends SpeciesItem>(
+  items: T[],
+  field: SortField,
+  direction: SortDirection,
+  getNumericField?: (item: T, field: SortField) => number | undefined,
+): T[] {
+  return [...items].sort((a, b) => compareSpecies(a, b, field, direction, getNumericField));
+}
+
 export function useSpeciesSearch<T extends SpeciesItem>({
   items,
   pageSize = DEFAULT_PAGE_SIZE,
@@ -110,6 +155,7 @@ export function useSpeciesSearch<T extends SpeciesItem>({
   initialFamilies = [],
   initialVisibleCount,
   getNumericField,
+  selectItems,
 }: UseSpeciesSearchOptions<T>): UseSpeciesSearchReturn<T> {
   const [query, setQuery] = useState(initialQuery);
   const [sortField, setSortField] = useState<SortField>(defaultSortField);
@@ -117,11 +163,21 @@ export function useSpeciesSearch<T extends SpeciesItem>({
   const [activeFamilies, setActiveFamilies] = useState<string[]>(initialFamilies);
   const [visibleCount, setVisibleCount] = useState(initialVisibleCount ?? pageSize);
 
-  // Extract distinct sorted family names
+  // Population scope: which items are eligible at all, given the current sort field. Optional
+  // and generic — when selectItems isn't supplied, all items remain eligible (unchanged
+  // behavior). This uses the hook's own authoritative sortField, so there is no separate/
+  // mirrored sort state anywhere.
+  const scopedItems = useMemo(
+    () => (selectItems ? selectItems(items, sortField) : items),
+    [items, sortField, selectItems],
+  );
+
+  // Extract distinct sorted family names — derived from the scoped population, not raw items,
+  // so the Filters dialog reflects whichever population is currently active.
   const families = useMemo(() => {
-    const set = new Set(items.map((s) => s.family));
+    const set = new Set(scopedItems.map((s) => s.family));
     return [...set].sort((a, b) => a.localeCompare(b));
-  }, [items]);
+  }, [scopedItems]);
 
   // Reset pagination when filters change
   const handleSetQuery = useCallback(
@@ -161,9 +217,9 @@ export function useSpeciesSearch<T extends SpeciesItem>({
     setVisibleCount(pageSize);
   }, [defaultSortField, defaultSortDirection, pageSize]);
 
-  // Filter → sort → prioritize
+  // Population → filter → sort → prioritize
   const results = useMemo(() => {
-    let filtered = items;
+    let filtered = scopedItems;
 
     // Family filter
     if (activeFamilies.length > 0) {
@@ -179,23 +235,6 @@ export function useSpeciesSearch<T extends SpeciesItem>({
       filtered = filtered.filter((s) => matchesAllTerms(s, regexes));
     }
 
-    const dir = sortDirection === "asc" ? 1 : -1;
-    const isTextSort = TEXT_SORT_FIELDS.includes(sortField);
-
-    // Sort comparator
-    const compare = (a: T, b: T) => {
-      if (!isTextSort && getNumericField) {
-        const aNum = getNumericField(a, sortField) ?? 0;
-        const bNum = getNumericField(b, sortField) ?? 0;
-        if (aNum !== bNum) return (aNum - bNum) * dir;
-        // Tie-break by common_name asc
-        return a.common_name.toLowerCase().localeCompare(b.common_name.toLowerCase());
-      }
-      const aVal = getField(a, sortField).toLowerCase();
-      const bVal = getField(b, sortField).toLowerCase();
-      return aVal.localeCompare(bVal) * dir;
-    };
-
     // With an active search query, sort by priority tier first, then by sort field within tiers
     if (regexes.length > 0) {
       const order = PRIORITY_ORDER[sortField];
@@ -203,12 +242,12 @@ export function useSpeciesSearch<T extends SpeciesItem>({
         const pa = matchPriority(a, regexes, order);
         const pb = matchPriority(b, regexes, order);
         if (pa !== pb) return pa - pb;
-        return compare(a, b);
+        return compareSpecies(a, b, sortField, sortDirection, getNumericField);
       });
     }
 
-    return [...filtered].sort(compare);
-  }, [items, activeFamilies, query, sortField, sortDirection, getNumericField]);
+    return sortSpecies(filtered, sortField, sortDirection, getNumericField);
+  }, [scopedItems, activeFamilies, query, sortField, sortDirection, getNumericField]);
 
   const visibleResults = useMemo(() => results.slice(0, visibleCount), [results, visibleCount]);
 

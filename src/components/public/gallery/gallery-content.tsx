@@ -13,6 +13,7 @@ import {
 } from "@/components/shared/species-search-toolbar";
 import type { GallerySpecies } from "@/lib/queries/gallery";
 import { SpeciesCard } from "./species-card";
+import { selectGalleryPopulation } from "./gallery-population";
 
 interface GalleryContentProps {
   slug: string;
@@ -95,6 +96,12 @@ export function GalleryContent({ slug, species, globalSpecies }: GalleryContentP
 
   const [showGlobal, setShowGlobal] = useState(initial.showGlobal);
 
+  // Card display controls: local, presentational Gallery UI state only — unrelated to
+  // population/search/filter/sort/pagination. Not persisted to the URL. Independent of
+  // showGlobal/sortField, so they survive scope and sort changes by construction.
+  const [showOrigin, setShowOrigin] = useState(false);
+  const [showFamily, setShowFamily] = useState(false);
+
   // Switch between institution and global species list based on toggle.
   const activeSpecies = showGlobal ? globalSpecies : species;
 
@@ -107,6 +114,9 @@ export function GalleryContent({ slug, species, globalSpecies }: GalleryContentP
     initialFamilies: initial.families,
     initialVisibleCount: initial.visibleCount,
     getNumericField,
+    // Institution population rule (in-flight vs. historical, depending on sort mode) applies
+    // only to the institution-scoped view — the global catalog stays fully unfiltered.
+    selectItems: showGlobal ? undefined : selectGalleryPopulation,
   });
 
   const { setActiveFamilies } = search;
@@ -119,14 +129,18 @@ export function GalleryContent({ slug, species, globalSpecies }: GalleryContentP
     (show: boolean) => {
       if (show === showGlobal) return;
       setShowGlobal(show);
-      // Reset search state when switching scopes so stale filters don't carry over.
-      search.resetAll();
+      // Switch the dataset only — preserve query/sort/active family filters across scope
+      // changes. If the preserved filters have no matches in the newly-selected population,
+      // showing zero results is expected (not a bug); use Reset all or Clear All to intentionally
+      // clear them.
     },
-    [search, showGlobal],
+    [showGlobal],
   );
 
   const handleReset = useCallback(() => {
     setShowGlobal(false);
+    setShowOrigin(false);
+    setShowFamily(false);
     search.resetAll();
   }, [search]);
 
@@ -173,6 +187,10 @@ export function GalleryContent({ slug, species, globalSpecies }: GalleryContentP
         onReset={handleReset}
         showGlobal={showGlobal}
         onShowGlobalChange={handleShowGlobalChange}
+        showOrigin={showOrigin}
+        onShowOriginChange={setShowOrigin}
+        showFamily={showFamily}
+        onShowFamilyChange={setShowFamily}
       />
 
       {/* Results count */}
@@ -195,6 +213,12 @@ export function GalleryContent({ slug, species, globalSpecies }: GalleryContentP
               range={s.range}
               img_wings_open={s.img_wings_open}
               in_flight_count={s.in_flight_count}
+              showOrigin={showOrigin}
+              showFamily={showFamily}
+              // Flying Today is derived, not stored: visible only under an In Flight sort and
+              // only for species actually currently in flight — never "0 Flying Today" (e.g. in
+              // global mode, where population isn't pre-filtered to positive counts).
+              showFlyingToday={search.sortField === "in_flight" && s.in_flight_count > 0}
             />
           ))}
         </ul>

@@ -67,7 +67,13 @@ function resolveOverrides(
   }));
 }
 
-/** Gallery species for an institution (page-level). */
+/**
+ * Gallery species for an institution (page-level).
+ * Returns the full institution-associated species set, including species with
+ * in_flight_count === 0 — Gallery population/eligibility (e.g. in-flight-only vs.
+ * full historical set, depending on the selected sort mode) is a client-side concern,
+ * not this function's responsibility. See selectGalleryPopulation.
+ */
 export async function getGalleryData(institutionId: number) {
   const rows = await queryGallerySpecies(institutionId);
   const species: GallerySpecies[] = resolveOverrides(rows).map((item) => ({

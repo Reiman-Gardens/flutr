@@ -87,6 +87,31 @@ describe("getGalleryData", () => {
 
     expect(result.species).toEqual([]);
   });
+
+  it("preserves species with zero current in-flight count alongside positive-count species", async () => {
+    const zeroRow = { ...mockRow, id: 99, in_flight_count: 0 };
+    mockDb.db.select.mockReturnValueOnce(createThenableQuery([mockRow, zeroRow]));
+
+    const { getGalleryData } = await import("@/lib/queries/gallery");
+    const result = await getGalleryData(1);
+
+    expect(result.species).toHaveLength(2);
+    expect(result.species.map((s) => s.id)).toEqual([1, 99]);
+    expect(result.species[1].in_flight_count).toBe(0);
+  });
+
+  it("returns institution-historical species even when every one currently has zero in-flight count", async () => {
+    const zeroRow = { ...mockRow, in_flight_count: 0 };
+    mockDb.db.select.mockReturnValueOnce(createThenableQuery([zeroRow]));
+
+    const { getGalleryData } = await import("@/lib/queries/gallery");
+    const result = await getGalleryData(1);
+
+    // Eligibility for the "In Flight" Gallery view is decided client-side
+    // (selectGalleryPopulation) — getGalleryData itself returns the full historical set.
+    expect(result.species).toHaveLength(1);
+    expect(result.species[0].in_flight_count).toBe(0);
+  });
 });
 
 describe("getGalleryDetailData", () => {
@@ -132,5 +157,16 @@ describe("getGalleryDetailData", () => {
 
     expect(typeof result[0].in_flight_count).toBe("number");
     expect(result[0].in_flight_count).toBe(7);
+  });
+
+  it("preserves zero-count species, matching getGalleryData's unfiltered contract", async () => {
+    const zeroRow = { ...mockRow, in_flight_count: 0 };
+    mockDb.db.select.mockReturnValueOnce(createThenableQuery([zeroRow]));
+
+    const { getGalleryDetailData } = await import("@/lib/queries/gallery");
+    const result = await getGalleryDetailData(1);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].in_flight_count).toBe(0);
   });
 });
