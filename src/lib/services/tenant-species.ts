@@ -3,12 +3,13 @@ import { requireUser, canReadSpecies, canManageSpeciesOverrides } from "@/lib/au
 import { resolveTenantBySlug } from "@/lib/tenant";
 import { listSpeciesForTenant, getSpeciesById, upsertSpeciesOverride } from "@/lib/queries/species";
 import type { UpdateSpeciesOverrideBody } from "@/lib/validation/species";
+import { attachImagesCamel } from "@/lib/wingspan/client";
 
 export async function getTenantSpecies({ slug }: { slug: string }) {
   const user = requireUser(await auth());
   if (!canReadSpecies(user)) throw new Error("FORBIDDEN");
   const tenantId = await resolveTenantBySlug(user, slug);
-  return listSpeciesForTenant(tenantId);
+  return attachImagesCamel(await listSpeciesForTenant(tenantId));
 }
 
 export async function updateTenantSpeciesOverride({

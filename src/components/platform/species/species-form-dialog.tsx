@@ -58,10 +58,6 @@ const speciesFormSchema = z.object({
       }),
     )
     .optional(),
-  img_wings_open: z.string().url("Enter a valid URL").or(z.literal("")),
-  img_wings_closed: z.string().url("Enter a valid URL").or(z.literal("")),
-  extra_img_1: z.string().url("Enter a valid URL").or(z.literal("")),
-  extra_img_2: z.string().url("Enter a valid URL").or(z.literal("")),
 });
 
 type SpeciesFormInput = z.input<typeof speciesFormSchema>;
@@ -91,10 +87,6 @@ const defaultValues: SpeciesFormInput = {
   host_plant: "",
   habitat: "",
   fun_facts: [],
-  img_wings_open: "",
-  img_wings_closed: "",
-  extra_img_1: "",
-  extra_img_2: "",
 };
 
 export default function SpeciesFormDialog({
@@ -162,10 +154,6 @@ export default function SpeciesFormDialog({
           host_plant: string | null;
           habitat: string | null;
           fun_facts: SpeciesFunFact[] | null;
-          img_wings_open: string | null;
-          img_wings_closed: string | null;
-          extra_img_1: string | null;
-          extra_img_2: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -182,10 +170,6 @@ export default function SpeciesFormDialog({
         host_plant: data.species.host_plant ?? "",
         habitat: data.species.habitat ?? "",
         fun_facts: data.species.fun_facts ?? [],
-        img_wings_open: data.species.img_wings_open ?? "",
-        img_wings_closed: data.species.img_wings_closed ?? "",
-        extra_img_1: data.species.extra_img_1 ?? "",
-        extra_img_2: data.species.extra_img_2 ?? "",
       });
       setIsLoadingSpecies(false);
     })();
@@ -207,10 +191,6 @@ export default function SpeciesFormDialog({
       ...(values.host_plant?.trim() ? { host_plant: values.host_plant } : {}),
       ...(values.habitat?.trim() ? { habitat: values.habitat } : {}),
       ...(values.fun_facts && values.fun_facts.length > 0 ? { fun_facts: values.fun_facts } : {}),
-      ...(values.img_wings_open ? { img_wings_open: values.img_wings_open } : {}),
-      ...(values.img_wings_closed ? { img_wings_closed: values.img_wings_closed } : {}),
-      ...(values.extra_img_1 ? { extra_img_1: values.extra_img_1 } : {}),
-      ...(values.extra_img_2 ? { extra_img_2: values.extra_img_2 } : {}),
     };
 
     const response = await fetch(
@@ -252,10 +232,6 @@ export default function SpeciesFormDialog({
         host_plant: string | null;
         habitat: string | null;
         fun_facts: SpeciesFunFact[] | null;
-        img_wings_open: string | null;
-        img_wings_closed: string | null;
-        extra_img_1: string | null;
-        extra_img_2: string | null;
         created_at: string;
         updated_at: string;
       };
@@ -498,72 +474,6 @@ export default function SpeciesFormDialog({
                     </div>
                   </Card>
                 ))}
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="img_wings_open"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Wings open image URL</FormLabel>
-                      <FormControl>
-                        <Input type="url" placeholder="https://example.com/open.jpg" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="img_wings_closed"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Wings closed image URL</FormLabel>
-                      <FormControl>
-                        <Input type="url" placeholder="https://example.com/closed.jpg" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="extra_img_1"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Extra image URL 1</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="url"
-                          placeholder="https://example.com/detail-1.jpg"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="extra_img_2"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Extra image URL 2</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="url"
-                          placeholder="https://example.com/detail-2.jpg"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
 
               <DialogFooter>

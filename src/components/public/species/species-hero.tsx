@@ -2,21 +2,22 @@ import Image from "next/image";
 import { Bug } from "lucide-react";
 
 import { BackButton } from "@/components/shared/back-button";
+import type { SpeciesImage } from "@/lib/wingspan/images";
 
 interface SpeciesHeroProps {
   slug: string;
   commonName: string;
   scientificName: string;
-  imgWingsOpen: string | null;
+  image: SpeciesImage | null;
 }
 
-export function SpeciesHero({ slug, commonName, scientificName, imgWingsOpen }: SpeciesHeroProps) {
+export function SpeciesHero({ slug, commonName, scientificName, image }: SpeciesHeroProps) {
   return (
     <section aria-label={`${commonName} hero`} className="relative w-full">
       <div className="relative min-h-[320px] w-full overflow-hidden sm:min-h-[380px] lg:min-h-[420px]">
-        {imgWingsOpen ? (
+        {image ? (
           <Image
-            src={imgWingsOpen}
+            src={image.full}
             alt={`${commonName} (${scientificName})`}
             fill
             sizes="100vw"

@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 
 import { logger } from "@/lib/logger";
+import { attachImages } from "@/lib/wingspan/client";
 import { internalError, invalidRequest, notFound, ok } from "@/lib/api-response";
 import { institutionSlugParamsSchema, publicEmptyQuerySchema } from "@/lib/validation/public";
 import { getInstitutionInFlightBySlug } from "@/lib/queries/inflight";
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       return notFound("Institution not found");
     }
 
-    return ok({ inFlight });
+    return ok({ inFlight: await attachImages(inFlight) });
   } catch (error) {
     logger.error("Unexpected GET /public/institutions/[slug]/in-flight error:", error);
     return internalError();

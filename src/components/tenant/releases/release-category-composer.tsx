@@ -1,8 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Image from "next/image";
-import { Bug, Minus, Plus } from "lucide-react";
+import { Minus, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +11,7 @@ import {
   type SpeciesFilters,
 } from "@/components/shared/species-search-toolbar";
 import { useSpeciesSearch, type SpeciesItem } from "@/hooks/use-species-search";
+import { SpeciesThumbnailStrip } from "@/components/tenant/releases/species-thumbnail-strip";
 import { cn } from "@/lib/utils";
 
 import { computeItemRemaining, type ShipmentItemRow } from "@/components/tenant/shipments/types";
@@ -157,23 +157,10 @@ export function ReleaseCategoryComposer({ items, values, onChange }: ReleaseCate
             return (
               <li
                 key={item.id}
-                className="bg-card flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center"
+                className="bg-card flex flex-col gap-3 rounded-lg border p-4 md:flex-row md:items-center"
               >
                 <div className="flex min-w-0 flex-1 items-center gap-3">
-                  <div className="bg-muted relative size-20 shrink-0 overflow-hidden rounded">
-                    {item.imageOpen ? (
-                      <Image
-                        src={item.imageOpen}
-                        alt=""
-                        width={160}
-                        height={160}
-                        quality={90}
-                        className="size-full object-cover"
-                      />
-                    ) : (
-                      <Bug className="text-muted-foreground absolute inset-0 m-auto size-7" />
-                    )}
-                  </div>
+                  <SpeciesThumbnailStrip images={item.images} profile={mode} />
                   <div className="min-w-0">
                     <div className="truncate text-base font-medium">{item.commonName}</div>
                     <div className="text-muted-foreground truncate text-sm italic">
@@ -189,7 +176,7 @@ export function ReleaseCategoryComposer({ items, values, onChange }: ReleaseCate
 
                 <div
                   className={cn(
-                    "grid w-full gap-3 sm:w-auto",
+                    "grid w-full gap-3 md:w-auto",
                     visibleCategories.length === 2 ? "grid-cols-2" : "grid-cols-1 sm:grid-cols-3",
                   )}
                 >

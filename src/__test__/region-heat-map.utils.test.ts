@@ -61,7 +61,7 @@ describe("region heat map utilities", () => {
           scientific_name: "Attacus atlas",
           family: "Saturniidae",
           range: ["Asia"],
-          img_wings_open: null,
+          images: [],
         },
         "Asia",
       ),

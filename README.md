@@ -139,11 +139,17 @@ Notes:
 
 ## Environment Variables
 
-| Variable       | Description                                                         | Default                                                  |
-| -------------- | ------------------------------------------------------------------- | -------------------------------------------------------- |
-| `DATABASE_URL` | PostgreSQL connection string                                        | `postgresql://postgres:postgres@localhost:5432/flutr-db` |
-| `AUTH_SECRET`  | NextAuth encryption secret (`NEXTAUTH_SECRET` accepted as fallback) | _(required, generate your own)_                          |
-| `AUTH_URL`     | Application base URL                                                | `http://localhost:3000`                                  |
+| Variable           | Description                                                         | Default                                                  |
+| ------------------ | ------------------------------------------------------------------- | -------------------------------------------------------- |
+| `DATABASE_URL`     | PostgreSQL connection string                                        | `postgresql://postgres:postgres@localhost:5432/flutr-db` |
+| `AUTH_SECRET`      | NextAuth encryption secret (`NEXTAUTH_SECRET` accepted as fallback) | _(required, generate your own)_                          |
+| `AUTH_URL`         | Application base URL                                                | `http://localhost:3000`                                  |
+| `WINGSPAN_API_URL` | Base URL of the Wingspan image microservice                         | `http://159.203.134.226`                                 |
+| `WINGSPAN_API_KEY` | Read-only Wingspan API key, sent as the `X-API-Key` header          | _(required for butterfly images to render)_              |
+
+Butterfly imagery is served by the Wingspan microservice, matched to Flutr species on
+`scientific_name`. Without these two variables the app still runs — every species simply
+renders its placeholder icon, and a warning is logged at startup of the first request.
 
 ## Commands
 

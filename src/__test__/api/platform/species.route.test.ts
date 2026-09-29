@@ -74,8 +74,6 @@ function validCreatePayload() {
     host_plant: "Willow",
     habitat: "Woodlands",
     fun_facts: [{ title: "Fun Fact", fact: "Mimics toxic butterflies" }],
-    img_wings_open: "https://example.com/open.jpg",
-    img_wings_closed: "https://example.com/closed.jpg",
   };
 }
 

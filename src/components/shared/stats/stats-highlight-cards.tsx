@@ -29,8 +29,14 @@ function HighlightRow({ slug, species, label, description, icon: Icon }: Highlig
       >
         {/* Thumbnail */}
         <div className="relative size-14 shrink-0 overflow-hidden rounded-lg">
-          {species.img_wings_open ? (
-            <Image src={species.img_wings_open} alt="" fill sizes="56px" className="object-cover" />
+          {species.images[0] ? (
+            <Image
+              src={species.images[0].thumb}
+              alt=""
+              fill
+              sizes="56px"
+              className="object-cover"
+            />
           ) : (
             <div className="bg-muted flex size-full items-center justify-center">
               <Bug className="text-muted-foreground/30 size-6" aria-hidden="true" />

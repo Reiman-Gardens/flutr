@@ -37,11 +37,6 @@ export async function listSpeciesForTenant(institutionId: number) {
       hostPlant: butterfly_species.host_plant,
       habitat: butterfly_species.habitat,
       funFacts: butterfly_species.fun_facts,
-
-      imgWingsOpen: butterfly_species.img_wings_open,
-      imgWingsClosed: butterfly_species.img_wings_closed,
-      extraImg1: butterfly_species.extra_img_1,
-      extraImg2: butterfly_species.extra_img_2,
     })
     .from(butterfly_species)
     .leftJoin(
@@ -160,8 +155,23 @@ export async function listSpeciesGlobal() {
  * Fetch species by ID.
  */
 export async function getSpeciesById(speciesId: number) {
+  // Projected explicitly so the dormant img_* columns stay off the API.
   const [row] = await db
-    .select()
+    .select({
+      id: butterfly_species.id,
+      scientific_name: butterfly_species.scientific_name,
+      common_name: butterfly_species.common_name,
+      family: butterfly_species.family,
+      sub_family: butterfly_species.sub_family,
+      lifespan_days: butterfly_species.lifespan_days,
+      range: butterfly_species.range,
+      description: butterfly_species.description,
+      host_plant: butterfly_species.host_plant,
+      habitat: butterfly_species.habitat,
+      fun_facts: butterfly_species.fun_facts,
+      created_at: butterfly_species.created_at,
+      updated_at: butterfly_species.updated_at,
+    })
     .from(butterfly_species)
     .where(eq(butterfly_species.id, speciesId))
     .limit(1);

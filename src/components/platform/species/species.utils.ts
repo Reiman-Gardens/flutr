@@ -16,10 +16,6 @@ export interface PlatformSpeciesRecord extends PlatformSpeciesSummary {
   hostPlant: string | null;
   habitat: string | null;
   funFacts: SpeciesFunFact[] | null;
-  imgWingsOpen: string | null;
-  imgWingsClosed: string | null;
-  extraImg1: string | null;
-  extraImg2: string | null;
   updatedAt: string;
 }
 
@@ -35,10 +31,6 @@ type SpeciesApiRecord = {
   host_plant: string | null;
   habitat: string | null;
   fun_facts: SpeciesFunFact[] | null;
-  img_wings_open: string | null;
-  img_wings_closed: string | null;
-  extra_img_1: string | null;
-  extra_img_2: string | null;
   created_at: string | Date;
   updated_at: string | Date;
 };
@@ -56,10 +48,6 @@ export function normalizePlatformSpecies(record: SpeciesApiRecord): PlatformSpec
     hostPlant: record.host_plant,
     habitat: record.habitat,
     funFacts: record.fun_facts,
-    imgWingsOpen: record.img_wings_open,
-    imgWingsClosed: record.img_wings_closed,
-    extraImg1: record.extra_img_1,
-    extraImg2: record.extra_img_2,
     createdAt: toIsoString(record.created_at),
     updatedAt: toIsoString(record.updated_at),
   };

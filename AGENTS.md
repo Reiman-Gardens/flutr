@@ -58,7 +58,7 @@ src/
 │   ├── tenant/             # Tenant-facing feature components
 │   │   ├── species/        # Tenant species override client, edit dialog, table/cards, utilities
 │   │   ├── shipments/      # SpeciesPickerDialog, ShipmentItemsTable, ShipmentStatusBadge, SupplierSelect, types
-│   │   └── releases/       # ReleaseComposer, ReleaseCategoryComposer, ReleaseQuantityControls
+│   │   └── releases/       # ReleaseCategoryComposer, ReleaseEditComposer, ReleaseQuantityControls
 │   ├── nav/                # Public navigation components (top-nav, mobile-nav, footer)
 │   ├── providers/          # Context providers (session, institution data, theme)
 │   ├── public/             # Public-facing components (gallery, home, species detail)
@@ -81,6 +81,7 @@ src/
 │   ├── maps/               # Geographic mapping utilities/data wrappers for stats map
 │   ├── tenant.ts           # Tenant resolution/enforcement helpers
 │   ├── validation/         # Zod schemas + request/query helpers
+│   ├── wingspan/           # Wingspan image microservice client (client.ts) + pure image helpers (images.ts)
 │   ├── logger.ts           # Dev-only logging utility
 │   ├── shipment-import-utils.ts # Pure helpers for shipment import/export (SourceKind, detectSourceKind, readUploadFileAsText, formatShipmentDate, extractYear, filterRowsByDateRange)
 │   └── utils.ts            # Shared utilities: Tailwind class merging (cn), downloadBlob
@@ -128,7 +129,7 @@ pnpm db:studio      # Open Drizzle Studio GUI
 - `institutions` — Multi-tenant organizations (slug, name, full address fields, IABES membership, stats_active flag, theming, contact info, timestamps)
 - `institution_news` — Institution-specific news entries (institution_id, title, content, is_active, optional image_url, timestamps)
 - `users` — User accounts tied to an institution (name, globally unique email, password_hash, role, institution_id, timestamps)
-- `butterfly_species` — Global master species catalog (scientific_name, common_name, family, sub_family, lifespan_days, range, optional description, host_plant, habitat, fun_facts, image fields: img_wings_open, img_wings_closed, extra_img_1, extra_img_2, timestamps)
+- `butterfly_species` — Global master species catalog (scientific_name, common_name, family, sub_family, lifespan_days, range, optional description, host_plant, habitat, fun_facts, timestamps). Imagery lives in the Wingspan microservice, matched on `scientific_name` — the legacy `img_wings_open` / `img_wings_closed` / `extra_img_1` / `extra_img_2` columns still exist but are no longer read or written.
 - `butterfly_species_institution` — Institution-specific overrides for global species (butterfly_species_id, institution_id, optional common_name_override, lifespan_override, timestamps). A row also marks the species as carried by that institution, which is what the public gallery lists. Edited at `/[institution]/butterflies`.
 - `suppliers` — Butterfly suppliers/vendors (institution_id, name, code, country, is_active, optional website_url, timestamps)
 - `shipments` — Shipment headers (institution_id, supplier_code, shipment_date, arrival_date, timestamps)
@@ -178,6 +179,9 @@ Detailed documentation lives in `docs/`:
 | Shipment status badge | `ShipmentStatusBadge` from `@/components/tenant/shipments/shipment-status-badge`                                                            | Standard pill rendering for "In flight" / "Completed" shipment status                                                                                                                          |
 | Shipment items table  | `ShipmentItemsTable` from `@/components/tenant/shipments/shipment-items-table`                                                              | Read-only + inline-editable species table wrapped in the shared search toolbar; enforces per-metric min/max client-side                                                                        |
 | Species picker dialog | `SpeciesPickerDialog` from `@/components/tenant/shipments/species-picker-dialog`                                                            | Multi-select species picker backed by `useSpeciesSearch`; used by shipment add/edit                                                                                                            |
+| Wingspan images       | `attachImages`, `attachImagesCamel`, `getSpeciesImages` from `@/lib/wingspan/client`                                                        | Server-only. Resolve butterfly imagery for query rows by `scientific_name`; one cached upstream call serves the whole batch. Returns `images: []` on a miss or outage — never throws.          |
+| Image helpers         | `pickPrimary`, `tierUrl`, `labelFromTags`, `normalizeKey`, `WithImages<T>` from `@/lib/wingspan/images`                                     | Pure helpers + types. `images[0]` is the primary; each `SpeciesImage` carries pre-resolved `thumb` / `card` / `full` URLs — pick the one matching the rendered size.                           |
+| Butterfly of the Day  | `getButterflyOfTheDay` from `@/lib/services/butterfly-of-the-day`                                                                           | Shared by the institution home and stats pages so both show the same species. Prefers candidates Wingspan has a photo for.                                                                     |
 | Species overrides     | `resolveCommonName`, `resolveLifespan`, `hasOverride`, `filterSpecies` from `@/components/tenant/species/species.utils`                     | Resolve an institution's species overrides against the global catalog; an empty override counts as absent so a blank name never renders                                                        |
 | Remaining helper      | `computeItemRemaining` from `@/components/tenant/shipments/types`                                                                           | Mirrors the DB `calculateRemaining` formula so client caps match the server                                                                                                                    |
 

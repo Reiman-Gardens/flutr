@@ -4,29 +4,14 @@ import Image from "next/image";
 import { Images } from "lucide-react";
 
 import { SpeciesImageLightbox } from "@/components/public/species/species-image-lightbox";
+import type { SpeciesImage } from "@/lib/wingspan/images";
 
 interface SpeciesImageGalleryProps {
   commonName: string;
-  imgWingsOpen: string | null;
-  imgWingsClosed: string | null;
-  extraImg1: string | null;
-  extraImg2: string | null;
+  images: SpeciesImage[];
 }
 
-export function SpeciesImageGallery({
-  commonName,
-  imgWingsOpen,
-  imgWingsClosed,
-  extraImg1,
-  extraImg2,
-}: SpeciesImageGalleryProps) {
-  const images: { src: string; label: string }[] = [];
-
-  if (imgWingsOpen) images.push({ src: imgWingsOpen, label: "Wings Open" });
-  if (imgWingsClosed) images.push({ src: imgWingsClosed, label: "Wings Closed" });
-  if (extraImg1) images.push({ src: extraImg1, label: "Photo 3" });
-  if (extraImg2) images.push({ src: extraImg2, label: "Photo 4" });
-
+export function SpeciesImageGallery({ commonName, images }: SpeciesImageGalleryProps) {
   if (images.length === 0) return null;
 
   return (
@@ -40,7 +25,7 @@ export function SpeciesImageGallery({
         {(openAt) => (
           <div className="mt-3 grid grid-cols-2 gap-4 lg:grid-cols-2">
             {images.map((img, index) => (
-              <figure key={img.label} className="overflow-hidden rounded-xl">
+              <figure key={img.id} className="overflow-hidden rounded-xl">
                 <button
                   type="button"
                   onClick={() => openAt(index)}
@@ -48,7 +33,7 @@ export function SpeciesImageGallery({
                   aria-label={`View ${commonName} — ${img.label} fullscreen`}
                 >
                   <Image
-                    src={img.src}
+                    src={img.card}
                     alt={`${commonName} — ${img.label}`}
                     fill
                     sizes="(min-width: 1024px) 50vw, 50vw"

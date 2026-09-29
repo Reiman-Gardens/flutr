@@ -64,7 +64,7 @@ export default function TenantHeader({
         <div className="flex items-center gap-3">
           <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden" aria-label="Open menu">
+              <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open menu">
                 <Menu className="size-5" aria-hidden="true" />
               </Button>
             </SheetTrigger>

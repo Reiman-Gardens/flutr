@@ -16,6 +16,12 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "flutr-butt-images.nyc3.cdn.digitaloceanspaces.com",
       },
+      // Wingspan image microservice.
+      {
+        protocol: "https",
+        hostname: "sfo3.digitaloceanspaces.com",
+        pathname: "/wingspan/**",
+      },
     ],
   },
 };

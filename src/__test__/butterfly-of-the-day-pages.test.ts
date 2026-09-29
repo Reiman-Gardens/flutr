@@ -7,7 +7,14 @@ jest.mock("@/lib/queries/institution", () => ({
 jest.mock("@/lib/queries/home", () => ({
   getInstitutionHomeData: jest.fn(),
   getPublicNewsPreview: jest.fn(),
-  getButterflyOfTheDayForInstitution: jest.fn(),
+}));
+
+jest.mock("@/lib/services/butterfly-of-the-day", () => ({
+  getButterflyOfTheDay: jest.fn(),
+}));
+
+jest.mock("@/lib/wingspan/client", () => ({
+  attachImages: jest.fn((rows) => Promise.resolve(rows)),
 }));
 
 jest.mock("@/lib/queries/stats", () => ({
@@ -58,17 +65,14 @@ jest.mock("@/components/shared/stats/region-distribution-panel", () => ({
 import InstitutionPage from "@/app/[institution]/(public)/page";
 import StatsPage from "@/app/[institution]/(public)/stats/page";
 import { getPublicInstitution } from "@/lib/queries/institution";
-import {
-  getButterflyOfTheDayForInstitution,
-  getInstitutionHomeData,
-  getPublicNewsPreview,
-} from "@/lib/queries/home";
+import { getInstitutionHomeData, getPublicNewsPreview } from "@/lib/queries/home";
+import { getButterflyOfTheDay } from "@/lib/services/butterfly-of-the-day";
 import { getStatsData, transformStatsData } from "@/lib/queries/stats";
 
 const mockGetPublicInstitution = getPublicInstitution as jest.Mock;
 const mockGetInstitutionHomeData = getInstitutionHomeData as jest.Mock;
 const mockGetPublicNewsPreview = getPublicNewsPreview as jest.Mock;
-const mockGetButterflyOfTheDayForInstitution = getButterflyOfTheDayForInstitution as jest.Mock;
+const mockGetButterflyOfTheDay = getButterflyOfTheDay as jest.Mock;
 const mockGetStatsData = getStatsData as jest.Mock;
 const mockTransformStatsData = transformStatsData as jest.Mock;
 
@@ -109,13 +113,12 @@ describe("Butterfly of the Day pages", () => {
     mockGetInstitutionHomeData.mockResolvedValueOnce({
       totalButterflies: 5,
       totalSpecies: 2,
-      speciesRows: [],
     });
-    mockGetButterflyOfTheDayForInstitution.mockResolvedValueOnce({
+    mockGetButterflyOfTheDay.mockResolvedValueOnce({
       scientific_name: "Papilio maackii",
       common_name: "Alpine Black Swallowtail",
       family: "Papilionidae",
-      img_wings_open: "https://example.com/maackii.jpg",
+      images: [],
       range: ["Asia"],
       lifespan_days: 10,
       host_plant: "Citrus",
@@ -127,7 +130,7 @@ describe("Butterfly of the Day pages", () => {
       params: Promise.resolve({ institution: "reiman-gardens" }),
     });
 
-    expect(mockGetButterflyOfTheDayForInstitution).toHaveBeenCalledWith(12);
+    expect(mockGetButterflyOfTheDay).toHaveBeenCalledWith(12);
   });
 
   it("uses the shared Butterfly of the Day helper on the public stats page", async () => {
@@ -145,7 +148,7 @@ describe("Butterfly of the Day pages", () => {
           scientific_name: "Morpho peleides",
           family: "Nymphalidae",
           range: ["South America"],
-          img_wings_open: "https://example.com/morpho.jpg",
+          images: [],
         },
         {
           name: "Paper Kite",
@@ -153,17 +156,17 @@ describe("Butterfly of the Day pages", () => {
           scientific_name: "Idea leuconoe",
           family: "Nymphalidae",
           range: ["Asia"],
-          img_wings_open: "https://example.com/paper-kite.jpg",
+          images: [],
         },
       ],
       familyDistribution: [],
       regionDistribution: [],
     });
-    mockGetButterflyOfTheDayForInstitution.mockResolvedValueOnce({
+    mockGetButterflyOfTheDay.mockResolvedValueOnce({
       scientific_name: "Idea leuconoe",
       common_name: "Paper Kite",
       family: "Nymphalidae",
-      img_wings_open: "https://example.com/paper-kite.jpg",
+      images: [],
       range: ["Asia"],
       lifespan_days: 14,
       host_plant: null,
@@ -174,7 +177,7 @@ describe("Butterfly of the Day pages", () => {
       params: Promise.resolve({ institution: "omaha-zoo" }),
     });
 
-    expect(mockGetButterflyOfTheDayForInstitution).toHaveBeenCalledWith(33);
+    expect(mockGetButterflyOfTheDay).toHaveBeenCalledWith(33);
 
     const notableSpecies = findElementByType(tree, mockStatsHighlightCards);
 
@@ -216,17 +219,17 @@ describe("Butterfly of the Day pages", () => {
           scientific_name: "Dryas iulia",
           family: "Nymphalidae",
           range: ["South America"],
-          img_wings_open: "https://example.com/julia.jpg",
+          images: [],
         },
       ],
       familyDistribution: [],
       regionDistribution: [],
     });
-    mockGetButterflyOfTheDayForInstitution.mockResolvedValueOnce({
+    mockGetButterflyOfTheDay.mockResolvedValueOnce({
       scientific_name: "Dryas iulia",
       common_name: "Julia",
       family: "Nymphalidae",
-      img_wings_open: "https://example.com/julia.jpg",
+      images: [],
       range: ["South America"],
       lifespan_days: 9,
       host_plant: null,
@@ -266,7 +269,7 @@ describe("Butterfly of the Day pages", () => {
       familyDistribution: [],
       regionDistribution: [],
     });
-    mockGetButterflyOfTheDayForInstitution.mockResolvedValueOnce(null);
+    mockGetButterflyOfTheDay.mockResolvedValueOnce(null);
 
     const tree = await StatsPage({
       params: Promise.resolve({ institution: "quiet-house" }),

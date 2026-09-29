@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { attachImages } from "@/lib/wingspan/client";
 import { institutions, butterfly_species_institution, butterfly_species } from "@/lib/schema";
 import { internalError, invalidRequest, notFound, ok } from "@/lib/api-response";
 import {
@@ -60,10 +61,6 @@ export async function GET(request: NextRequest, context: RouteContext) {
         host_plant: butterfly_species.host_plant,
         habitat: butterfly_species.habitat,
         fun_facts: butterfly_species.fun_facts,
-        img_wings_open: butterfly_species.img_wings_open,
-        img_wings_closed: butterfly_species.img_wings_closed,
-        extra_img_1: butterfly_species.extra_img_1,
-        extra_img_2: butterfly_species.extra_img_2,
       })
       .from(butterfly_species_institution)
       .innerJoin(
@@ -82,7 +79,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       return notFound("Species not found");
     }
 
-    return ok({ species: rows[0] });
+    return ok({ species: (await attachImages(rows))[0] });
   } catch (error) {
     logger.error(
       "Unexpected GET /public/institutions/[slug]/species/[scientific_name] error:",

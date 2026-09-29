@@ -5,12 +5,14 @@
  * components don't have to translate at the boundary.
  */
 
+import type { SpeciesImage } from "@/lib/wingspan/images";
+
 export type SpeciesPickerOption = {
   id: number;
   scientificName: string;
   commonName: string;
   family: string;
-  imgWingsOpen: string | null;
+  images: SpeciesImage[];
 };
 
 export type ShipmentListRow = {
@@ -28,8 +30,7 @@ export type ShipmentItemRow = {
   butterflySpeciesId: number;
   scientificName: string;
   commonName: string;
-  imageOpen: string | null;
-  imageClosed: string | null;
+  images: SpeciesImage[];
   numberReceived: number;
   emergedInTransit: number;
   damagedInTransit: number;

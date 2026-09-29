@@ -1,6 +1,10 @@
 import { transformStatsData, type StatsSpeciesRow } from "@/lib/queries/stats";
+import type { WithImages } from "@/lib/wingspan/images";
 
-function makeRow(overrides: Partial<StatsSpeciesRow> = {}): StatsSpeciesRow {
+/** Rows reach transformStatsData after `attachImages` has run. */
+function makeRow(
+  overrides: Partial<WithImages<StatsSpeciesRow>> = {},
+): WithImages<StatsSpeciesRow> {
   return {
     scientific_name: "Danaus plexippus",
     common_name: "Monarch",
@@ -8,8 +12,8 @@ function makeRow(overrides: Partial<StatsSpeciesRow> = {}): StatsSpeciesRow {
     sub_family: "Danainae",
     range: ["North America"],
     lifespan_days: 14,
-    img_wings_open: null,
     quantity: 10,
+    images: [],
     ...overrides,
   };
 }
