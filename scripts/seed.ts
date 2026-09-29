@@ -93,10 +93,6 @@ async function main() {
     host_plant: species.plant ?? null,
     habitat: species.habitat ?? null,
     fun_facts: legacyFunFactsToStructured(species.funFacts),
-    img_wings_open: species.imgWingsOpen ?? null,
-    img_wings_closed: species.imgWingsClosed ?? null,
-    extra_img_1: species.extraImg1 ?? null,
-    extra_img_2: species.extraImg2 ?? null,
   }));
 
   let insertedSpecies: { id: number; scientific_name: string }[] = [];

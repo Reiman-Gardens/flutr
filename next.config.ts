@@ -2,21 +2,13 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
-    // Allows images to be loaded from the following domains - will be updated once the CS team finishes their project and makes a unified bucket.
     remotePatterns: [
+      // Institution logos and facility photos.
       {
         protocol: "https",
         hostname: "flutr-org-images.nyc3.digitaloceanspaces.com",
       },
-      {
-        protocol: "https",
-        hostname: "flutr-butt-images.nyc3.digitaloceanspaces.com",
-      },
-      {
-        protocol: "https",
-        hostname: "flutr-butt-images.nyc3.cdn.digitaloceanspaces.com",
-      },
-      // Wingspan image microservice.
+      // Butterfly imagery, via the Wingspan microservice.
       {
         protocol: "https",
         hostname: "sfo3.digitaloceanspaces.com",

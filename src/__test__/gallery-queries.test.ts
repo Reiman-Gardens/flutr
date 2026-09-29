@@ -99,9 +99,6 @@ describe("gallery queries", () => {
         common_name_override: null,
         family: "Nymphalidae",
         range: ["North America"],
-        img_wings_closed: null,
-        extra_img_1: null,
-        extra_img_2: null,
         in_flight_count: 0,
       },
     ];
