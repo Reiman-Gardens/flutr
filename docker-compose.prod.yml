@@ -2,6 +2,11 @@ services:
   db:
     image: postgres:17
     restart: unless-stopped
+    # Must stay published on all interfaces: the app runs on Vercel and connects
+    # from dynamic serverless IPs, so binding this to 127.0.0.1 takes prod down.
+    # ponytail: that leaves the DB internet-facing with only the password in front
+    # of it, and a ufw rule won't help (Docker's chain runs first). Enable TLS on
+    # the server and require sslmode=verify-full from clients.
     ports:
       - "5432:5432"
     environment:

@@ -151,6 +151,9 @@ Detailed documentation lives in `docs/`:
   - `review.md` — Code review checklist
   - `deploy-check.md` — Pre-deployment verification
   - `test-and-fix.md` — Targeted test + fix workflow
+- `docs/deployment/` — Production operations
+  - `ssh-access.md` — Server access, key setup, and port forwarding
+  - `deployments.md` — Applying schema migrations to production
 
 ## Conventions & Utilities
 
