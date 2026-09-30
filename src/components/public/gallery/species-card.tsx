@@ -52,6 +52,8 @@ export function SpeciesCard({
                   alt={`${common_name} (${scientific_name})`}
                   fill
                   sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
+                  // ponytail: temporary — optimizer off while Vercel transformations are capped
+                  unoptimized
                   className="object-cover transition-transform motion-safe:group-hover:scale-105"
                 />
               ) : (

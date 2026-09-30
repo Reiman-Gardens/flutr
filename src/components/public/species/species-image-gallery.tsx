@@ -37,6 +37,8 @@ export function SpeciesImageGallery({ commonName, images }: SpeciesImageGalleryP
                     alt={`${commonName} — ${img.label}`}
                     fill
                     sizes="(min-width: 1024px) 50vw, 50vw"
+                    // ponytail: temporary — optimizer off while Vercel transformations are capped
+                    unoptimized
                     className="object-cover transition-transform motion-safe:group-hover:scale-105"
                   />
                 </button>
