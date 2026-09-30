@@ -39,10 +39,6 @@ export interface SpeciesDetail {
   host_plant: string | null;
   habitat: string | null;
   fun_facts: SpeciesFunFact[] | null;
-  img_wings_open: string | null;
-  img_wings_closed: string | null;
-  extra_img_1: string | null;
-  extra_img_2: string | null;
   in_flight_count: number;
 }
 
@@ -66,10 +62,6 @@ export const getSpeciesDetail = cache(
         host_plant: butterfly_species.host_plant,
         habitat: butterfly_species.habitat,
         fun_facts: butterfly_species.fun_facts,
-        img_wings_open: butterfly_species.img_wings_open,
-        img_wings_closed: butterfly_species.img_wings_closed,
-        extra_img_1: butterfly_species.extra_img_1,
-        extra_img_2: butterfly_species.extra_img_2,
         in_flight_count: sql<number>`coalesce(${currentInFlight.quantity}, 0)::int`.as(
           "in_flight_count",
         ),
@@ -104,10 +96,6 @@ export const getSpeciesDetail = cache(
       host_plant: row.host_plant,
       habitat: row.habitat,
       fun_facts: normalizeFunFacts(row.fun_facts),
-      img_wings_open: row.img_wings_open,
-      img_wings_closed: row.img_wings_closed,
-      extra_img_1: row.extra_img_1,
-      extra_img_2: row.extra_img_2,
       in_flight_count: Number(row.in_flight_count),
     };
   },

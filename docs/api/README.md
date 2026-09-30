@@ -166,14 +166,13 @@ Example request body:
   "fun_facts": [
     { "title": "Fun Fact", "fact": "Adults can glide for long distances." },
     { "title": "Fun Fact", "fact": "Larvae prefer citrus host plants." }
-  ],
-  "img_wings_open": "https://example.com/open.jpg",
-  "img_wings_closed": "https://example.com/closed.jpg"
+  ]
 }
 ```
 
 Notes:
 
+- Species imagery is owned by the Wingspan microservice and cannot be set through this API. Image URLs are no longer accepted in `POST` / `PATCH` bodies — both schemas are `.strict()`, so sending one returns `400`.
 - `fun_facts` is optional.
 - When provided, `fun_facts` must be a non-empty array of `{ title, fact }` objects.
 - `PATCH` replaces the full `fun_facts` array; it does not append a single fact item.
@@ -237,10 +236,15 @@ Response shape:
       { "title": "Fun Fact", "fact": "Adults can glide for long distances." },
       { "title": "Fun Fact", "fact": "Larvae prefer citrus host plants." }
     ],
-    "img_wings_open": "https://example.com/open.jpg",
-    "img_wings_closed": "https://example.com/closed.jpg",
-    "extra_img_1": null,
-    "extra_img_2": null
+    "images": [
+      {
+        "id": 276,
+        "label": "Wings open, female",
+        "thumb": "https://sfo3.digitaloceanspaces.com/wingspan/..._xsmall.jpg",
+        "card": "https://sfo3.digitaloceanspaces.com/wingspan/..._small.jpg",
+        "full": "https://sfo3.digitaloceanspaces.com/wingspan/..._large.jpg"
+      }
+    ]
   }
 }
 ```

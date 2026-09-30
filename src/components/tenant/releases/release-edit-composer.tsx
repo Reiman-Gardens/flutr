@@ -1,8 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import Image from "next/image";
-import { Bug, Minus, Plus } from "lucide-react";
+import { Minus, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +10,7 @@ import {
   type SpeciesFilters,
 } from "@/components/shared/species-search-toolbar";
 import { useSpeciesSearch, type SpeciesItem } from "@/hooks/use-species-search";
+import { SpeciesThumbnailStrip } from "@/components/tenant/releases/species-thumbnail-strip";
 
 import { type ShipmentItemRow } from "@/components/tenant/shipments/types";
 
@@ -167,7 +167,7 @@ function CompactStepper({
 
   return (
     <div className="space-y-1">
-      <div className="text-muted-foreground text-[11px] font-medium md:hidden">{label}</div>
+      <div className="text-muted-foreground text-[11px] font-medium xl:hidden">{label}</div>
       <div className="inline-flex w-full items-center gap-1">
         <Button
           type="button"
@@ -259,7 +259,7 @@ export function ReleaseEditComposer({
         </div>
       ) : (
         <div className="space-y-2">
-          <div className="text-muted-foreground hidden grid-cols-[minmax(230px,2fr)_repeat(6,minmax(100px,1fr))] gap-2 px-3 text-[11px] font-medium tracking-wide uppercase md:grid">
+          <div className="text-muted-foreground hidden grid-cols-[minmax(230px,2fr)_repeat(6,minmax(100px,1fr))] gap-2 px-3 text-[11px] font-medium tracking-wide uppercase xl:grid">
             <div>Species</div>
             <div className="text-center">Released</div>
             {LOSS_FIELDS.map((column) => (
@@ -286,23 +286,10 @@ export function ReleaseEditComposer({
               return (
                 <li
                   key={item.id}
-                  className="bg-card grid gap-3 rounded-lg border p-3 md:grid-cols-[minmax(230px,2fr)_repeat(6,minmax(100px,1fr))] md:items-center md:gap-2"
+                  className="bg-card grid gap-3 rounded-lg border p-3 xl:grid-cols-[minmax(230px,2fr)_repeat(6,minmax(100px,1fr))] xl:items-center xl:gap-2"
                 >
                   <div className="flex min-w-0 items-center gap-3">
-                    <div className="bg-muted relative size-12 shrink-0 overflow-hidden rounded">
-                      {item.imageOpen ? (
-                        <Image
-                          src={item.imageOpen}
-                          alt=""
-                          width={96}
-                          height={96}
-                          quality={80}
-                          className="size-full object-cover"
-                        />
-                      ) : (
-                        <Bug className="text-muted-foreground absolute inset-0 m-auto size-4" />
-                      )}
-                    </div>
+                    <SpeciesThumbnailStrip images={item.images} profile="compact" />
                     <div className="min-w-0">
                       <div className="truncate text-sm font-medium">{item.commonName}</div>
                       <div className="text-muted-foreground truncate text-xs italic">

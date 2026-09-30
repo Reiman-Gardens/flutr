@@ -38,6 +38,7 @@ import {
   type ShipmentItemRow,
   type SpeciesPickerOption,
 } from "@/components/tenant/shipments/types";
+import type { SpeciesImage } from "@/lib/wingspan/images";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -208,7 +209,7 @@ export default function ShipmentDetailPage() {
             commonName?: string;
             commonNameOverride?: string;
             family?: string;
-            imgWingsOpen?: string | null;
+            images?: SpeciesImage[];
           }) => {
             const id = typeof row.id === "number" ? row.id : Number(row.id);
             const sci = (row.scientificName ?? "").trim();
@@ -220,7 +221,7 @@ export default function ShipmentDetailPage() {
               scientificName: sci,
               commonName: common,
               family: (row.family ?? "").trim() || "—",
-              imgWingsOpen: row.imgWingsOpen ?? null,
+              images: row.images ?? [],
             };
           },
         )
@@ -269,8 +270,7 @@ export default function ShipmentDetailPage() {
             butterflySpeciesId: option.id,
             scientificName: option.scientificName,
             commonName: option.commonName,
-            imageOpen: option.imgWingsOpen,
-            imageClosed: null,
+            images: option.images,
             numberReceived: 0,
             emergedInTransit: 0,
             damagedInTransit: 0,

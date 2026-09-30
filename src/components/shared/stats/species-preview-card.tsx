@@ -51,9 +51,9 @@ export function SpeciesPreviewCard({ species, slug, onClose }: SpeciesPreviewCar
 
         {/* Image */}
         <div className="relative aspect-4/3 overflow-hidden">
-          {species.img_wings_open ? (
+          {species.images[0] ? (
             <Image
-              src={species.img_wings_open}
+              src={species.images[0].card}
               alt={`${species.name} (${species.scientific_name})`}
               fill
               sizes="(min-width: 640px) 384px, 100vw"

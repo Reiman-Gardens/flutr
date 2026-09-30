@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 
 import { getPublicInstitution } from "@/lib/queries/institution";
 import { getStatsData, transformStatsData } from "@/lib/queries/stats";
-import { getButterflyOfTheDayForInstitution } from "@/lib/queries/home";
+import { getButterflyOfTheDay } from "@/lib/services/butterfly-of-the-day";
+import { attachImages } from "@/lib/wingspan/client";
 import { StatsHeader } from "@/components/shared/stats/stats-header";
 import { StatsOverviewCards } from "@/components/shared/stats/stats-overview-cards";
 import { StatsHighlightCards } from "@/components/shared/stats/stats-highlight-cards";
@@ -31,8 +32,8 @@ export default async function StatsPage({ params }: StatsPageProps) {
   const inst = (await getPublicInstitution(slug))!;
 
   const [rows, featured] = await Promise.all([
-    getStatsData(inst.id),
-    getButterflyOfTheDayForInstitution(inst.id),
+    getStatsData(inst.id).then(attachImages),
+    getButterflyOfTheDay(inst.id),
   ]);
   const stats = transformStatsData(rows);
   const dailyHighlight = featured
@@ -42,7 +43,7 @@ export default async function StatsPage({ params }: StatsPageProps) {
         scientific_name: featured.scientific_name,
         family: featured.family,
         range: featured.range,
-        img_wings_open: featured.img_wings_open,
+        images: featured.images,
       }
     : null;
 
@@ -69,7 +70,7 @@ export default async function StatsPage({ params }: StatsPageProps) {
             slug={slug}
             scientific_name={featured.scientific_name}
             common_name={featured.common_name}
-            img_wings_open={featured.img_wings_open}
+            image={featured.images[0] ?? null}
             range={featured.range}
             lifespan_days={featured.lifespan_days}
             host_plant={featured.host_plant}

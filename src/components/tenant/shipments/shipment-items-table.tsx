@@ -182,9 +182,9 @@ export function ShipmentItemsTable({
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="bg-muted relative size-16 shrink-0 overflow-hidden rounded">
-                        {item.imageOpen ? (
+                        {item.images[0] ? (
                           <Image
-                            src={item.imageOpen}
+                            src={item.images[0].thumb}
                             alt=""
                             width={128}
                             height={128}

@@ -6,15 +6,11 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react";
 
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-
-interface LightboxImage {
-  src: string;
-  label: string;
-}
+import type { SpeciesImage } from "@/lib/wingspan/images";
 
 interface SpeciesImageLightboxProps {
   commonName: string;
-  images: LightboxImage[];
+  images: SpeciesImage[];
   children: (openAt: (index: number) => void) => React.ReactNode;
 }
 
@@ -78,7 +74,7 @@ export function SpeciesImageLightbox({ commonName, images, children }: SpeciesIm
           {current && (
             <div className="relative aspect-4/3 w-full overflow-hidden rounded-lg sm:aspect-3/2">
               <Image
-                src={current.src}
+                src={current.full}
                 alt={`${commonName} — ${current.label}`}
                 fill
                 sizes="(min-width: 768px) 80vw, 100vw"

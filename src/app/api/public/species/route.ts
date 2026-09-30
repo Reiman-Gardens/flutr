@@ -3,6 +3,7 @@ import { count } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { attachImages } from "@/lib/wingspan/client";
 import { butterfly_species } from "@/lib/schema";
 import { internalError, invalidRequest, ok } from "@/lib/api-response";
 import { paginatedQuerySchema } from "@/lib/validation/pagination";
@@ -30,8 +31,6 @@ export async function GET(request: NextRequest) {
           sub_family: butterfly_species.sub_family,
           lifespan_days: butterfly_species.lifespan_days,
           range: butterfly_species.range,
-          img_wings_open: butterfly_species.img_wings_open,
-          img_wings_closed: butterfly_species.img_wings_closed,
         })
         .from(butterfly_species)
         .limit(limit)
@@ -41,7 +40,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     return ok({
-      species: rows,
+      species: await attachImages(rows),
       pagination: { page, limit, total: totalResult[0]?.total ?? 0 },
     });
   } catch (error) {

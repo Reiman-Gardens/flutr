@@ -1,10 +1,7 @@
 import { notFound } from "next/navigation";
 import { getPublicInstitution } from "@/lib/queries/institution";
-import {
-  getButterflyOfTheDayForInstitution,
-  getInstitutionHomeData,
-  getPublicNewsPreview,
-} from "@/lib/queries/home";
+import { getInstitutionHomeData, getPublicNewsPreview } from "@/lib/queries/home";
+import { getButterflyOfTheDay } from "@/lib/services/butterfly-of-the-day";
 import { HeroSection } from "@/components/public/home/hero-section";
 import { FeaturedButterfly } from "@/components/public/home/featured-butterfly";
 import { ExploreLinks } from "@/components/public/home/explore-links";
@@ -27,7 +24,7 @@ export default async function InstitutionPage({ params }: InstitutionPageProps) 
 
   const [{ totalButterflies, totalSpecies }, featured, news] = await Promise.all([
     getInstitutionHomeData(inst.id),
-    getButterflyOfTheDayForInstitution(inst.id),
+    getButterflyOfTheDay(inst.id),
     getPublicNewsPreview(inst.id),
   ]);
 
@@ -52,7 +49,7 @@ export default async function InstitutionPage({ params }: InstitutionPageProps) 
               slug={slug}
               scientific_name={featured.scientific_name}
               common_name={featured.common_name}
-              img_wings_open={featured.img_wings_open}
+              image={featured.images[0] ?? null}
               range={featured.range}
               lifespan_days={featured.lifespan_days}
               host_plant={featured.host_plant}

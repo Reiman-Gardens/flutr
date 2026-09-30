@@ -10,10 +10,10 @@ import type { SortField } from "@/hooks/use-species-search";
  * about showGlobal, touches URL state, or mutates its input. Order is sortSpecies/
  * compareSpecies's responsibility, applied separately and afterward.
  */
-export function selectGalleryPopulation(
-  species: GallerySpecies[],
+export function selectGalleryPopulation<T extends GallerySpecies>(
+  species: T[],
   sortField: SortField,
-): GallerySpecies[] {
+): T[] {
   if (sortField === "in_flight") {
     return species.filter((item) => item.in_flight_count > 0);
   }

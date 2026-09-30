@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { attachImages } from "@/lib/wingspan/client";
 import { institutions } from "@/lib/schema";
 import { internalError, invalidRequest, notFound, ok } from "@/lib/api-response";
 import { institutionSlugParamsSchema, publicEmptyQuerySchema } from "@/lib/validation/public";
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       return notFound("Institution not found");
     }
 
-    const gallery = await getGalleryDetailData(institutionRows[0].id);
+    const gallery = await attachImages(await getGalleryDetailData(institutionRows[0].id));
 
     return ok({ gallery });
   } catch (error) {

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { getPublicInstitution } from "@/lib/queries/institution";
 import { getSpeciesDetail } from "@/lib/queries/species-detail";
+import { getSpeciesImages } from "@/lib/wingspan/client";
 import { SpeciesHero } from "@/components/public/species/species-hero";
 import { SpeciesStatsGrid } from "@/components/public/species/species-stats-grid";
 import { SpeciesRangeBadges } from "@/components/public/species/species-range-badges";
@@ -53,13 +54,15 @@ export default async function ButterflyPage({ params }: ButterflyPageProps) {
     notFound();
   }
 
+  const images = await getSpeciesImages(species.scientific_name, species.common_name);
+
   return (
     <article aria-labelledby="species-heading">
       <SpeciesHero
         slug={slug}
         commonName={species.common_name}
         scientificName={species.scientific_name}
-        imgWingsOpen={species.img_wings_open}
+        image={images[0] ?? null}
       />
 
       {/* Stats grid — overlaps bottom of hero, right-aligned on desktop */}
@@ -89,13 +92,7 @@ export default async function ButterflyPage({ params }: ButterflyPageProps) {
 
           {/* Right Column: Gallery (60-70% of width) */}
           <div className="lg:col-span-2">
-            <SpeciesImageGallery
-              commonName={species.common_name}
-              imgWingsOpen={species.img_wings_open}
-              imgWingsClosed={species.img_wings_closed}
-              extraImg1={species.extra_img_1}
-              extraImg2={species.extra_img_2}
-            />
+            <SpeciesImageGallery commonName={species.common_name} images={images} />
           </div>
         </div>
       </div>

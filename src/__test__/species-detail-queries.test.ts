@@ -41,10 +41,6 @@ describe("species detail queries", () => {
         host_plant: "Legumes",
         habitat: "Rainforest",
         fun_facts: [{ title: "Color", fact: "Structural blue" }],
-        img_wings_open: "https://example.com/morpho.jpg",
-        img_wings_closed: "https://example.com/morpho-closed.jpg",
-        extra_img_1: "https://example.com/morpho-1.jpg",
-        extra_img_2: null,
         in_flight_count: 8,
       },
     ];
@@ -65,10 +61,6 @@ describe("species detail queries", () => {
       host_plant: "Legumes",
       habitat: "Rainforest",
       fun_facts: [{ title: "Color", fact: "Structural blue" }],
-      img_wings_open: "https://example.com/morpho.jpg",
-      img_wings_closed: "https://example.com/morpho-closed.jpg",
-      extra_img_1: "https://example.com/morpho-1.jpg",
-      extra_img_2: null,
       in_flight_count: 8,
     });
 
@@ -96,10 +88,6 @@ describe("species detail queries", () => {
         host_plant: "Milkweed",
         habitat: "Open fields",
         fun_facts: null,
-        img_wings_open: "https://example.com/monarch.jpg",
-        img_wings_closed: null,
-        extra_img_1: null,
-        extra_img_2: null,
         in_flight_count: 0,
       },
     ];
@@ -120,10 +108,6 @@ describe("species detail queries", () => {
       host_plant: "Milkweed",
       habitat: "Open fields",
       fun_facts: null,
-      img_wings_open: "https://example.com/monarch.jpg",
-      img_wings_closed: null,
-      extra_img_1: null,
-      extra_img_2: null,
       in_flight_count: 0,
     });
   });

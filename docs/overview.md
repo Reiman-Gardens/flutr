@@ -69,8 +69,8 @@ PostgreSQL 17 managed via Drizzle ORM:
 
 - **Institution** — A butterfly house organization (address, contact, branding, optional volunteer/donation links)
 - **User** — An account scoped to an institution with a role
-- **Butterfly Species** — Global scientific reference data
-- **Butterfly Species Institution** — Institution-specific species details (common name, description, image)
+- **Butterfly Species** — Global scientific reference data. Photos come from the Wingspan microservice, matched on `scientific_name`.
+- **Butterfly Species Institution** — Institution-specific species overrides (common name, lifespan)
 - **Supplier** — Global butterfly vendor/supplier code used by shipments and imports
 - **Shipment** — A butterfly shipment record with quality/damage tracking metrics
 - **Release Event** — A release workflow event linked to a shipment (`release_date`, `released_by`)

@@ -4,6 +4,7 @@ import { and, asc, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { butterfly_species, butterfly_species_institution } from "@/lib/schema";
 import { currentInFlightBySpeciesSubquery } from "@/lib/queries/inflight";
+import type { SpeciesImage } from "@/lib/wingspan/images";
 
 export interface StatsSpeciesRow {
   scientific_name: string;
@@ -12,7 +13,6 @@ export interface StatsSpeciesRow {
   sub_family: string;
   range: string[];
   lifespan_days: number;
-  img_wings_open: string | null;
   quantity: number;
 }
 
@@ -22,7 +22,7 @@ export interface SpeciesBreakdownItem {
   scientific_name: string;
   family: string;
   range: string[];
-  img_wings_open: string | null;
+  images: SpeciesImage[];
 }
 
 export interface StatsPageData {
@@ -52,7 +52,6 @@ export const getStatsData = cache(async (institutionId: number) => {
       family: butterfly_species.family,
       sub_family: butterfly_species.sub_family,
       range: butterfly_species.range,
-      img_wings_open: butterfly_species.img_wings_open,
       lifespan_days: sql<number>`${lifespanDaysExpr}`.as("lifespan_days"),
       quantity: sql<number>`${currentInFlight.quantity}`.as("quantity"),
     })
@@ -75,7 +74,9 @@ const MAX_FAMILIES_SHOWN = 6;
 /**
  * Transforms raw stats rows into chart-ready aggregations.
  */
-export function transformStatsData(rows: StatsSpeciesRow[]): StatsPageData {
+export function transformStatsData(
+  rows: (StatsSpeciesRow & { images: SpeciesImage[] })[],
+): StatsPageData {
   const totalButterflies = rows.reduce((sum, r) => sum + Number(r.quantity), 0);
   const totalSpecies = rows.length;
   const uniqueFamilies = new Set(rows.map((r) => r.family)).size;
@@ -97,7 +98,7 @@ export function transformStatsData(rows: StatsSpeciesRow[]): StatsPageData {
       scientific_name: r.scientific_name,
       family: r.family,
       range: r.range,
-      img_wings_open: r.img_wings_open,
+      images: r.images,
     }));
 
   // Family distribution: group small families into "Other"

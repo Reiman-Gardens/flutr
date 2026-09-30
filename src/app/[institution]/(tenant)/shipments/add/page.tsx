@@ -38,12 +38,13 @@ import {
   type SupplierOption,
 } from "@/components/tenant/shipments/supplier-select";
 import type { SpeciesPickerOption } from "@/components/tenant/shipments/types";
+import type { SpeciesImage } from "@/lib/wingspan/images";
 
 type ShipmentItemForm = {
   butterfly_species_id: number;
   scientific_name: string;
   common_name: string;
-  imgWingsOpen: string | null;
+  images: SpeciesImage[];
   number_received: number;
   emerged_in_transit: number;
   damaged_in_transit: number;
@@ -109,7 +110,7 @@ function blankItem(species: SpeciesPickerOption): ShipmentItemForm {
     butterfly_species_id: species.id,
     scientific_name: species.scientificName,
     common_name: species.commonName,
-    imgWingsOpen: species.imgWingsOpen,
+    images: species.images,
     number_received: 0,
     emerged_in_transit: 0,
     damaged_in_transit: 0,
@@ -181,7 +182,7 @@ export default function AddShipmentPage() {
                 commonName?: string;
                 commonNameOverride?: string;
                 family?: string;
-                imgWingsOpen?: string | null;
+                images?: SpeciesImage[];
               }) => {
                 const id = typeof row.id === "number" ? row.id : Number(row.id);
                 const sci = (row.scientificName ?? "").trim();
@@ -193,7 +194,7 @@ export default function AddShipmentPage() {
                   scientificName: sci,
                   commonName: common,
                   family: (row.family ?? "").trim() || "—",
-                  imgWingsOpen: row.imgWingsOpen ?? null,
+                  images: row.images ?? [],
                 } satisfies SpeciesPickerOption;
               },
             )
@@ -477,9 +478,9 @@ export default function AddShipmentPage() {
                     >
                       <div className="flex items-center gap-3">
                         <div className="bg-muted relative size-16 shrink-0 overflow-hidden rounded">
-                          {item.imgWingsOpen ? (
+                          {item.images[0] ? (
                             <Image
-                              src={item.imgWingsOpen}
+                              src={item.images[0].thumb}
                               alt=""
                               width={128}
                               height={128}

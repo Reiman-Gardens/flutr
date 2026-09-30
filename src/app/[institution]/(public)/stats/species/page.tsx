@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { getPublicInstitution } from "@/lib/queries/institution";
 import { getStatsData, transformStatsData } from "@/lib/queries/stats";
+import { attachImages } from "@/lib/wingspan/client";
 import { FullscreenTreemap } from "@/components/shared/stats/fullscreen-treemap";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +25,7 @@ export default async function SpeciesTreemapPage({ params }: SpeciesTreemapPageP
 
   const inst = (await getPublicInstitution(slug))!;
 
-  const rows = await getStatsData(inst.id);
+  const rows = await attachImages(await getStatsData(inst.id));
   const stats = transformStatsData(rows);
 
   if (stats.speciesBreakdown.length === 0) notFound();

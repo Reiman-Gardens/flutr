@@ -17,7 +17,6 @@ const zebraLongwing: GallerySpecies = {
   scientific_name: "Heliconius charithonia",
   family: "Nymphalidae",
   range: ["North America"],
-  img_wings_open: "https://example.com/zebra.jpg",
   in_flight_count: 8,
 };
 
@@ -27,7 +26,6 @@ const blueMorpho: GallerySpecies = {
   scientific_name: "Morpho peleides",
   family: "Nymphalidae",
   range: ["South America"],
-  img_wings_open: "https://example.com/morpho.jpg",
   in_flight_count: 2,
 };
 
@@ -37,7 +35,6 @@ const atlasMoth: GallerySpecies = {
   scientific_name: "Attacus atlas",
   family: "Saturniidae",
   range: ["Asia"],
-  img_wings_open: null,
   in_flight_count: 0,
 };
 
@@ -47,7 +44,6 @@ const giantSwallowtail: GallerySpecies = {
   scientific_name: "Papilio cresphontes",
   family: "Papilionidae",
   range: ["North America"],
-  img_wings_open: "https://example.com/swallowtail.jpg",
   in_flight_count: 0,
 };
 

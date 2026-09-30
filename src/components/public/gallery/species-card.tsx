@@ -3,6 +3,7 @@ import { Bug, ChevronRight } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "@/components/ui/link";
+import type { SpeciesImage } from "@/lib/wingspan/images";
 
 interface SpeciesCardProps {
   slug: string;
@@ -10,7 +11,7 @@ interface SpeciesCardProps {
   common_name: string;
   family: string;
   range: string[];
-  img_wings_open: string | null;
+  images: SpeciesImage[];
   in_flight_count: number;
   /** Whether to render the origin/region chip (also requires a non-empty range). */
   showOrigin?: boolean;
@@ -26,13 +27,14 @@ export function SpeciesCard({
   common_name,
   family,
   range,
-  img_wings_open,
+  images,
   in_flight_count,
   showOrigin = false,
   showFamily = false,
   showFlyingToday = false,
 }: SpeciesCardProps) {
   const region = range.length > 0 ? range[0] : null;
+  const primary = images[0];
 
   return (
     <li>
@@ -44,9 +46,9 @@ export function SpeciesCard({
           <Card className="gap-0 overflow-hidden py-0 transition-shadow group-hover:shadow-md">
             {/* Image */}
             <div className="relative aspect-4/3 overflow-hidden">
-              {img_wings_open ? (
+              {primary ? (
                 <Image
-                  src={img_wings_open}
+                  src={primary.card}
                   alt={`${common_name} (${scientific_name})`}
                   fill
                   sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"

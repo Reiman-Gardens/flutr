@@ -53,7 +53,7 @@ describe("getGalleryData", () => {
     });
   });
 
-  it("returns species array with narrowed shape (no extra image columns)", async () => {
+  it("returns species array without any image columns (imagery comes from Wingspan)", async () => {
     mockDb.db.select.mockReturnValueOnce(createThenableQuery([mockRow]));
 
     const { getGalleryData } = await import("@/lib/queries/gallery");
@@ -63,9 +63,9 @@ describe("getGalleryData", () => {
     const species = result.species[0];
     expect(species.id).toBe(1);
     expect(species.common_name).toBe("Eastern Tiger Swallowtail");
-    expect(species.img_wings_open).toBe("open.jpg");
     expect(species.in_flight_count).toBe(3);
-    // Narrowed — detail-only image fields must not be present
+    // Images are resolved from Wingspan, never from the legacy columns.
+    expect("img_wings_open" in species).toBe(false);
     expect("img_wings_closed" in species).toBe(false);
     expect("extra_img_1" in species).toBe(false);
   });
@@ -123,7 +123,7 @@ describe("getGalleryDetailData", () => {
     });
   });
 
-  it("returns full GallerySpeciesDetail shape including all image columns", async () => {
+  it("returns the gallery shape with no image columns", async () => {
     mockDb.db.select.mockReturnValueOnce(createThenableQuery([mockRow]));
 
     const { getGalleryDetailData } = await import("@/lib/queries/gallery");
@@ -132,11 +132,9 @@ describe("getGalleryDetailData", () => {
     expect(result).toHaveLength(1);
     const species = result[0];
     expect(species.id).toBe(1);
-    expect(species.img_wings_open).toBe("open.jpg");
-    expect(species.img_wings_closed).toBe("closed.jpg");
-    expect(species.extra_img_1).toBe("extra1.jpg");
-    expect(species.extra_img_2).toBeNull();
     expect(species.in_flight_count).toBe(3);
+    expect("img_wings_open" in species).toBe(false);
+    expect("extra_img_2" in species).toBe(false);
   });
 
   it("applies common_name_override when present", async () => {

@@ -211,9 +211,9 @@ export function SpeciesPickerDialog({
                         {(isSelected || isExcluded) && <Check className="size-3" />}
                       </div>
                       <div className="bg-muted relative size-16 shrink-0 overflow-hidden rounded">
-                        {option.imgWingsOpen ? (
+                        {option.images[0] ? (
                           <Image
-                            src={option.imgWingsOpen}
+                            src={option.images[0].thumb}
                             alt={`${option.commonName} (${option.scientificName})`}
                             width={128}
                             height={128}

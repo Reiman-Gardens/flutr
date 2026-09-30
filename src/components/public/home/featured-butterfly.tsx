@@ -3,12 +3,13 @@ import Link from "next/link";
 import { Globe, Clock, Leaf, Activity, Wind } from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import type { SpeciesImage } from "@/lib/wingspan/images";
 
 interface FeaturedButterflyProps {
   slug: string;
   scientific_name: string;
   common_name: string;
-  img_wings_open: string | null;
+  image: SpeciesImage | null;
   range: string[];
   lifespan_days: number;
   host_plant: string | null;
@@ -19,7 +20,7 @@ export function FeaturedButterfly({
   slug,
   scientific_name,
   common_name,
-  img_wings_open,
+  image,
   range,
   lifespan_days,
   host_plant,
@@ -33,10 +34,10 @@ export function FeaturedButterfly({
 
       <Card className="gap-0 overflow-hidden py-0 lg:flex lg:flex-row">
         {/* Image — fills card height on desktop */}
-        {img_wings_open ? (
+        {image ? (
           <div className="relative aspect-4/3 lg:aspect-auto lg:w-2/5 lg:shrink-0">
             <Image
-              src={img_wings_open}
+              src={image.card}
               alt={`${common_name} (${scientific_name})`}
               fill
               sizes="(min-width: 1024px) 40%, 100vw"

@@ -227,9 +227,6 @@ export async function getShipmentWithItems(institutionId: number, shipmentId: nu
       scientificName: butterfly_species.scientific_name,
       commonName: butterfly_species.common_name,
 
-      imageOpen: butterfly_species.img_wings_open,
-      imageClosed: butterfly_species.img_wings_closed,
-
       numberReceived: shipment_items.number_received,
       emergedInTransit: shipment_items.emerged_in_transit,
       damagedInTransit: shipment_items.damaged_in_transit,
@@ -266,8 +263,6 @@ export async function getShipmentWithItems(institutionId: number, shipmentId: nu
       shipment_items.butterfly_species_id,
       butterfly_species.scientific_name,
       butterfly_species.common_name,
-      butterfly_species.img_wings_open,
-      butterfly_species.img_wings_closed,
     );
 
   return { shipment, items };

@@ -34,7 +34,6 @@ describe("stats queries", () => {
         sub_family: "Morphinae",
         range: ["South America"],
         lifespan_days: 21,
-        img_wings_open: "https://example.com/morpho.jpg",
         quantity: 9,
       },
     ];

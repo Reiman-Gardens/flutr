@@ -13,7 +13,6 @@ import {
 export interface InstitutionInFlightRow {
   scientific_name: string;
   common_name: string;
-  image_url: string | null;
   quantity: number;
 }
 
@@ -144,11 +143,6 @@ export async function getInstitutionInFlightBySlug(slug: string) {
         sql<string>`coalesce(${butterfly_species_institution.common_name_override}, ${butterfly_species.common_name})`.as(
           "common_name",
         ),
-      image_url: sql<
-        string | null
-      >`coalesce(${butterfly_species.img_wings_open}, ${butterfly_species.img_wings_closed})`.as(
-        "image_url",
-      ),
       quantity: sql<number>`${currentInFlight.quantity}`.as("quantity"),
     })
     .from(currentInFlight)
@@ -164,8 +158,6 @@ export async function getInstitutionInFlightBySlug(slug: string) {
       butterfly_species.scientific_name,
       butterfly_species.common_name,
       butterfly_species_institution.common_name_override,
-      butterfly_species.img_wings_open,
-      butterfly_species.img_wings_closed,
       currentInFlight.quantity,
     )
     .orderBy(asc(butterfly_species.scientific_name));

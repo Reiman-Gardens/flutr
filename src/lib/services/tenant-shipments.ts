@@ -7,6 +7,7 @@ import {
   canManageInstitutionProfile,
 } from "@/lib/authz";
 import { resolveTenantBySlug } from "@/lib/tenant";
+import { attachImagesCamel } from "@/lib/wingspan/client";
 import {
   listShipments,
   createShipment,
@@ -80,7 +81,10 @@ export async function getTenantShipmentById({ slug, id }: TenantShipmentIdInput)
 
   const tenantId = await resolveTenantBySlug(user, slug);
 
-  return getShipmentWithItems(tenantId, id);
+  const result = await getShipmentWithItems(tenantId, id);
+  if (!result) return null;
+
+  return { ...result, items: await attachImagesCamel(result.items) };
 }
 
 export async function updateTenantShipment(data: UpdateTenantShipmentInput) {

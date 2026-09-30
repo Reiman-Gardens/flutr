@@ -212,9 +212,9 @@ export function RegionDistributionPanel({ data, speciesData, slug }: RegionDistr
                         >
                           <div className="flex gap-3">
                             <div className="bg-muted relative h-24 w-24 shrink-0 overflow-hidden rounded-lg border">
-                              {species.img_wings_open ? (
+                              {species.images[0] ? (
                                 <Image
-                                  src={species.img_wings_open}
+                                  src={species.images[0].thumb}
                                   alt={`${species.name} (${species.scientific_name})`}
                                   fill
                                   sizes="96px"

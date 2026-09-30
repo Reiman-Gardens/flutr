@@ -64,10 +64,6 @@ describe("platform species utils", () => {
       host_plant: "Pea family plants",
       habitat: "Tropical forest",
       fun_facts: [{ title: "Wings", fact: "Reflective blue wings" }],
-      img_wings_open: "https://example.com/open.jpg",
-      img_wings_closed: "https://example.com/closed.jpg",
-      extra_img_1: null,
-      extra_img_2: null,
       created_at: "2026-01-01T00:00:00.000Z",
       updated_at: "2026-01-02T00:00:00.000Z",
     });

@@ -12,15 +12,16 @@ import {
   type SortOption,
 } from "@/components/shared/species-search-toolbar";
 import type { GallerySpecies } from "@/lib/queries/gallery";
+import type { WithImages } from "@/lib/wingspan/images";
 import { SpeciesCard } from "./species-card";
 import { selectGalleryPopulation } from "./gallery-population";
 
 interface GalleryContentProps {
   slug: string;
   /** Institution-scoped species (with overrides and in-flight counts). */
-  species: GallerySpecies[];
+  species: WithImages<GallerySpecies>[];
   /** Full global catalog — shown when the "Show all species" toggle is on. */
-  globalSpecies: GallerySpecies[];
+  globalSpecies: WithImages<GallerySpecies>[];
 }
 
 const SORT_FIELDS: SortField[] = ["common_name", "scientific_name", "family", "in_flight"];
@@ -211,7 +212,7 @@ export function GalleryContent({ slug, species, globalSpecies }: GalleryContentP
               common_name={s.common_name}
               family={s.family}
               range={s.range}
-              img_wings_open={s.img_wings_open}
+              images={s.images}
               in_flight_count={s.in_flight_count}
               showOrigin={showOrigin}
               showFamily={showFamily}
