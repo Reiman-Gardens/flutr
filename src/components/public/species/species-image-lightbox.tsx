@@ -78,6 +78,8 @@ export function SpeciesImageLightbox({ commonName, images, children }: SpeciesIm
                 alt={`${commonName} — ${current.label}`}
                 fill
                 sizes="(min-width: 768px) 80vw, 100vw"
+                // ponytail: temporary — optimizer off while Vercel transformations are capped
+                unoptimized
                 className="object-contain"
                 priority
               />

@@ -21,6 +21,8 @@ export function SpeciesHero({ slug, commonName, scientificName, image }: Species
             alt={`${commonName} (${scientificName})`}
             fill
             sizes="100vw"
+            // ponytail: temporary — optimizer off while Vercel transformations are capped
+            unoptimized
             className="object-cover"
             priority
           />

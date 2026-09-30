@@ -217,7 +217,7 @@ export function SpeciesPickerDialog({
                             alt={`${option.commonName} (${option.scientificName})`}
                             width={128}
                             height={128}
-                            quality={90}
+                            unoptimized
                             className="size-full object-cover"
                           />
                         ) : (

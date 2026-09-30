@@ -188,7 +188,7 @@ export function ShipmentItemsTable({
                             alt=""
                             width={128}
                             height={128}
-                            quality={90}
+                            unoptimized
                             className="size-full object-cover"
                           />
                         ) : (
