@@ -75,7 +75,7 @@ export function SpeciesThumbnailStrip({ images, profile }: SpeciesThumbnailStrip
             alt=""
             width={px}
             height={px}
-            quality={90}
+            unoptimized
             className="size-full object-cover"
           />
         </div>

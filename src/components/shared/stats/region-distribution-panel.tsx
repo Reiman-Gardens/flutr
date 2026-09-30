@@ -218,6 +218,7 @@ export function RegionDistributionPanel({ data, speciesData, slug }: RegionDistr
                                   alt={`${species.name} (${species.scientific_name})`}
                                   fill
                                   sizes="96px"
+                                  unoptimized
                                   className="object-cover"
                                 />
                               ) : (
