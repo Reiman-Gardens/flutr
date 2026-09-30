@@ -16,6 +16,7 @@
 - Schema changes: edit `src/lib/schema.ts`, then run `pnpm db:generate` + `pnpm db:migrate`
 - Quick prototyping: use `pnpm db:push` to sync schema without migration files
 - Use `pnpm db:studio` for visual database browsing
+- Production migrations and how Drizzle tracks what to apply: [`../deployment/deployments.md`](../deployment/deployments.md)
 
 ## Multi-Tenant Queries
 
