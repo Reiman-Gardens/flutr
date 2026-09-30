@@ -75,6 +75,11 @@ regenerate — never hand-edit the journal.
 merge to `main`. It runs only on pushes to `main`, only after lint/test/build pass,
 and under the `production` GitHub environment.
 
+The job does **not** take a backup first — see [`backups.md`](./backups.md), which
+currently records that no backups exist at all. Until that is fixed, keep required
+reviewers on the `production` environment and use the manual path for anything
+destructive.
+
 Requires two pieces of GitHub configuration:
 
 - Secret `PRODUCTION_DATABASE_URL` — the production connection string.

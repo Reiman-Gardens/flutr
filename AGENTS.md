@@ -154,6 +154,7 @@ Detailed documentation lives in `docs/`:
 - `docs/deployment/` — Production operations
   - `ssh-access.md` — Server access, key setup, and port forwarding
   - `deployments.md` — Applying schema migrations to production
+  - `backups.md` — Database backup state, scheduled dumps, and restore procedure
 
 ## Conventions & Utilities
 
