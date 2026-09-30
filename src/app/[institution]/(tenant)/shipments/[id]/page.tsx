@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { notFound, useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Pencil, Plus, Trash2 } from "lucide-react";
 
 import { Link } from "@/components/ui/link";
+import { formatDateOnlyForDisplay } from "@/lib/date-only";
 import { logger } from "@/lib/logger";
 import { ROUTES } from "@/lib/routes";
 
@@ -40,16 +41,16 @@ import {
 } from "@/components/tenant/shipments/types";
 import type { SpeciesImage } from "@/lib/wingspan/images";
 
-const dateFormatter = new Intl.DateTimeFormat("en-US", {
+const releaseDateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
   day: "2-digit",
   year: "numeric",
 });
 
-function formatDate(value: string) {
+function formatReleaseDate(value: string) {
   const date = new Date(value);
-  if (Number.isNaN(date.valueOf())) return "—";
-  return dateFormatter.format(date);
+  if (Number.isNaN(date.valueOf())) return "-";
+  return releaseDateFormatter.format(date);
 }
 
 type MetricKey =
@@ -88,6 +89,7 @@ export default function ShipmentDetailPage() {
   const [saving, setSaving] = useState(false);
 
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Species catalog for the picker is lazy-loaded the first time the user
   // opens it from edit mode. We keep it in state so re-opening is instant.
@@ -373,8 +375,11 @@ export default function ShipmentDetailPage() {
     }
   };
 
-  const confirmDelete = async () => {
-    setDeleteOpen(false);
+  const confirmDelete = async (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    if (deleting) return;
+    setDeleting(true);
+    setErrorMessage(null);
     try {
       const response = await fetch(`/api/tenant/shipments/${shipmentId}`, {
         method: "DELETE",
@@ -385,9 +390,12 @@ export default function ShipmentDetailPage() {
         setErrorMessage(result?.error?.message ?? "Unable to delete shipment.");
         return;
       }
+      setDeleteOpen(false);
       router.push(ROUTES.tenant.shipments(slug));
     } catch {
       setErrorMessage("Unable to delete shipment.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -430,8 +438,8 @@ export default function ShipmentDetailPage() {
           </Button>
           <h1 className="text-3xl font-semibold">Shipment from {data.shipment.supplierCode}</h1>
           <p className="text-muted-foreground">
-            Shipped {formatDate(data.shipment.shipmentDate)} · Arrived{" "}
-            {formatDate(data.shipment.arrivalDate)}
+            Shipped {formatDateOnlyForDisplay(data.shipment.shipmentDate)} · Arrived{" "}
+            {formatDateOnlyForDisplay(data.shipment.arrivalDate)}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -546,7 +554,7 @@ export default function ShipmentDetailPage() {
                   {releases.map((release) => (
                     <TableRow key={release.id}>
                       <TableCell className="font-medium">
-                        {formatDate(release.releaseDate)}
+                        {formatReleaseDate(release.releaseDate)}
                       </TableCell>
                       <TableCell>{release.releasedBy}</TableCell>
                       <TableCell className="text-right">{release.totalReleased}</TableCell>
@@ -585,17 +593,34 @@ export default function ShipmentDetailPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+      <AlertDialog
+        open={deleteOpen}
+        onOpenChange={(open) => {
+          if (!deleting) setDeleteOpen(open);
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this shipment?</AlertDialogTitle>
+            <AlertDialogTitle>Delete shipment?</AlertDialogTitle>
             <AlertDialogDescription>
-              Shipments with line items or releases cannot be deleted. This action cannot be undone.
+              Are you sure you want to delete this shipment? This will permanently delete the
+              shipment and all information associated with it. This action cannot be undone.
             </AlertDialogDescription>
+            <div className="bg-muted text-muted-foreground rounded-md p-3 text-sm">
+              <div className="text-foreground font-medium">
+                {data.shipment.supplierCode} shipment #{data.shipment.id}
+              </div>
+              <div>
+                Shipped {formatDateOnlyForDisplay(data.shipment.shipmentDate)} - Arrived{" "}
+                {formatDateOnlyForDisplay(data.shipment.arrivalDate)}
+              </div>
+            </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" disabled={deleting} onClick={confirmDelete}>
+              {deleting ? "Deleting..." : "Delete shipment"}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
