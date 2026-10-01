@@ -133,7 +133,7 @@ pnpm db:studio      # Open Drizzle Studio GUI
 - `butterfly_species_institution` — Institution-specific overrides for global species (butterfly_species_id, institution_id, optional common_name_override, lifespan_override, timestamps). A row also marks the species as carried by that institution, which is what the public gallery lists. Edited at `/[institution]/butterflies`.
 - `suppliers` — Butterfly suppliers/vendors (institution_id, name, code, country, is_active, optional website_url, timestamps)
 - `shipments` — Shipment headers (institution_id, supplier_code, shipment_date, arrival_date, timestamps)
-- `shipment_items` — Shipment line items per species (institution_id, shipment_id, butterfly_species_id, number_received, emerged_in_transit, damaged_in_transit, diseased_in_transit, parasite, non_emergence, poor_emergence, timestamps)
+- `shipment_items` — Shipment line items per species (institution_id, shipment_id, butterfly_species_id, number_received, emerged_in_transit, damaged_in_transit, diseased_in_transit, parasite, non_emergence, poor_emergence, good_emergence, timestamps). `good_emergence` is the authoritative cumulative Released total, nullable (`NULL` means historically untracked/unknown — never treated as `0`); release create/edit/delete operations keep it synchronized by signed delta. Not yet read by Remaining/completion or exposed in any API/UI.
 - `release_events` — Butterfly release events (institution_id, shipment_id, release_date, released_by, created_at, updated_at)
 - `in_flight` — Species released during a release event (institution_id, release_event_id, shipment_item_id, quantity, created_at, updated_at)
 

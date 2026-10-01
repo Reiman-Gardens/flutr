@@ -375,6 +375,8 @@ Returns `400 INVALID_REQUEST` for non-numeric `page` / `limit` values or
 - `losses` quantities are nonnegative integers (0 allowed on edit).
 - A patch that results in all in-flight and all losses being 0 is rejected (`400 INVALID_REQUEST`).
 - If `losses` is omitted, existing `release_event_losses` rows are preserved (non-destructive compatibility behavior).
+- Returns `409 CONFLICT` if a touched item's `good_emergence` is historically untracked (`NULL`).
+- Returns `409 CONFLICT` if the edit would drive `good_emergence` below 0.
 
 `GET /api/tenant/releases/[releaseId]` response shape:
 
@@ -411,6 +413,8 @@ Returns `400 INVALID_REQUEST` for non-numeric `page` / `limit` values or
 
 - Returns `200 OK` with `{ "deleted": true }` on success.
 - Returns `409 CONFLICT` when delete rollback would reduce shipment loss totals below 0.
+- Returns `409 CONFLICT` when a rolled-back item's `good_emergence` is historically untracked (`NULL`).
+- Returns `409 CONFLICT` when the rollback would drive `good_emergence` below 0.
 
 ### Tenant institution PATCH contract
 
@@ -599,6 +603,7 @@ Response shape:
 - At least one release item or at least one loss-update value is required.
 - `loss_updates` values are absolute shipment-item totals in create flow (not event deltas).
 - Decreasing an existing shipment-item loss total via create is rejected (`409 CONFLICT`).
+- Creating a release for an item whose `good_emergence` is historically untracked (`NULL`) is rejected (`409 CONFLICT`).
 - Duplicate `shipment_item_id` values are rejected within `items` and within `loss_updates`.
 
 ### Tenant in-flight row contracts
@@ -609,7 +614,14 @@ Response shape:
 { "quantity": 5 }
 ```
 
+- Returns `409 CONFLICT` if the target item's `good_emergence` is historically untracked (`NULL`).
+- Returns `409 CONFLICT` if the update would drive `good_emergence` below 0.
+
 `DELETE /api/tenant/in-flight/[id]` — no body or query params required. Returns `200 OK` with `{ "deleted": true }` on success.
+
+- Returns `404 NOT_FOUND` if the shipment item for this in-flight row cannot be found.
+- Returns `409 CONFLICT` if the target item's `good_emergence` is historically untracked (`NULL`).
+- Returns `409 CONFLICT` if the delete would drive `good_emergence` below 0.
 
 ### Tenant releases/[releaseId]/in-flight contract
 
@@ -623,6 +635,7 @@ Response shape:
 ```
 
 - `shipment_item_id` and `quantity` are required.
+- Returns `409 CONFLICT` if the target item's `good_emergence` is historically untracked (`NULL`).
 
 ## Test file layout recommendation
 
