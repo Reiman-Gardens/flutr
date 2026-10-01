@@ -69,6 +69,14 @@ export async function POST(request: NextRequest, context: RouteContext) {
         return conflict(error.message);
       }
 
+      if (error.message === RELEASE_ERRORS.GOOD_EMERGENCE_UNTRACKED) {
+        return conflict(error.message);
+      }
+
+      if (error.message === RELEASE_ERRORS.GOOD_EMERGENCE_UNDERFLOW) {
+        return conflict(error.message);
+      }
+
       if (error.message === "UNAUTHORIZED") return unauthorized();
       if (error.message === "FORBIDDEN") return forbidden();
       if (error.message === "NOT_FOUND") return notFound("Institution not found");

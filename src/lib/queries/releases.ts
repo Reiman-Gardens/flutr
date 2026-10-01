@@ -32,6 +32,10 @@ export const RELEASE_ERRORS = {
     "Release edit would reduce shipment loss totals below zero; adjust shipment totals first",
   EMPTY_RELEASE_EVENT:
     "Release must include at least one in-flight or loss quantity; delete release instead",
+  GOOD_EMERGENCE_UNTRACKED:
+    "This shipment item's Released total is historically untracked (NULL) and cannot be modified by a release operation",
+  GOOD_EMERGENCE_UNDERFLOW:
+    "Release would reduce good emergence below zero; adjust release quantities or shipment totals first",
 } as const;
 
 type LockedShipmentItem = {
@@ -44,6 +48,7 @@ type LockedShipmentItem = {
   parasite: number;
   non_emergence: number;
   poor_emergence: number;
+  good_emergence: number | null;
 };
 
 const LOSS_COLUMNS = [
@@ -106,6 +111,31 @@ export function computeDeleteLossRollbackPatch(existing: LossValues, eventLoss: 
       throw new Error(RELEASE_ERRORS.LOSS_TOTAL_UNDERFLOW);
     }
     next[column] = rolledBack;
+  }
+  return next;
+}
+
+/**
+ * Narrows a shipment item's `good_emergence` to `number`, rejecting rows
+ * where it is `NULL` (historically untracked). `NULL` must never be read as
+ * `0` — a release mutation that needs to write a delta to an untracked row
+ * is rejected outright rather than silently initializing it.
+ */
+export function assertGoodEmergenceTracked(current: number | null): number {
+  if (current === null) {
+    throw new Error(RELEASE_ERRORS.GOOD_EMERGENCE_UNTRACKED);
+  }
+  return current;
+}
+
+/**
+ * Applies a signed delta to an already-tracked (non-null) `good_emergence`
+ * value, rejecting any result that would go negative.
+ */
+export function applyGoodEmergenceDelta(current: number, delta: number): number {
+  const next = current + delta;
+  if (next < 0) {
+    throw new Error(RELEASE_ERRORS.GOOD_EMERGENCE_UNDERFLOW);
   }
   return next;
 }
@@ -578,6 +608,7 @@ export async function updateReleaseEventItems(
         parasite: shipment_items.parasite,
         non_emergence: shipment_items.non_emergence,
         poor_emergence: shipment_items.poor_emergence,
+        good_emergence: shipment_items.good_emergence,
       })
       .from(shipment_items)
       .where(
@@ -595,7 +626,14 @@ export async function updateReleaseEventItems(
 
     const lockedItemById = new Map(lockedItems.map((row) => [row.id, { ...row }]));
     const originalLockedItemById = new Map(lockedItems.map((row) => [row.id, row]));
-    const shipmentLossPatchByItemId = new Map<number, LossValues>();
+    // Combined per-item patch: loss-column corrections and/or the
+    // good_emergence delta mirroring this item's in_flight quantity change.
+    // Only items with an actual change end up with an entry, so untouched
+    // items never get a write (and never get NULL-checked for good_emergence).
+    const shipmentPatchByItemId = new Map<
+      number,
+      Partial<LossValues> & { good_emergence?: number }
+    >();
 
     // Apply event-level loss deltas to shipment source-of-truth loss totals.
     for (const shipmentItemId of touchedItemIds) {
@@ -642,8 +680,31 @@ export async function updateReleaseEventItems(
         poor_emergence: originalRow.poor_emergence,
       });
 
-      if (LOSS_COLUMNS.some((column) => nextLosses[column] !== originalLosses[column])) {
-        shipmentLossPatchByItemId.set(shipmentItemId, nextLosses);
+      const lossChanged = LOSS_COLUMNS.some(
+        (column) => nextLosses[column] !== originalLosses[column],
+      );
+
+      // good_emergence mirrors the signed delta in this item's in_flight
+      // quantity for this edit. Items with no in-flight change (delta === 0,
+      // e.g. a loss-only touched item) are never NULL/underflow-checked and
+      // never written here.
+      const existingQty = existingInFlightByShipmentItemId.get(shipmentItemId)?.quantity ?? 0;
+      const desiredQty = desiredInFlightByShipmentItemId.get(shipmentItemId) ?? 0;
+      const goodEmergenceDelta = desiredQty - existingQty;
+
+      if (lossChanged || goodEmergenceDelta !== 0) {
+        const patch: Partial<LossValues> & { good_emergence?: number } = lossChanged
+          ? { ...nextLosses }
+          : {};
+
+        if (goodEmergenceDelta !== 0) {
+          patch.good_emergence = applyGoodEmergenceDelta(
+            assertGoodEmergenceTracked(row.good_emergence),
+            goodEmergenceDelta,
+          );
+        }
+
+        shipmentPatchByItemId.set(shipmentItemId, patch);
       }
     }
 
@@ -698,7 +759,7 @@ export async function updateReleaseEventItems(
       throw new Error(RELEASE_ERRORS.EMPTY_RELEASE_EVENT);
     }
 
-    for (const [shipmentItemId, patch] of shipmentLossPatchByItemId) {
+    for (const [shipmentItemId, patch] of shipmentPatchByItemId) {
       await tx
         .update(shipment_items)
         .set({ ...patch, updated_at: new Date() })
@@ -854,6 +915,7 @@ export async function createReleaseFromShipment(
         parasite: shipment_items.parasite,
         non_emergence: shipment_items.non_emergence,
         poor_emergence: shipment_items.poor_emergence,
+        good_emergence: shipment_items.good_emergence,
       })
       .from(shipment_items)
       .where(
@@ -984,6 +1046,23 @@ export async function createReleaseFromShipment(
       }
     }
 
+    // Dual-write: every released item's good_emergence gets the same
+    // positive delta as its new in_flight quantity. Computed (and
+    // NULL/underflow-validated) before any insert below, so an untracked
+    // item rejects the whole release before anything is written.
+    const goodEmergencePatchByItemId = new Map<number, number>();
+    for (const item of payload.items) {
+      const locked = lockedItemById.get(item.shipment_item_id);
+      if (!locked) {
+        throw new Error(RELEASE_ERRORS.SHIPMENT_ITEM_NOT_FOUND);
+      }
+
+      goodEmergencePatchByItemId.set(
+        item.shipment_item_id,
+        applyGoodEmergenceDelta(assertGoodEmergenceTracked(locked.good_emergence), item.quantity),
+      );
+    }
+
     const [releaseEvent] = await tx
       .insert(release_events)
       .values({
@@ -1018,6 +1097,18 @@ export async function createReleaseFromShipment(
               quantity: in_flight.quantity,
             })
         : [];
+
+    for (const [shipmentItemId, nextGoodEmergence] of goodEmergencePatchByItemId) {
+      await tx
+        .update(shipment_items)
+        .set({ good_emergence: nextGoodEmergence, updated_at: new Date() })
+        .where(
+          and(
+            eq(shipment_items.id, shipmentItemId),
+            eq(shipment_items.institution_id, institutionId),
+          ),
+        );
+    }
 
     if (lossAttributionRows.length > 0) {
       await tx.insert(release_event_losses).values(
@@ -1081,6 +1172,7 @@ export async function createInFlightForRelease(
         parasite: shipment_items.parasite,
         non_emergence: shipment_items.non_emergence,
         poor_emergence: shipment_items.poor_emergence,
+        good_emergence: shipment_items.good_emergence,
       })
       .from(shipment_items)
       .where(
@@ -1122,6 +1214,14 @@ export async function createInFlightForRelease(
       throw new Error(RELEASE_ERRORS.QUANTITY_EXCEEDS_REMAINING);
     }
 
+    // Dual-write: this new in_flight row's quantity is a pure addition to
+    // good_emergence. Validated before the insert so an untracked item
+    // rejects the call before anything is written.
+    const nextGoodEmergence = applyGoodEmergenceDelta(
+      assertGoodEmergenceTracked(lockedItem.good_emergence),
+      payload.quantity,
+    );
+
     const [created] = await tx
       .insert(in_flight)
       .values({
@@ -1136,6 +1236,16 @@ export async function createInFlightForRelease(
         shipmentItemId: in_flight.shipment_item_id,
         quantity: in_flight.quantity,
       });
+
+    await tx
+      .update(shipment_items)
+      .set({ good_emergence: nextGoodEmergence, updated_at: new Date() })
+      .where(
+        and(
+          eq(shipment_items.id, payload.shipment_item_id),
+          eq(shipment_items.institution_id, institutionId),
+        ),
+      );
 
     return created;
   });
@@ -1156,10 +1266,12 @@ export async function updateInFlightQuantity(
       .select({
         id: in_flight.id,
         shipmentItemId: in_flight.shipment_item_id,
+        quantity: in_flight.quantity,
       })
       .from(in_flight)
       .where(and(eq(in_flight.id, inFlightId), eq(in_flight.institution_id, institutionId)))
-      .limit(1);
+      .limit(1)
+      .for("update");
 
     if (!target) {
       throw new Error(RELEASE_ERRORS.IN_FLIGHT_NOT_FOUND);
@@ -1176,6 +1288,7 @@ export async function updateInFlightQuantity(
         parasite: shipment_items.parasite,
         non_emergence: shipment_items.non_emergence,
         poor_emergence: shipment_items.poor_emergence,
+        good_emergence: shipment_items.good_emergence,
       })
       .from(shipment_items)
       .where(
@@ -1202,6 +1315,20 @@ export async function updateInFlightQuantity(
       throw new Error(RELEASE_ERRORS.QUANTITY_EXCEEDS_REMAINING);
     }
 
+    // Dual-write: good_emergence moves by the same signed delta as this
+    // in_flight row's quantity change. A zero delta means this call doesn't
+    // touch good_emergence at all — skip the NULL/underflow check and the
+    // write entirely, so a no-op quantity "change" on an untracked item is
+    // never rejected (nothing about good_emergence is actually happening).
+    const goodEmergenceDelta = payload.quantity - target.quantity;
+    let nextGoodEmergence: number | undefined;
+    if (goodEmergenceDelta !== 0) {
+      nextGoodEmergence = applyGoodEmergenceDelta(
+        assertGoodEmergenceTracked(lockedItem.good_emergence),
+        goodEmergenceDelta,
+      );
+    }
+
     const [updated] = await tx
       .update(in_flight)
       .set({ quantity: payload.quantity, updated_at: new Date() })
@@ -1217,6 +1344,18 @@ export async function updateInFlightQuantity(
       throw new Error(RELEASE_ERRORS.IN_FLIGHT_NOT_FOUND);
     }
 
+    if (nextGoodEmergence !== undefined) {
+      await tx
+        .update(shipment_items)
+        .set({ good_emergence: nextGoodEmergence, updated_at: new Date() })
+        .where(
+          and(
+            eq(shipment_items.id, target.shipmentItemId),
+            eq(shipment_items.institution_id, institutionId),
+          ),
+        );
+    }
+
     return updated;
   });
 }
@@ -1230,17 +1369,19 @@ export async function deleteInFlightRow(institutionId: number, inFlightId: numbe
       .select({
         id: in_flight.id,
         shipmentItemId: in_flight.shipment_item_id,
+        quantity: in_flight.quantity,
       })
       .from(in_flight)
       .where(and(eq(in_flight.id, inFlightId), eq(in_flight.institution_id, institutionId)))
-      .limit(1);
+      .limit(1)
+      .for("update");
 
     if (!existing) {
       throw new Error(RELEASE_ERRORS.IN_FLIGHT_NOT_FOUND);
     }
 
-    await tx
-      .select({ id: shipment_items.id })
+    const [lockedItem] = await tx
+      .select({ id: shipment_items.id, good_emergence: shipment_items.good_emergence })
       .from(shipment_items)
       .where(
         and(
@@ -1250,6 +1391,18 @@ export async function deleteInFlightRow(institutionId: number, inFlightId: numbe
       )
       .for("update");
 
+    if (!lockedItem) {
+      throw new Error(RELEASE_ERRORS.SHIPMENT_ITEM_NOT_FOUND);
+    }
+
+    // Dual-write: the deleted row's quantity is subtracted from
+    // good_emergence. Validated before the delete so a NULL or would-be-
+    // negative result blocks the deletion entirely (nothing removed).
+    const nextGoodEmergence = applyGoodEmergenceDelta(
+      assertGoodEmergenceTracked(lockedItem.good_emergence),
+      -existing.quantity,
+    );
+
     const [deleted] = await tx
       .delete(in_flight)
       .where(and(eq(in_flight.id, inFlightId), eq(in_flight.institution_id, institutionId)))
@@ -1258,6 +1411,16 @@ export async function deleteInFlightRow(institutionId: number, inFlightId: numbe
     if (!deleted) {
       throw new Error(RELEASE_ERRORS.IN_FLIGHT_NOT_FOUND);
     }
+
+    await tx
+      .update(shipment_items)
+      .set({ good_emergence: nextGoodEmergence, updated_at: new Date() })
+      .where(
+        and(
+          eq(shipment_items.id, existing.shipmentItemId),
+          eq(shipment_items.institution_id, institutionId),
+        ),
+      );
 
     return { deleted: true };
   });
@@ -1284,14 +1447,15 @@ export async function deleteReleaseEvent(institutionId: number, releaseEventId: 
     }
 
     const relatedInFlightItems = await tx
-      .select({ shipmentItemId: in_flight.shipment_item_id })
+      .select({ shipmentItemId: in_flight.shipment_item_id, quantity: in_flight.quantity })
       .from(in_flight)
       .where(
         and(
           eq(in_flight.institution_id, institutionId),
           eq(in_flight.release_event_id, releaseEventId),
         ),
-      );
+      )
+      .for("update");
 
     const relatedLossRows = await tx
       .select({
@@ -1324,6 +1488,7 @@ export async function deleteReleaseEvent(institutionId: number, releaseEventId: 
       parasite: number;
       non_emergence: number;
       poor_emergence: number;
+      good_emergence: number | null;
     }> = [];
     if (shipmentItemIds.length > 0) {
       lockedShipmentItems = await tx
@@ -1334,6 +1499,7 @@ export async function deleteReleaseEvent(institutionId: number, releaseEventId: 
           parasite: shipment_items.parasite,
           non_emergence: shipment_items.non_emergence,
           poor_emergence: shipment_items.poor_emergence,
+          good_emergence: shipment_items.good_emergence,
         })
         .from(shipment_items)
         .where(
@@ -1349,42 +1515,72 @@ export async function deleteReleaseEvent(institutionId: number, releaseEventId: 
       }
     }
 
-    if (relatedLossRows.length > 0) {
-      const lockedById = new Map(lockedShipmentItems.map((row) => [row.id, row]));
+    // Combined per-item rollback patch: loss-column rollback (existing
+    // behavior) and/or the good_emergence rollback mirroring this event's
+    // deleted in_flight contribution. Both passes fully validate (and can
+    // reject the whole delete) before any write happens below.
+    const lockedById = new Map(lockedShipmentItems.map((row) => [row.id, row]));
+    const shipmentPatchByItemId = new Map<
+      number,
+      Partial<LossValues> & { good_emergence?: number }
+    >();
 
-      for (const lossRow of relatedLossRows) {
-        const locked = lockedById.get(lossRow.shipmentItemId);
-        if (!locked) {
-          throw new Error(RELEASE_ERRORS.SHIPMENT_ITEM_NOT_FOUND);
-        }
-
-        const patch = computeDeleteLossRollbackPatch(
-          toLossValues({
-            damaged_in_transit: locked.damaged_in_transit,
-            diseased_in_transit: locked.diseased_in_transit,
-            parasite: locked.parasite,
-            non_emergence: locked.non_emergence,
-            poor_emergence: locked.poor_emergence,
-          }),
-          toLossValues({
-            damaged_in_transit: lossRow.damaged_in_transit,
-            diseased_in_transit: lossRow.diseased_in_transit,
-            parasite: lossRow.parasite,
-            non_emergence: lossRow.non_emergence,
-            poor_emergence: lossRow.poor_emergence,
-          }),
-        );
-
-        await tx
-          .update(shipment_items)
-          .set({ ...patch, updated_at: new Date() })
-          .where(
-            and(
-              eq(shipment_items.id, lossRow.shipmentItemId),
-              eq(shipment_items.institution_id, institutionId),
-            ),
-          );
+    for (const lossRow of relatedLossRows) {
+      const locked = lockedById.get(lossRow.shipmentItemId);
+      if (!locked) {
+        throw new Error(RELEASE_ERRORS.SHIPMENT_ITEM_NOT_FOUND);
       }
+
+      const patch = computeDeleteLossRollbackPatch(
+        toLossValues({
+          damaged_in_transit: locked.damaged_in_transit,
+          diseased_in_transit: locked.diseased_in_transit,
+          parasite: locked.parasite,
+          non_emergence: locked.non_emergence,
+          poor_emergence: locked.poor_emergence,
+        }),
+        toLossValues({
+          damaged_in_transit: lossRow.damaged_in_transit,
+          diseased_in_transit: lossRow.diseased_in_transit,
+          parasite: lossRow.parasite,
+          non_emergence: lossRow.non_emergence,
+          poor_emergence: lossRow.poor_emergence,
+        }),
+      );
+
+      shipmentPatchByItemId.set(lossRow.shipmentItemId, {
+        ...shipmentPatchByItemId.get(lossRow.shipmentItemId),
+        ...patch,
+      });
+    }
+
+    for (const inFlightRow of relatedInFlightItems) {
+      const locked = lockedById.get(inFlightRow.shipmentItemId);
+      if (!locked) {
+        throw new Error(RELEASE_ERRORS.SHIPMENT_ITEM_NOT_FOUND);
+      }
+
+      const nextGoodEmergence = applyGoodEmergenceDelta(
+        assertGoodEmergenceTracked(locked.good_emergence),
+        -inFlightRow.quantity,
+      );
+
+      shipmentPatchByItemId.set(inFlightRow.shipmentItemId, {
+        ...shipmentPatchByItemId.get(inFlightRow.shipmentItemId),
+        good_emergence: nextGoodEmergence,
+      });
+    }
+
+    for (const [shipmentItemId, patch] of shipmentPatchByItemId) {
+      await tx
+        .update(shipment_items)
+        .set({ ...patch, updated_at: new Date() })
+        .where(
+          and(
+            eq(shipment_items.id, shipmentItemId),
+            eq(shipment_items.institution_id, institutionId),
+          ),
+        );
     }
 
     const [deleted] = await tx
