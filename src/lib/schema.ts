@@ -339,6 +339,7 @@ export const shipment_items = pgTable(
     parasite: integer("parasite").notNull().default(0),
     non_emergence: integer("non_emergence").notNull().default(0),
     poor_emergence: integer("poor_emergence").notNull().default(0),
+    good_emergence: integer("good_emergence").default(0),
 
     created_at: timestamp("created_at").defaultNow().notNull(),
     updated_at: timestamp("updated_at").defaultNow().notNull(),
