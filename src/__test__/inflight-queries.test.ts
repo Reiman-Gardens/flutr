@@ -37,7 +37,7 @@ describe("in-flight query helpers", () => {
     jest.clearAllMocks();
   });
 
-  it("builds current in-flight query with release date plus effective lifespan filtering", () => {
+  it("builds current in-flight query with a frozen release-time lifespan instead of the mutable override", () => {
     const builder = createSubqueryBuilder();
     const currentSubquery = {
       butterfly_species_id: sql<number>`"current_in_flight_by_species"."butterfly_species_id"`,
@@ -51,20 +51,19 @@ describe("in-flight query helpers", () => {
 
     expect(result).toBe(currentSubquery);
     expect(builder.innerJoin).toHaveBeenCalledTimes(3);
-    expect(builder.leftJoin).toHaveBeenCalledTimes(1);
+    expect(builder.leftJoin).not.toHaveBeenCalled();
     expect(builder.groupBy).toHaveBeenCalledTimes(1);
     expect(builder.as).toHaveBeenCalledWith("current_in_flight_by_species");
 
     const whereSql = toSql((builder.where.mock.calls as unknown as unknown[][])[0][0]);
-    const overrideJoinSql = toSql((builder.leftJoin.mock.calls as unknown as unknown[][])[0][1]);
 
     expect(whereSql).toContain('"release_events"."release_date"');
-    expect(whereSql).toContain('"butterfly_species_institution"."lifespan_override"');
+    expect(whereSql).toContain('"in_flight"."lifespan_days_at_release"');
     expect(whereSql).toContain('"butterfly_species"."lifespan_days"');
     expect(whereSql).toContain("coalesce(");
     expect(whereSql).toContain("> now()");
     expect(whereSql).toContain('"in_flight"."institution_id"');
-    expect(overrideJoinSql).toContain('"butterfly_species_institution"."institution_id"');
+    expect(whereSql).not.toContain('"butterfly_species_institution"."lifespan_override"');
   });
 
   it("builds historical released query without release-date or lifespan filtering", () => {
@@ -171,19 +170,16 @@ describe("in-flight query helpers", () => {
     const currentWhereSql = toSql(
       (currentBuilder.where.mock.calls as unknown as unknown[][])[0][0],
     );
-    const currentOverrideJoinSql = toSql(
-      (currentBuilder.leftJoin.mock.calls as unknown as unknown[][])[0][1],
-    );
 
     expect(institutionWhereSql).toContain('"institutions"."slug"');
     expect(institutionWhereSql).toContain('"institutions"."stats_active"');
 
     expect(currentWhereSql).toContain('"release_events"."release_date"');
-    expect(currentWhereSql).toContain('"butterfly_species_institution"."lifespan_override"');
+    expect(currentWhereSql).toContain('"in_flight"."lifespan_days_at_release"');
     expect(currentWhereSql).toContain('"butterfly_species"."lifespan_days"');
     expect(currentWhereSql).toContain("> now()");
     expect(currentWhereSql).toContain('"in_flight"."institution_id"');
-    expect(currentOverrideJoinSql).toContain('"butterfly_species_institution"."institution_id"');
+    expect(currentWhereSql).not.toContain('"butterfly_species_institution"."lifespan_override"');
 
     expect(outerBuilder.from).toHaveBeenCalledWith(currentSubquery);
     expect(outerBuilder.innerJoin).toHaveBeenCalledTimes(1);
