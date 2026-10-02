@@ -695,6 +695,26 @@ describe("deleteReleaseEvent — good_emergence dual-write", () => {
     );
   });
 
+  it("deletes a fully backfilled release and rolls good_emergence exactly to zero", async () => {
+    const tx = setupTx();
+
+    mockSequence(tx.select, [
+      [releaseEventRow],
+      [{ shipmentItemId: 101, quantity: 10 }],
+      [], // no loss rows
+      [baseShipmentItemRow({ id: 101, good_emergence: 10 })],
+    ]);
+    const [shipmentChain] = mockSequence(tx.update, [undefined]);
+    const [deleteChain] = mockSequence(tx.delete, [[{ id: RELEASE_EVENT_ID }]]);
+
+    const result = await deleteReleaseEvent(INSTITUTION_ID, RELEASE_EVENT_ID);
+
+    expect(shipmentChain.set).toHaveBeenCalledWith(expect.objectContaining({ good_emergence: 0 }));
+    expect(tx.delete).toHaveBeenCalledTimes(1);
+    expect(deleteChain.where).toHaveBeenCalled();
+    expect(result).toEqual({ deleted: true });
+  });
+
   it("rejects with GOOD_EMERGENCE_UNDERFLOW when the rollback would drive good_emergence below zero", async () => {
     const tx = setupTx();
 
