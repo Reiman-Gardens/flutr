@@ -1221,8 +1221,8 @@
       },
       "policies": {},
       "checkConstraints": {
-        "shipment_items_good_emergence_nonnegative": {
-          "name": "shipment_items_good_emergence_nonnegative",
+        "ck_shipment_items_good_emergence_nonnegative": {
+          "name": "ck_shipment_items_good_emergence_nonnegative",
           "value": "\"shipment_items\".\"good_emergence\" >= 0"
         }
       },

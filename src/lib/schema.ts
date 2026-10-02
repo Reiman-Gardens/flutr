@@ -351,8 +351,8 @@ export const shipment_items = pgTable(
     ),
 
     // Transit quality metrics must be non-negative
-    good_emergence_nonnegative: check(
-      "shipment_items_good_emergence_nonnegative",
+    ck_shipment_items_good_emergence_nonnegative: check(
+      "ck_shipment_items_good_emergence_nonnegative",
       sql`${table.good_emergence} >= 0`,
     ),
 
