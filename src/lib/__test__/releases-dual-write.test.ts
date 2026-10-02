@@ -258,7 +258,7 @@ describe("updateReleaseEventItems — good_emergence dual-write", () => {
   it("add new item during edit: good_emergence incremented for an item with no prior in_flight row", async () => {
     const tx = setupTx();
 
-    mockSequence(tx.select, [
+    const [releaseEventChain] = mockSequence(tx.select, [
       [releaseEventRow],
       [], // no existing in-flight rows at all
       [], // no existing loss rows
@@ -272,6 +272,7 @@ describe("updateReleaseEventItems — good_emergence dual-write", () => {
       items: [{ shipment_item_id: 103, quantity: 7 }],
     });
 
+    expect(releaseEventChain.for).toHaveBeenCalledWith("update");
     expect(shipmentChain.set).toHaveBeenCalledWith(expect.objectContaining({ good_emergence: 7 }));
     expect(insertChain.values).toHaveBeenCalledWith([
       expect.objectContaining({ shipment_item_id: 103, quantity: 7 }),
@@ -442,7 +443,7 @@ describe("deleteReleaseEvent — good_emergence dual-write", () => {
   it("locks the related in_flight rows with FOR UPDATE before computing rollback deltas (concurrency regression guard)", async () => {
     const tx = setupTx();
 
-    const [, relatedInFlightChain] = mockSequence(tx.select, [
+    const [releaseEventChain, relatedInFlightChain] = mockSequence(tx.select, [
       [releaseEventRow],
       [{ shipmentItemId: 101, quantity: 10 }],
       [], // no loss rows
@@ -462,6 +463,10 @@ describe("deleteReleaseEvent — good_emergence dual-write", () => {
     mockSequence(tx.delete, [[{ id: RELEASE_EVENT_ID }]]);
 
     await deleteReleaseEvent(INSTITUTION_ID, RELEASE_EVENT_ID);
+
+    // Serializes deletion with any request that can add a new child row to
+    // this event, so the rollback scan cannot miss a concurrent insert.
+    expect(releaseEventChain.for).toHaveBeenCalledWith("update");
 
     // This select reads the quantities of every in_flight row this event's
     // cascade-delete is about to remove, which the good_emergence rollback
@@ -760,23 +765,37 @@ describe("createInFlightForRelease — good_emergence dual-write", () => {
   it("increments good_emergence by the new row's quantity", async () => {
     const tx = setupTx();
 
-    mockSequence(tx.select, [
+    const [releaseEventChain] = mockSequence(tx.select, [
       [{ id: RELEASE_EVENT_ID, shipmentId: SHIPMENT_ID }],
       [baseShipmentItemRow({ id: 101, shipment_id: SHIPMENT_ID, good_emergence: 10 })],
       [], // no existing in_flight row for this release/item
       [{ quantity: 0 }], // sumReleasedForItem
     ]);
-    mockSequence(tx.insert, [
+    const [inFlightChain] = mockSequence(tx.insert, [
       [{ id: 1, releaseEventId: RELEASE_EVENT_ID, shipmentItemId: 101, quantity: 5 }],
     ]);
     const [shipmentChain] = mockSequence(tx.update, [undefined]);
 
-    await createInFlightForRelease(INSTITUTION_ID, RELEASE_EVENT_ID, {
+    const result = await createInFlightForRelease(INSTITUTION_ID, RELEASE_EVENT_ID, {
       shipment_item_id: 101,
       quantity: 5,
     });
 
+    expect(releaseEventChain.for).toHaveBeenCalledWith("update");
+    expect(inFlightChain.values).toHaveBeenCalledWith({
+      institution_id: INSTITUTION_ID,
+      release_event_id: RELEASE_EVENT_ID,
+      shipment_item_id: 101,
+      quantity: 5,
+    });
     expect(shipmentChain.set).toHaveBeenCalledWith(expect.objectContaining({ good_emergence: 15 }));
+    expect(result).toEqual(
+      expect.objectContaining({
+        releaseEventId: RELEASE_EVENT_ID,
+        shipmentItemId: 101,
+        quantity: 5,
+      }),
+    );
   });
 
   it("rejects with GOOD_EMERGENCE_UNTRACKED before inserting, when good_emergence is NULL", async () => {
