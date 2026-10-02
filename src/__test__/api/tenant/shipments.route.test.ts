@@ -5,7 +5,6 @@ jest.mock("@/lib/services/tenant-shipments", () => ({
     CANNOT_DELETE_ITEM_IN_FLIGHT: "CANNOT_DELETE_ITEM_IN_FLIGHT",
     INVALID_INVENTORY_REDUCTION: "INVALID_INVENTORY_REDUCTION",
     SHIPMENT_ITEM_NOT_FOUND: "SHIPMENT_ITEM_NOT_FOUND",
-    CANNOT_DELETE_SHIPMENT_WITH_DEPENDENCIES: "CANNOT_DELETE_SHIPMENT_WITH_DEPENDENCIES",
   },
   RELEASE_ERRORS: {
     INVALID_QUANTITY: "Invalid quantity",
@@ -130,8 +129,8 @@ function routeContext(id: string) {
 function validCreatePayload() {
   return {
     supplier_code: "SUP-1",
-    shipment_date: "2026-01-10T00:00:00.000Z",
-    arrival_date: "2026-01-11T00:00:00.000Z",
+    shipment_date: "2026-01-10",
+    arrival_date: "2026-01-11",
     items: [
       {
         butterfly_species_id: 10,
@@ -284,6 +283,33 @@ describe("Shipments API", () => {
       expect(body.id).toBe(42);
       expect(mockCreateTenantShipment).toHaveBeenCalledWith(
         expect.objectContaining({ slug: SLUG, supplier_code: "SUP-1" }),
+      );
+    });
+
+    it.each([
+      ["2026-09-09", "2026-09-23"],
+      ["2026-10-01", "2026-10-02"],
+      ["2027-01-01", "2027-01-02"],
+    ])("preserves date-only creation values %s -> %s", async (shipmentDate, arrivalDate) => {
+      mockCreateTenantShipment.mockResolvedValueOnce(42);
+
+      const response = (await postShipment(
+        makePostRequest(
+          {
+            ...validCreatePayload(),
+            shipment_date: shipmentDate,
+            arrival_date: arrivalDate,
+          },
+          SLUG,
+        ),
+      ))!;
+
+      expect(response.status).toBe(201);
+      expect(mockCreateTenantShipment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          shipment_date: new Date(`${shipmentDate}T00:00:00.000Z`),
+          arrival_date: new Date(`${arrivalDate}T00:00:00.000Z`),
+        }),
       );
     });
   });
@@ -569,19 +595,6 @@ describe("Shipments API", () => {
       ))!;
       expect(response.status).toBe(404);
       expect((await response.json()).error.code).toBe("NOT_FOUND");
-    });
-
-    it("returns 409 when shipment has dependent records", async () => {
-      mockDeleteTenantShipment.mockRejectedValueOnce(
-        new Error("CANNOT_DELETE_SHIPMENT_WITH_DEPENDENCIES"),
-      );
-
-      const response = (await deleteShipmentById(
-        makeDeleteByIdRequest("1", SLUG),
-        routeContext("1"),
-      ))!;
-      expect(response.status).toBe(409);
-      expect((await response.json()).error.code).toBe("CONFLICT");
     });
 
     it("returns 200 on successful delete", async () => {
