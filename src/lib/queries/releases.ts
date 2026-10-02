@@ -510,7 +510,8 @@ export async function updateReleaseEventItems(
           eq(release_events.institution_id, institutionId),
         ),
       )
-      .limit(1);
+      .limit(1)
+      .for("update");
 
     if (!releaseEvent) {
       throw new Error(RELEASE_ERRORS.RELEASE_EVENT_NOT_FOUND);
@@ -1155,7 +1156,8 @@ export async function createInFlightForRelease(
           eq(release_events.institution_id, institutionId),
         ),
       )
-      .limit(1);
+      .limit(1)
+      .for("update");
 
     if (!releaseEvent) {
       throw new Error(RELEASE_ERRORS.RELEASE_EVENT_NOT_FOUND);
@@ -1440,7 +1442,8 @@ export async function deleteReleaseEvent(institutionId: number, releaseEventId: 
           eq(release_events.institution_id, institutionId),
         ),
       )
-      .limit(1);
+      .limit(1)
+      .for("update");
 
     if (!existing) {
       throw new Error(RELEASE_ERRORS.RELEASE_EVENT_NOT_FOUND);
