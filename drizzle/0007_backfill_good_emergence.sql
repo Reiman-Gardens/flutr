@@ -9,4 +9,4 @@ SET "good_emergence" = COALESCE(
         0
     );
 ALTER TABLE "shipment_items"
-ADD CONSTRAINT "shipment_items_good_emergence_nonnegative" CHECK ("shipment_items"."good_emergence" >= 0);
+ADD CONSTRAINT "ck_shipment_items_good_emergence_nonnegative" CHECK ("shipment_items"."good_emergence" >= 0);
