@@ -15,6 +15,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "flutr-org-images.nyc3.digitaloceanspaces.com",
       },
+      {
+        protocol: "https",
+        hostname: "res.cloudinary.com",
+      },
       // Butterfly imagery, via the Wingspan microservice.
       {
         protocol: "https",
