@@ -350,6 +350,12 @@ export const shipment_items = pgTable(
       table.butterfly_species_id,
     ),
 
+    // Transit quality metrics must be non-negative
+    good_emergence_nonnegative: check(
+      "shipment_items_good_emergence_nonnegative",
+      sql`${table.good_emergence} >= 0`,
+    ),
+
     // Lookup shipment items by institution + species (gallery/home aggregation)
     idx_shipment_items_institution_species: index("idx_shipment_items_institution_species").on(
       table.institution_id,
