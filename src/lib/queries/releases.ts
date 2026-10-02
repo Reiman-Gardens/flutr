@@ -116,10 +116,10 @@ export function computeDeleteLossRollbackPatch(existing: LossValues, eventLoss: 
 }
 
 /**
- * Narrows a shipment item's `good_emergence` to `number`, rejecting rows
- * where it is `NULL` (historically untracked). `NULL` must never be read as
- * `0` — a release mutation that needs to write a delta to an untracked row
- * is rejected outright rather than silently initializing it.
+ * Rejects `NULL` `good_emergence` values. `NULL` is reserved for historical
+ * rows whose Released total was not tracked; current operational rows are
+ * numeric. Future historical-import work will introduce this state
+ * explicitly. `NULL` must never be treated as `0`.
  */
 export function assertGoodEmergenceTracked(current: number | null): number {
   if (current === null) {
