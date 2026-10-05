@@ -10,8 +10,19 @@ jest.mock("@/lib/queries/species", () => ({
   ensureSpeciesLinksForInstitution: jest.fn(),
 }));
 
-import { shipments, shipment_items } from "@/lib/schema";
-import { createShipment, SHIPMENT_ERRORS, updateShipment } from "@/lib/queries/shipments";
+import {
+  in_flight,
+  release_event_losses,
+  release_events,
+  shipments,
+  shipment_items,
+} from "@/lib/schema";
+import {
+  createShipment,
+  deleteShipment,
+  SHIPMENT_ERRORS,
+  updateShipment,
+} from "@/lib/queries/shipments";
 import { ensureSpeciesLinksForInstitution } from "@/lib/queries/species";
 import { createThenableQuery } from "@/__test__/api/_utils/mockDb";
 
@@ -48,6 +59,24 @@ function createLockableQuery<T>(rows: T[]) {
   };
   query.for = jest.fn(() => query);
   return query;
+}
+
+function createDeleteStub() {
+  const deleteOrder: unknown[] = [];
+
+  const deleteMock = jest.fn((table) => {
+    deleteOrder.push(table);
+    type DeleteBuilder = {
+      where: jest.Mock<DeleteBuilder, []>;
+      returning: jest.Mock<Promise<Array<{ id: number }>>, []>;
+    };
+    const builder = {} as DeleteBuilder;
+    builder.where = jest.fn(() => builder);
+    builder.returning = jest.fn().mockResolvedValue(table === shipments ? [{ id: 55 }] : []);
+    return builder;
+  });
+
+  return { deleteMock, deleteOrder };
 }
 
 describe("shipment queries", () => {
@@ -181,5 +210,44 @@ describe("shipment queries", () => {
         ],
       }),
     ).rejects.toThrow(SHIPMENT_ERRORS.INVALID_INVENTORY_REDUCTION);
+  });
+
+  it("does not delete anything when the shipment is not in the tenant", async () => {
+    const deleteStub = createDeleteStub();
+    const tx = {
+      select: jest.fn().mockImplementationOnce(() => createThenableQuery([])),
+      delete: deleteStub.deleteMock,
+    };
+
+    mockTransaction.mockImplementationOnce(async (callback) => callback(tx));
+
+    await expect(deleteShipment(77, 55)).resolves.toBe(false);
+
+    expect(mockTransaction).toHaveBeenCalledTimes(1);
+    expect(deleteStub.deleteMock).not.toHaveBeenCalled();
+  });
+
+  it("deletes shipment-owned dependent rows before deleting the shipment", async () => {
+    const deleteStub = createDeleteStub();
+    const tx = {
+      select: jest.fn(),
+      delete: deleteStub.deleteMock,
+    };
+
+    tx.select
+      .mockImplementationOnce(() => createThenableQuery([{ id: 55 }]))
+      .mockImplementationOnce(() => createThenableQuery([{ id: 7 }, { id: 8 }]));
+
+    mockTransaction.mockImplementationOnce(async (callback) => callback(tx));
+
+    await expect(deleteShipment(77, 55)).resolves.toBe(true);
+
+    expect(deleteStub.deleteOrder).toEqual([
+      in_flight,
+      release_event_losses,
+      release_events,
+      shipment_items,
+      shipments,
+    ]);
   });
 });
