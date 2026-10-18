@@ -29,6 +29,7 @@ export function NewsSection({ title, content, image_url, created_at }: NewsSecti
               fill
               sizes="(min-width: 1024px) 66vw, (min-width: 768px) 80vw, 100vw"
               className="object-cover"
+              unoptimized
             />
           </div>
         )}
