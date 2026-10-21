@@ -1,8 +1,10 @@
 const mockTransaction = jest.fn();
+const mockSelect = jest.fn();
 
 jest.mock("@/lib/db", () => ({
   db: {
     transaction: mockTransaction,
+    select: mockSelect,
   },
 }));
 
@@ -20,11 +22,14 @@ import {
 import {
   createShipment,
   deleteShipment,
+  listShipmentExportRows,
   SHIPMENT_ERRORS,
   updateShipment,
 } from "@/lib/queries/shipments";
 import { ensureSpeciesLinksForInstitution } from "@/lib/queries/species";
 import { createThenableQuery } from "@/__test__/api/_utils/mockDb";
+import { type SQL } from "drizzle-orm";
+import { PgDialect } from "drizzle-orm/pg-core";
 
 const mockEnsureSpeciesLinksForInstitution = ensureSpeciesLinksForInstitution as jest.Mock;
 
@@ -82,6 +87,25 @@ function createDeleteStub() {
 describe("shipment queries", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it("formats both exported shipment dates as date-only SQL strings", async () => {
+    mockSelect.mockReturnValueOnce(createThenableQuery([]));
+
+    await listShipmentExportRows(77);
+
+    const selection = mockSelect.mock.calls[0][0] as {
+      shipmentDate: SQL.Aliased<string>;
+      arrivalDate: SQL.Aliased<string>;
+    };
+    const dialect = new PgDialect();
+
+    expect(dialect.sqlToQuery(selection.shipmentDate.sql).sql).toBe(
+      `to_char("shipments"."shipment_date", 'YYYY-MM-DD')`,
+    );
+    expect(dialect.sqlToQuery(selection.arrivalDate.sql).sql).toBe(
+      `to_char("shipments"."arrival_date", 'YYYY-MM-DD')`,
+    );
   });
 
   it("ensures institution-species links before inserting manual shipment items", async () => {

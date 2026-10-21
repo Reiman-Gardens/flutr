@@ -1,4 +1,6 @@
 const DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+const DATE_ONLY_OR_ISO_TIMESTAMP_PATTERN =
+  /^(\d{4}-\d{2}-\d{2})(?:T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d))?$/;
 
 function parseDateOnlyParts(value: string) {
   const match = DATE_ONLY_PATTERN.exec(value);
@@ -32,7 +34,11 @@ export function dateOnlyToUtcDate(value: string): Date {
 }
 
 export function extractDateOnly(value: string): string | null {
-  const dateOnly = value.slice(0, 10);
+  const match = DATE_ONLY_OR_ISO_TIMESTAMP_PATTERN.exec(value);
+  // A regex end anchor also matches before a final newline; require the entire input.
+  if (!match || match[0] !== value) return null;
+
+  const dateOnly = match[1];
   return isDateOnlyString(dateOnly) ? dateOnly : null;
 }
 

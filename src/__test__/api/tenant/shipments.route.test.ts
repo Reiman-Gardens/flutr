@@ -249,6 +249,19 @@ describe("Shipments API", () => {
       expect((await response.json()).error.code).toBe("INVALID_REQUEST");
     });
 
+    it.each([
+      ["shipment_date", "2026-09-09-garbage"],
+      ["arrival_date", "2026-09-09T25:00:00Z"],
+    ])("rejects malformed %s value %s before creating a shipment", async (field, value) => {
+      const response = (await postShipment(
+        makePostRequest({ ...validCreatePayload(), [field]: value }, SLUG),
+      ))!;
+
+      expect(response.status).toBe(400);
+      expect((await response.json()).error.code).toBe("INVALID_REQUEST");
+      expect(mockCreateTenantShipment).not.toHaveBeenCalled();
+    });
+
     it("returns 401 for unauthenticated requests", async () => {
       mockCreateTenantShipment.mockRejectedValueOnce(new Error("UNAUTHORIZED"));
 
@@ -407,6 +420,20 @@ describe("Shipments API", () => {
       ))!;
       expect(response.status).toBe(400);
       expect((await response.json()).error.code).toBe("INVALID_REQUEST");
+    });
+
+    it.each([
+      ["shipment_date", "2026-09-09-garbage"],
+      ["arrival_date", "2026-09-09T25:00:00Z"],
+    ])("rejects malformed %s value %s before updating a shipment", async (field, value) => {
+      const response = (await patchShipmentById(
+        makePatchRequest("7", { [field]: value }, SLUG),
+        routeContext("7"),
+      ))!;
+
+      expect(response.status).toBe(400);
+      expect((await response.json()).error.code).toBe("INVALID_REQUEST");
+      expect(mockUpdateTenantShipment).not.toHaveBeenCalled();
     });
 
     it("returns 401 for unauthenticated requests", async () => {

@@ -391,8 +391,10 @@ export async function listShipmentExportRows(
   return db
     .select({
       supplierCode: shipments.supplier_code,
-      shipmentDate: shipments.shipment_date,
-      arrivalDate: shipments.arrival_date,
+      shipmentDate: sql<string>`to_char(${shipments.shipment_date}, 'YYYY-MM-DD')`.as(
+        "shipment_date",
+      ),
+      arrivalDate: sql<string>`to_char(${shipments.arrival_date}, 'YYYY-MM-DD')`.as("arrival_date"),
       scientificName: butterfly_species.scientific_name,
       commonName: butterfly_species.common_name,
       numberReceived: shipment_items.number_received,

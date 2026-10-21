@@ -2,12 +2,14 @@
 
 import { type MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { notFound, useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { ArrowLeft, Pencil, Plus, Trash2 } from "lucide-react";
 
 import { Link } from "@/components/ui/link";
 import { formatDateOnlyForDisplay } from "@/lib/date-only";
 import { logger } from "@/lib/logger";
 import { ROUTES } from "@/lib/routes";
+import { hasPermission } from "@/lib/permissions";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -75,6 +77,8 @@ const METRIC_TO_API: Record<MetricKey, string> = {
 export default function ShipmentDetailPage() {
   const params = useParams<{ institution: string; id: string }>();
   const router = useRouter();
+  const { data: session } = useSession();
+  const canDelete = hasPermission(session?.user?.role ?? "", "DELETE_SHIPMENT");
   const slug = params?.institution ?? "";
   const shipmentId = Number(params?.id);
 
@@ -377,7 +381,7 @@ export default function ShipmentDetailPage() {
 
   const confirmDelete = async (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
-    if (deleting) return;
+    if (!canDelete || deleting) return;
     setDeleting(true);
     setErrorMessage(null);
     try {
@@ -387,12 +391,14 @@ export default function ShipmentDetailPage() {
       });
       if (!response.ok) {
         const result = await response.json().catch(() => null);
+        setDeleteOpen(false);
         setErrorMessage(result?.error?.message ?? "Unable to delete shipment.");
         return;
       }
       setDeleteOpen(false);
       router.push(ROUTES.tenant.shipments(slug));
     } catch {
+      setDeleteOpen(false);
       setErrorMessage("Unable to delete shipment.");
     } finally {
       setDeleting(false);
@@ -454,7 +460,7 @@ export default function ShipmentDetailPage() {
               Edit items
             </Button>
           )}
-          {!editing && (
+          {!editing && canDelete && (
             <Button variant="destructive" onClick={() => setDeleteOpen(true)}>
               <Trash2 className="size-4" />
               Delete
@@ -594,7 +600,7 @@ export default function ShipmentDetailPage() {
       </AlertDialog>
 
       <AlertDialog
-        open={deleteOpen}
+        open={canDelete && deleteOpen}
         onOpenChange={(open) => {
           if (!deleting) setDeleteOpen(open);
         }}
@@ -602,19 +608,23 @@ export default function ShipmentDetailPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete shipment?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this shipment? This will permanently delete the
-              shipment and all information associated with it. This action cannot be undone.
+            <AlertDialogDescription asChild>
+              <div className="space-y-1.5">
+                <p>
+                  Are you sure you want to delete this shipment? This will permanently delete the
+                  shipment and all information associated with it. This action cannot be undone.
+                </p>
+                <div className="bg-muted text-muted-foreground rounded-md p-3 text-sm">
+                  <div className="text-foreground font-medium">
+                    {data.shipment.supplierCode} shipment #{data.shipment.id}
+                  </div>
+                  <div>
+                    Shipped {formatDateOnlyForDisplay(data.shipment.shipmentDate)} - Arrived{" "}
+                    {formatDateOnlyForDisplay(data.shipment.arrivalDate)}
+                  </div>
+                </div>
+              </div>
             </AlertDialogDescription>
-            <div className="bg-muted text-muted-foreground rounded-md p-3 text-sm">
-              <div className="text-foreground font-medium">
-                {data.shipment.supplierCode} shipment #{data.shipment.id}
-              </div>
-              <div>
-                Shipped {formatDateOnlyForDisplay(data.shipment.shipmentDate)} - Arrived{" "}
-                {formatDateOnlyForDisplay(data.shipment.arrivalDate)}
-              </div>
-            </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>

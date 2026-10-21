@@ -151,6 +151,7 @@ Queries must never receive `slug`.
 - Sanitization (`sanitizeText`, `sanitizedNonEmpty`) happens in the validation layer only — never in routes or services.
 - Tenant context (`x-tenant-slug`) is **not** a validated body/query field — it is a request header read directly by the route.
 - `institutionId` must not appear in any body or query schema for tenant routes.
+- Shipment dates use `@/lib/date-only` to accept valid `YYYY-MM-DD` values or full ISO timestamps with seconds and a `Z`/`±HH:MM` timezone (optional fractional seconds). Malformed suffixes are rejected; the written calendar date is preserved. Shipment read/export queries return `YYYY-MM-DD` strings using SQL `to_char`.
 
 ---
 
@@ -284,6 +285,7 @@ Shared records such as `butterfly_species`, users, institutions, and suppliers a
 
 ### Behavior
 
+- Single-shipment deletion requires `DELETE_SHIPMENT` through `canDeleteShipment`: ADMIN and SUPERUSER only. EMPLOYEE receives `403 FORBIDDEN`; tenant resolution still enforces institution access.
 - The delete runs inside a transaction and scopes every operation by `institution_id`.
 - Shipment-owned children are deleted before the shipment header to satisfy foreign-key constraints.
 - A shipment with or without items/releases can be deleted normally (`200 OK`).
