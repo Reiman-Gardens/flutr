@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 import { Link } from "@/components/ui/link";
-import { MoreHorizontal, Trash2 } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 
 import { ROUTES } from "@/lib/routes";
 import { formatDateOnlyForDisplay } from "@/lib/date-only";
@@ -281,7 +281,7 @@ export default function ShipmentsListPage() {
                                     className="text-destructive focus:text-destructive"
                                     onSelect={() => setDeleteTargetId(shipment.id)}
                                   >
-                                    <Trash2 className="size-4" />
+                                    <span aria-hidden="true">🗑️</span>
                                     Delete shipment
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
@@ -359,6 +359,7 @@ export default function ShipmentsListPage() {
               disabled={busyId !== null}
               onClick={confirmDelete}
             >
+              <span aria-hidden="true">🗑️</span>
               {busyId !== null ? "Deleting..." : "Delete shipment"}
             </AlertDialogAction>
           </AlertDialogFooter>
