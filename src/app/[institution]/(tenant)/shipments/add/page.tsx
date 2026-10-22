@@ -73,14 +73,6 @@ const METRIC_FIELDS: { key: LossKey; label: string }[] = [
   { key: "poor_emergence", label: "Poor-emerg" },
 ];
 
-/** Convert YYYY-MM-DD into an ISO midnight UTC timestamp the API will coerce. */
-function dateOnlyToIso(value: string): string {
-  if (!value) return "";
-  const [y, m, d] = value.split("-").map((p) => Number.parseInt(p, 10));
-  if (!y || !m || !d) return "";
-  return new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0)).toISOString();
-}
-
 /** Today's date in YYYY-MM-DD using the user's local timezone. */
 function todayYmd(): string {
   const now = new Date();
@@ -328,8 +320,8 @@ export default function AddShipmentPage() {
         headers: { "Content-Type": "application/json", ...tenantHeaders },
         body: JSON.stringify({
           supplier_code: supplierCode,
-          shipment_date: dateOnlyToIso(shipmentDate),
-          arrival_date: dateOnlyToIso(arrivalDate),
+          shipment_date: shipmentDate,
+          arrival_date: arrivalDate,
           items: items.map(
             ({
               butterfly_species_id,
