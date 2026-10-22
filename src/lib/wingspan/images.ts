@@ -38,7 +38,8 @@ export interface WingspanSpecies {
 export type WingspanCatalog = Map<string, WingspanSpecies>;
 
 /**
- * - `thumb` — grid cards and 56–160px avatars
+ * - `thumb` — grid cards and 56–160px avatars; rendered `unoptimized`, the 300px
+ *   tier is already the right size and each variant is a billed transformation
  * - `card` — gallery tiles and mid-size feature panels
  * - `full` — hero banners and the lightbox
  */

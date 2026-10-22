@@ -1,0 +1,1 @@
+ALTER TABLE "shipment_items" ADD COLUMN "good_emergence" integer DEFAULT 0;

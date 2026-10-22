@@ -476,7 +476,7 @@ export default function AddShipmentPage() {
                               alt=""
                               width={128}
                               height={128}
-                              quality={90}
+                              unoptimized
                               className="size-full object-cover"
                             />
                           ) : (
@@ -599,10 +599,10 @@ function MetricInput({ label, value, ariaLabel, onChange, invalid }: MetricInput
           size="icon"
           variant="outline"
           className="size-8"
-          aria-label={`Decrease ${ariaLabel}`}
-          onClick={() => onChange(clamp(value - 1))}
+          aria-label={`Increase ${ariaLabel}`}
+          onClick={() => onChange(clamp(value + 1))}
         >
-          <Minus className="size-3" />
+          <Plus className="size-3" />
         </Button>
         <Input
           type="number"
@@ -620,10 +620,10 @@ function MetricInput({ label, value, ariaLabel, onChange, invalid }: MetricInput
           size="icon"
           variant="outline"
           className="size-8"
-          aria-label={`Increase ${ariaLabel}`}
-          onClick={() => onChange(clamp(value + 1))}
+          aria-label={`Decrease ${ariaLabel}`}
+          onClick={() => onChange(clamp(value - 1))}
         >
-          <Plus className="size-3" />
+          <Minus className="size-3" />
         </Button>
       </div>
     </div>

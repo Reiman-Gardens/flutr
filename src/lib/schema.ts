@@ -339,6 +339,7 @@ export const shipment_items = pgTable(
     parasite: integer("parasite").notNull().default(0),
     non_emergence: integer("non_emergence").notNull().default(0),
     poor_emergence: integer("poor_emergence").notNull().default(0),
+    good_emergence: integer("good_emergence").default(0),
 
     created_at: timestamp("created_at").defaultNow().notNull(),
     updated_at: timestamp("updated_at").defaultNow().notNull(),
@@ -347,6 +348,12 @@ export const shipment_items = pgTable(
     unique_shipment_species: uniqueIndex("unique_shipment_species").on(
       table.shipment_id,
       table.butterfly_species_id,
+    ),
+
+    // Transit quality metrics must be non-negative
+    ck_shipment_items_good_emergence_nonnegative: check(
+      "ck_shipment_items_good_emergence_nonnegative",
+      sql`${table.good_emergence} >= 0`,
     ),
 
     // Lookup shipment items by institution + species (gallery/home aggregation)

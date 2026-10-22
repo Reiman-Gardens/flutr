@@ -13,6 +13,10 @@ jest.mock("@/lib/services/tenant-shipments", () => ({
       "Release must include at least one in-flight or loss quantity; delete release instead",
     LOSS_TOTAL_UNDERFLOW:
       "Release edit would reduce shipment loss totals below zero; adjust shipment totals first",
+    GOOD_EMERGENCE_UNTRACKED:
+      "This shipment item's Released total is historically untracked (NULL) and cannot be modified by a release operation",
+    GOOD_EMERGENCE_UNDERFLOW:
+      "Release would reduce good emergence below zero; adjust release quantities or shipment totals first",
   },
   createTenantRelease: jest.fn(),
 }));
@@ -32,6 +36,10 @@ jest.mock("@/lib/services/tenant-releases", () => ({
       "Release must include at least one in-flight or loss quantity; delete release instead",
     LOSS_TOTAL_UNDERFLOW:
       "Release edit would reduce shipment loss totals below zero; adjust shipment totals first",
+    GOOD_EMERGENCE_UNTRACKED:
+      "This shipment item's Released total is historically untracked (NULL) and cannot be modified by a release operation",
+    GOOD_EMERGENCE_UNDERFLOW:
+      "Release would reduce good emergence below zero; adjust release quantities or shipment totals first",
   },
   getTenantReleases: jest.fn(),
   getTenantReleaseById: jest.fn(),
@@ -381,6 +389,19 @@ describe("Tenant Releases API", () => {
       expect((await response.json()).error.code).toBe("CONFLICT");
     });
 
+    it("returns 409 when a released item's good_emergence is untracked (NULL)", async () => {
+      mockCreateTenantRelease.mockRejectedValueOnce(
+        new Error(SHIPMENT_RELEASE_ERRORS.GOOD_EMERGENCE_UNTRACKED),
+      );
+
+      const response = (await postReleaseFromShipment(
+        makePostShipmentReleaseRequest("55", validCreateReleasePayload(), SLUG),
+        shipmentRouteContext("55"),
+      ))!;
+      expect(response.status).toBe(409);
+      expect((await response.json()).error.code).toBe("CONFLICT");
+    });
+
     it("returns 201 on successful release creation", async () => {
       mockCreateTenantRelease.mockResolvedValueOnce({
         event: {
@@ -547,6 +568,19 @@ describe("Tenant Releases API", () => {
     it("returns 409 when in-flight row already exists", async () => {
       mockCreateTenantReleaseInFlight.mockRejectedValueOnce(
         new Error(TENANT_RELEASE_ERRORS.IN_FLIGHT_ALREADY_EXISTS),
+      );
+
+      const response = (await postInFlightForRelease(
+        makePostReleaseInFlightRequest("500", validInFlightPayload(), SLUG),
+        releaseRouteContext("500"),
+      ))!;
+      expect(response.status).toBe(409);
+      expect((await response.json()).error.code).toBe("CONFLICT");
+    });
+
+    it("returns 409 when the target item's good_emergence is untracked (NULL)", async () => {
+      mockCreateTenantReleaseInFlight.mockRejectedValueOnce(
+        new Error(TENANT_RELEASE_ERRORS.GOOD_EMERGENCE_UNTRACKED),
       );
 
       const response = (await postInFlightForRelease(
@@ -834,6 +868,32 @@ describe("Tenant Releases API", () => {
       expect((await response.json()).error.code).toBe("CONFLICT");
     });
 
+    it("returns 409 when a touched item's good_emergence is untracked (NULL)", async () => {
+      mockUpdateTenantRelease.mockRejectedValueOnce(
+        new Error(TENANT_RELEASE_ERRORS.GOOD_EMERGENCE_UNTRACKED),
+      );
+
+      const response = (await patchReleaseById(
+        makeReleasePatchRequest("500", validReleasePatchPayload(), SLUG),
+        releaseRouteContext("500"),
+      ))!;
+      expect(response.status).toBe(409);
+      expect((await response.json()).error.code).toBe("CONFLICT");
+    });
+
+    it("returns 409 when the edit would drive good_emergence below zero", async () => {
+      mockUpdateTenantRelease.mockRejectedValueOnce(
+        new Error(TENANT_RELEASE_ERRORS.GOOD_EMERGENCE_UNDERFLOW),
+      );
+
+      const response = (await patchReleaseById(
+        makeReleasePatchRequest("500", validReleasePatchPayload(), SLUG),
+        releaseRouteContext("500"),
+      ))!;
+      expect(response.status).toBe(409);
+      expect((await response.json()).error.code).toBe("CONFLICT");
+    });
+
     it("returns 200 on successful update", async () => {
       mockUpdateTenantRelease.mockResolvedValueOnce({ updated: true });
 
@@ -917,6 +977,32 @@ describe("Tenant Releases API", () => {
     it("returns 409 when delete rollback would underflow shipment losses", async () => {
       mockDeleteTenantRelease.mockRejectedValueOnce(
         new Error(TENANT_RELEASE_ERRORS.LOSS_TOTAL_UNDERFLOW),
+      );
+
+      const response = (await deleteReleaseById(
+        makeReleaseDetailRequest("500", "DELETE", SLUG),
+        releaseRouteContext("500"),
+      ))!;
+      expect(response.status).toBe(409);
+      expect((await response.json()).error.code).toBe("CONFLICT");
+    });
+
+    it("returns 409 when a touched item's good_emergence is untracked (NULL)", async () => {
+      mockDeleteTenantRelease.mockRejectedValueOnce(
+        new Error(TENANT_RELEASE_ERRORS.GOOD_EMERGENCE_UNTRACKED),
+      );
+
+      const response = (await deleteReleaseById(
+        makeReleaseDetailRequest("500", "DELETE", SLUG),
+        releaseRouteContext("500"),
+      ))!;
+      expect(response.status).toBe(409);
+      expect((await response.json()).error.code).toBe("CONFLICT");
+    });
+
+    it("returns 409 when the delete rollback would drive good_emergence below zero", async () => {
+      mockDeleteTenantRelease.mockRejectedValueOnce(
+        new Error(TENANT_RELEASE_ERRORS.GOOD_EMERGENCE_UNDERFLOW),
       );
 
       const response = (await deleteReleaseById(

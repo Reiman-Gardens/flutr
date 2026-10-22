@@ -35,6 +35,7 @@ function HighlightRow({ slug, species, label, description, icon: Icon }: Highlig
               alt=""
               fill
               sizes="56px"
+              unoptimized
               className="object-cover"
             />
           ) : (

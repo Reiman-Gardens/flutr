@@ -41,6 +41,8 @@ export function FeaturedButterfly({
               alt={`${common_name} (${scientific_name})`}
               fill
               sizes="(min-width: 1024px) 40%, 100vw"
+              // ponytail: temporary — optimizer off while Vercel transformations are capped
+              unoptimized
               className="object-cover"
             />
             <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/70 to-transparent p-4">

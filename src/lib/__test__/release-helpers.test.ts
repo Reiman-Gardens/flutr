@@ -1,4 +1,6 @@
 import {
+  assertGoodEmergenceTracked,
+  applyGoodEmergenceDelta,
   calculateRemaining,
   computeCreateLossDelta,
   computeDeleteLossRollbackPatch,
@@ -15,6 +17,7 @@ const baseItem = {
   parasite: 0,
   non_emergence: 0,
   poor_emergence: 0,
+  good_emergence: 0,
 };
 
 describe("calculateRemaining", () => {
@@ -191,5 +194,54 @@ describe("computeDeleteLossRollbackPatch", () => {
         poor_emergence: 0,
       }),
     ).toThrow(RELEASE_ERRORS.LOSS_TOTAL_UNDERFLOW);
+  });
+});
+
+describe("assertGoodEmergenceTracked", () => {
+  it("returns the value unchanged when numeric", () => {
+    expect(assertGoodEmergenceTracked(5)).toBe(5);
+  });
+
+  it("treats an explicit zero as a tracked, valid value", () => {
+    expect(assertGoodEmergenceTracked(0)).toBe(0);
+  });
+
+  it("throws GOOD_EMERGENCE_UNTRACKED when the value is null", () => {
+    expect(() => assertGoodEmergenceTracked(null)).toThrow(RELEASE_ERRORS.GOOD_EMERGENCE_UNTRACKED);
+  });
+});
+
+describe("applyGoodEmergenceDelta", () => {
+  it("adds a positive delta", () => {
+    expect(applyGoodEmergenceDelta(5, 3)).toBe(8);
+  });
+
+  it("subtracts a negative delta down to exactly zero", () => {
+    expect(applyGoodEmergenceDelta(5, -5)).toBe(0);
+  });
+
+  it("is a no-op for a zero delta", () => {
+    expect(applyGoodEmergenceDelta(0, 0)).toBe(0);
+  });
+
+  it("throws GOOD_EMERGENCE_UNDERFLOW when the result would go negative", () => {
+    expect(() => applyGoodEmergenceDelta(5, -6)).toThrow(RELEASE_ERRORS.GOOD_EMERGENCE_UNDERFLOW);
+  });
+});
+
+describe("assertGoodEmergenceTracked + applyGoodEmergenceDelta composed (call order every call site uses)", () => {
+  it("rejects with GOOD_EMERGENCE_UNTRACKED, never GOOD_EMERGENCE_UNDERFLOW, when current is null", () => {
+    // Even though the delta below would also underflow if current were
+    // treated as 0, the NULL check must run first and must be the error
+    // that surfaces — arithmetic on an untracked row is never attempted.
+    expect(() => applyGoodEmergenceDelta(assertGoodEmergenceTracked(null), -1)).toThrow(
+      RELEASE_ERRORS.GOOD_EMERGENCE_UNTRACKED,
+    );
+  });
+
+  it("proceeds to the underflow check once the value is confirmed numeric", () => {
+    expect(() => applyGoodEmergenceDelta(assertGoodEmergenceTracked(3), -5)).toThrow(
+      RELEASE_ERRORS.GOOD_EMERGENCE_UNDERFLOW,
+    );
   });
 });

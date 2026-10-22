@@ -74,7 +74,7 @@ PostgreSQL 17 managed via Drizzle ORM:
 - **Supplier** — Global butterfly vendor/supplier code used by shipments and imports
 - **Shipment** — A butterfly shipment record with quality/damage tracking metrics
 - **Release Event** — A release workflow event linked to a shipment (`release_date`, `released_by`)
-- **In Flight** — Event-level released quantities per shipment item (good-emergence release rows)
+- **In Flight** — Event-level released quantities per shipment item, recorded per release event (distinct from `shipment_items.good_emergence`, the separate cumulative Released total maintained by release operations)
 - **Release Event Losses** — Event-level loss attribution rows captured during create/edit release workflows
 
 ### Key Relationships
