@@ -3,7 +3,7 @@
 import { type MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { notFound, useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { ArrowLeft, Pencil, Plus } from "lucide-react";
+import { ArrowLeft, Pencil, Plus, Trash2 } from "lucide-react";
 
 import { Link } from "@/components/ui/link";
 import { formatDateOnlyForDisplay } from "@/lib/date-only";
@@ -462,7 +462,7 @@ export default function ShipmentDetailPage() {
           )}
           {!editing && canDelete && (
             <Button variant="destructive" onClick={() => setDeleteOpen(true)}>
-              <span aria-hidden="true">🗑️</span>
+              <Trash2 aria-hidden="true" className="size-4" />
               Delete
             </Button>
           )}
@@ -629,7 +629,7 @@ export default function ShipmentDetailPage() {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction variant="destructive" disabled={deleting} onClick={confirmDelete}>
-              <span aria-hidden="true">🗑️</span>
+              <Trash2 aria-hidden="true" className="size-4" />
               {deleting ? "Deleting..." : "Delete shipment"}
             </AlertDialogAction>
           </AlertDialogFooter>
